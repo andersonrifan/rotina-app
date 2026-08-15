@@ -13,7 +13,16 @@ direito — "o botão X tá estranho" já é suficiente. Eu organizo depois.
 
 <!-- Escreva aqui. Uma linha por ideia, ou parágrafos, tanto faz. -->
 
--
+- Gostaria de remover os botões de editar no geral. A ideia é que se for para editar clique e segure. Aí pode aparecer o concluir quando finalizar.
+-  A aba Dia (que é a mais importante do APP) não é nada boa para o usuário. toques para rolar a tela está abrindo a edição. O modo editar que precisa de muito mais atenção (fazer baseado Microsoft teams, volte o toogle de visualização de agenda (duração do bloco consome mais espaço no dia) e a lista (como é atualmente). No modo edição ao clicar no item deve ser possível editar a hora inicial até a final. Deve ser bem interativo, os cartões se moverem quando arrastados etc. Pode consumir bastante aqui para ficar o melhor possível, tome referência dos apps de agenda das big techs.
+- Melhorar aba treino para ser ter as funcionalidades que tinha no antigo de marcar as quantidades feitas, duração etc. Essa aba também deve ser bem melhorada, adicionar exercício é bem limitado, ao editar não precisa colocar quando começa só a duração, se for adicionar o exercício no Dia já resolve quando começa. onde diz o tempo (ao lado de Séries, bi-sets...) está mal diagramado não centralizado.
+- Adiciona no início gráficos e visualizações do que der no geral e sobre os exercícios. no perfil adicione aba de Estatísticas.
+- Em Caixa não está claro o que define o estoque. onde isso é colocado?
+- Em Comida as horas não atualizam se eu alterar em Dia, por exemplo, se eu alterar o Almoço para 12:05 em Comida fica aparecendo que é 12:00
+- Em Caixa > Editar. clicar 1 em um para alterar é muito ruim. Ao adicionar remédio o ideal é que abra um popup para configurar o remédio.
+- Remover o desfazer, ele atrapalha muito
+- Em todas as telas a barra (quando abre algum popup, por exemplo) é de enfeite, não funciona arrastar a barra para sair do popup
+
 
 ---
 
