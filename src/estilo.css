@@ -1,19 +1,19 @@
 ﻿/* ===========================================================================
-   ROTINA â€” folha de estilo
+   ROTINA — folha de estilo
 
-   Design system "Organic" do handoff: creme + terracota + sÃ¡lvia, Caprasimo
-   nos tÃ­tulos, Figtree em todo o resto.
+   Design system "Organic" do handoff: creme + terracota + sálvia, Caprasimo
+   nos títulos, Figtree em todo o resto.
 
-   Toda decisÃ£o visual mora na seÃ§Ã£o 01. As demais seÃ§Ãµes sÃ³ consomem token â€”
-   nÃ£o existe cor, medida ou sombra solta no meio do arquivo. Trocar a
-   identidade do app inteiro Ã© reescrever a seÃ§Ã£o 01.
+   Toda decisão visual mora na seção 01. As demais seções só consomem token —
+   não existe cor, medida ou sombra solta no meio do arquivo. Trocar a
+   identidade do app inteiro é reescrever a seção 01.
 
-   SUMÃRIO
+   SUMÁRIO
      01. Tokens
      02. Base e moldura do app
-     03. PeÃ§as compartilhadas (cartÃ£o, botÃ£o, pÃ­lula, barra, stepper, campo)
+     03. Peças compartilhadas (cartão, botão, pílula, barra, stepper, campo)
      04. Barra de abas
-     05. InÃ­cio
+     05. Início
      06. Dia
      07. Treino
      08. Comida
@@ -21,11 +21,11 @@
      10. Folha, aviso e telas cheias
      11. Acessibilidade
 
-   REGRAS INVIOLÃVEIS DO HANDOFF, e onde estÃ£o garantidas:
-     1. Alvo de toque â‰¥ 44 Ã— 44 px  â†’ `.tocavel` e `button` na seÃ§Ã£o 11.
-     2. Texto < 18,66 px com 4,5:1  â†’ a paleta da seÃ§Ã£o 01 jÃ¡ foi auditada;
+   REGRAS INVIOLÁVEIS DO HANDOFF, e onde estão garantidas:
+     1. Alvo de toque ≥ 44 × 44 px  → `.tocavel` e `button` na seção 11.
+     2. Texto < 18,66 px com 4,5:1  → a paleta da seção 01 já foi auditada;
         nunca use --neutro-tracejado nem --linha como cor de TEXTO.
-     3. Branco sÃ³ sobre --acao, --acao-cartao ou --salvia.
+     3. Branco só sobre --acao, --acao-cartao ou --salvia.
    =========================================================================== */
 
 
@@ -79,11 +79,11 @@
    01. TOKENS
    =========================================================================== */
 :root{
-  /* --- SuperfÃ­cies --- */
+  /* --- Superfícies --- */
   --fundo:            #f5ead8;   /* fundo de todas as telas */
-  --superficie:       #ebddc5;   /* cartÃµes, barra de abas, chips inativos */
-  --superficie-clara: #f9f4ed;   /* cartÃ£o dentro de cartÃ£o, botÃ£o de stepper */
-  --superficie-marcada:#f0ead9;  /* bloco do dia jÃ¡ marcado */
+  --superficie:       #ebddc5;   /* cartões, barra de abas, chips inativos */
+  --superficie-clara: #f9f4ed;   /* cartão dentro de cartão, botão de stepper */
+  --superficie-marcada:#f0ead9;  /* bloco do dia já marcado */
 
   /* --- Texto (auditado para 4,5:1 sobre --fundo e --superficie) --- */
   --texto:      #201e1d;
@@ -95,17 +95,17 @@
 
   /* --- Terracota --- */
   --acao:         #8c491a;       /* controle ativo, com texto branco */
-  --acao-cartao:  #a4501f;       /* cartÃ£o "agora" e cartÃ£o de kcal */
+  --acao-cartao:  #a4501f;       /* cartão "agora" e cartão de kcal */
   --acao-escura:  #7d3a12;       /* faixa interna, texto de alerta */
   --acao-clara:   #ffe1d0;       /* bloco atual, chip de aviso */
   --acao-tenue:   #fff2eb;       /* fundo de item pendente */
   --acao-contorno:#f6a06b;       /* borda de item pendente */
-  --acao-viva:    #c67139;       /* cartÃ£o do replanejar, categoria hobby */
+  --acao-viva:    #c67139;       /* cartão do replanejar, categoria hobby */
 
-  /* --- SÃ¡lvia --- */
-  --salvia:       #56633f;       /* concluÃ­do, chip ativo, barras */
-  --salvia-clara: #e1eecc;       /* cartÃ£o de treino, item concluÃ­do */
-  --salvia-tenue: #f0fae1;       /* chip dentro do cartÃ£o de treino */
+  /* --- Sálvia --- */
+  --salvia:       #56633f;       /* concluído, chip ativo, barras */
+  --salvia-clara: #e1eecc;       /* cartão de treino, item concluído */
+  --salvia-tenue: #f0fae1;       /* chip dentro do cartão de treino */
   --salvia-texto: #3d472b;       /* texto sobre --salvia-clara */
 
   /* --- Neutros de contorno (NUNCA como cor de texto) --- */
@@ -123,9 +123,9 @@
   --r-linha:20px;    --r-linha-menor:18px; --r-celula:14px; --r-min:9px;
   --r-pilula:999px;
 
-  /* --- EspaÃ§amento --- */
-  --gap-cartoes:12px;      /* entre cartÃµes */
-  --pad-cartao:16px;       /* interno dos cartÃµes */
+  /* --- Espaçamento --- */
+  --gap-cartoes:12px;      /* entre cartões */
+  --pad-cartao:16px;       /* interno dos cartões */
   --gap-linhas:7px;        /* entre linhas de lista */
   --pad-tela:22px;         /* margem lateral das telas */
 
@@ -160,7 +160,7 @@ body{
 }
 
 /* A moldura ocupa a tela toda no celular. Em telas maiores ela vira o
-   aparelho de referÃªncia do handoff (390 Ã— 844), centralizado. */
+   aparelho de referência do handoff (390 × 844), centralizado. */
 #aparelho{
   position:relative;
   display:flex; flex-direction:column;
@@ -193,7 +193,7 @@ body{
 button{ font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
 input{ font:inherit; color:inherit; }
 
-/* NÃºmeros de horÃ¡rio e quantidade sempre alinhados em colunas. */
+/* Números de horário e quantidade sempre alinhados em colunas. */
 .bloco-hora, .bloco-dur, .dia-numero, .kcal-numero, .estoque-dias, .refeicao-kcal,
 .refeicao-prot, .impacto-valor, .stepper-valor, .compra-qtd,
 .ajuste-detalhe, .cartao-edicao-faixa, .agora-ate, .agora-faixa-hora, .treino-contagem{
@@ -213,7 +213,7 @@ input{ font:inherit; color:inherit; }
    03. PEÃ‡AS COMPARTILHADAS
    =========================================================================== */
 
-/* --- CabeÃ§alho de tela --- */
+/* --- Cabeçalho de tela --- */
 .cabecalho{
   display:flex; align-items:flex-end; justify-content:space-between;
   gap:10px; padding:16px 0 4px;
@@ -234,10 +234,10 @@ input{ font:inherit; color:inherit; }
 }
 .cabecalho-acoes{ display:flex; gap:6px; flex-shrink:0; padding-bottom:2px; }
 
-/* Telas cujo tÃ­tulo Ã© curto usam um tamanho menor, como no handoff. */
+/* Telas cujo título é curto usam um tamanho menor, como no handoff. */
 .tela-dia .titulo-tela, .tela-replanejar .titulo-tela{ font-size:26px; line-height:1.05; }
 
-/* --- RÃ³tulos --- */
+/* --- Rótulos --- */
 .rotulo-secao{
   font-size:10px; font-weight:700; text-transform:uppercase;
   letter-spacing:.18em; color:var(--texto-fraco);
@@ -257,7 +257,7 @@ input{ font:inherit; color:inherit; }
   line-height:1.5;
 }
 
-/* --- CartÃ£o --- */
+/* --- Cartão --- */
 .cartao{
   background:var(--superficie);
   border-radius:var(--r-medio);
@@ -266,7 +266,7 @@ input{ font:inherit; color:inherit; }
 }
 .cartao-topo{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
 
-/* --- BotÃµes --- */
+/* --- Botões --- */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:7px;
   min-height:var(--toque);
@@ -288,7 +288,7 @@ input{ font:inherit; color:inherit; }
 .btn.cresce{ flex:1.4; }
 .largura-cheia{ width:100%; }
 
-/* --- PÃ­lula --- */
+/* --- Pílula --- */
 .pilula{
   min-height:var(--toque);
   padding:0 14px;
@@ -300,11 +300,11 @@ input{ font:inherit; color:inherit; }
 .pilula.ativa{ background:var(--acao); color:var(--branco); font-weight:700; }
 
 /* --- Barra de progresso --- */
-/* `flex:1 1 auto`, e nÃ£o `flex:1`. Em contÃªiner-linha (o cartÃ£o "agora", o
+/* `flex:1 1 auto`, e não `flex:1`. Em contêiner-linha (o cartão "agora", o
    progresso do treino) os dois crescem igual na horizontal; mas `flex:1`
-   significa `flex-basis:0`, que em contÃªiner-coluna vira ALTURA zero e faz a
-   barra sumir â€” foi o que aconteceu no cartÃ£o de kcal e no estoque. Com
-   `auto`, a altura de 8 px Ã© respeitada nos dois casos. */
+   significa `flex-basis:0`, que em contêiner-coluna vira ALTURA zero e faz a
+   barra sumir — foi o que aconteceu no cartão de kcal e no estoque. Com
+   `auto`, a altura de 8 px é respeitada nos dois casos. */
 .barra{
   flex:1 1 auto; width:100%; height:8px;
   border-radius:var(--r-pilula);
@@ -322,7 +322,7 @@ input{ font:inherit; color:inherit; }
 
 /* --- Stepper --- */
 /* O stepper inteiro tem exatamente a altura de um alvo de toque: os dois
-   botÃµes ocupam essa altura toda, sem padding no contÃªiner roubando pixels. */
+   botões ocupam essa altura toda, sem padding no contêiner roubando pixels. */
 .stepper{
   display:inline-flex; align-items:center;
   background:var(--superficie-clara);
@@ -349,12 +349,12 @@ input{ font:inherit; color:inherit; }
   padding:0 14px;
   border:none; border-radius:var(--r-linha-menor);
   background:var(--superficie);
-  font-size:16px;          /* 16px evita o zoom automÃ¡tico do iOS ao focar */
+  font-size:16px;          /* 16px evita o zoom automático do iOS ao focar */
   font-weight:600; color:var(--texto);
 }
 .campo-entrada::placeholder{ color:var(--texto-fraco); font-weight:500; }
 
-/* --- SugestÃµes e chips genÃ©ricos --- */
+/* --- Sugestões e chips genéricos --- */
 .sugestoes{ display:flex; flex-wrap:wrap; gap:6px; }
 .sugestao, .chip-acao{
   min-height:var(--toque);
@@ -374,7 +374,7 @@ input{ font:inherit; color:inherit; }
   color:var(--texto-3); font-size:11.5px; font-weight:600;
 }
 
-/* --- BotÃµes pequenos de lista --- */
+/* --- Botões pequenos de lista --- */
 .btn-mini{
   width:var(--toque); height:var(--toque);
   display:inline-flex; align-items:center; justify-content:center;
@@ -399,7 +399,7 @@ input{ font:inherit; color:inherit; }
 .vazio-texto{ font-size:12px; font-weight:500; color:var(--texto-fraco); max-width:270px; }
 .vazio-acoes{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-top:4px; }
 
-/* --- Grade de dois cartÃµes --- */
+/* --- Grade de dois cartões --- */
 .grade-dupla{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 
 
@@ -425,7 +425,7 @@ input{ font:inherit; color:inherit; }
 
 
 /* ===========================================================================
-   05. INÃCIO
+   05. INÍCIO
    =========================================================================== */
 .cartao-agora{
   background:var(--acao-cartao); color:var(--branco);
@@ -595,7 +595,7 @@ input{ font:inherit; color:inherit; }
 .etiqueta-pulei{ background:var(--superficie); color:var(--texto-3); }
 .bloco.marcado .etiqueta-pulei{ background:var(--fundo); }
 
-/* --- Lista em ediÃ§Ã£o --- */
+/* --- Lista em edição --- */
 .lista-edicao{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
 .cartao-edicao{
   background:var(--superficie);
@@ -640,7 +640,7 @@ input{ font:inherit; color:inherit; }
 .alca-duracao.ativa{ background:var(--salvia-clara); }
 .alca-duracao.ativa .pega{ background:var(--salvia); }
 
-/* --- BotÃ£o flutuante --- */
+/* --- Botão flutuante --- */
 .flutuante{
   position:absolute; right:22px; bottom:106px; z-index:20;
   width:58px; height:58px;
@@ -763,9 +763,9 @@ input{ font:inherit; color:inherit; }
 /* ===========================================================================
    08. COMIDA
    =========================================================================== */
-/* Cada segmento Ã© um alvo de toque cheio (44 px). O contÃªiner fica com 50 px
-   por causa do respiro de 3 px â€” o handoff pede 44, e o nÃºmero que importa
-   para a regra 1 Ã© o do alvo, nÃ£o o da moldura. */
+/* Cada segmento é um alvo de toque cheio (44 px). O contêiner fica com 50 px
+   por causa do respiro de 3 px — o handoff pede 44, e o número que importa
+   para a regra 1 é o do alvo, não o da moldura. */
 .segmentado{
   display:grid; grid-template-columns:repeat(3, 1fr); gap:3px;
   background:var(--superficie);
@@ -823,7 +823,7 @@ input{ font:inherit; color:inherit; }
 .refeicao-prot{ font-size:10.5px; font-weight:500; color:var(--texto-4); }
 
 
-/* --- Grade do cardÃ¡pio --- */
+/* --- Grade do cardápio --- */
 .grade-cardapio{
   display:grid;
   grid-template-columns:64px repeat(7, 1fr);
@@ -835,17 +835,17 @@ input{ font:inherit; color:inherit; }
   text-align:center;
   font-size:9.5px; font-weight:700; color:var(--texto-fraco);
 }
-/* Quebra em duas linhas em vez de cortar: "CafÃ© da manhÃ£" nÃ£o vira
-   "CafÃ© da ma...". Cabe nos 30 px da cÃ©lula ao lado. */
+/* Quebra em duas linhas em vez de cortar: "Café da manhã" não vira
+   "Café da ma...". Cabe nos 30 px da célula ao lado. */
 .grade-rotulo{
   font-size:9.5px; font-weight:600; color:var(--texto-3);
   line-height:1.15; padding-right:4px;
 }
-/* A cÃ©lula Ã© resumo visual, nÃ£o controle â€” quem edita Ã© a lista logo abaixo,
-   com linhas de 56 px. Ã‰ por isso que 30 px de altura aqui nÃ£o conflita com a
-   regra dos 44 px: nÃ£o hÃ¡ nada para tocar. */
+/* A célula é resumo visual, não controle — quem edita é a lista logo abaixo,
+   com linhas de 56 px. É por isso que 30 px de altura aqui não conflita com a
+   regra dos 44 px: não há nada para tocar. */
 .celula-cardapio{ height:30px; border-radius:var(--r-min); pointer-events:none; }
-/* Trocar o dia mostrado na lista se faz pelo cabeÃ§alho da coluna, que Ã© um
+/* Trocar o dia mostrado na lista se faz pelo cabeçalho da coluna, que é um
    alvo de toque de verdade. */
 .grade-cabecalho.dia-selecionavel{
   min-height:var(--toque);
@@ -906,7 +906,7 @@ input{ font:inherit; color:inherit; }
 .compra.feito .compra-nome{ text-decoration:line-through; color:var(--texto-3); font-weight:500; }
 .compra-qtd{ font-size:11px; font-weight:600; color:var(--texto-4); flex-shrink:0; }
 
-/* --- EdiÃ§Ã£o das refeiÃ§Ãµes --- */
+/* --- Edição das refeições --- */
 .lista-edicao-refeicoes, .lista-edicao-remedios{
   display:flex; flex-direction:column; gap:var(--gap-linhas);
 }
@@ -972,7 +972,7 @@ input{ font:inherit; color:inherit; }
 #camadas{ position:fixed; inset:0; pointer-events:none; z-index:100; }
 #camadas > *{ pointer-events:auto; }
 
-/* Nas telas grandes as camadas ficam presas ao aparelho, nÃ£o Ã  janela. */
+/* Nas telas grandes as camadas ficam presas ao aparelho, não à janela. */
 @media (min-width:520px){
   #camadas{
     inset:auto; position:fixed;
@@ -1113,7 +1113,7 @@ input{ font:inherit; color:inherit; }
 /* ===========================================================================
    11. ACESSIBILIDADE
 
-   A regra 1 do handoff â€” 44 Ã— 44 px em tudo que se toca â€” Ã© garantida aqui,
+   A regra 1 do handoff — 44 × 44 px em tudo que se toca — é garantida aqui,
    uma vez, em vez de ser lembrada componente a componente.
    =========================================================================== */
 button, .tocavel{
@@ -1121,9 +1121,9 @@ button, .tocavel{
   touch-action:manipulation;
   -webkit-tap-highlight-color:transparent;
 }
-/* ExceÃ§Ã£o consciente: a volta do circuito Ã© um segmento de 38 px dentro de
-   um seletor de 44 px, e os trÃªs dividem a largura da tela â€” o alvo efetivo
-   fica bem acima da Ã¡rea mÃ­nima recomendada. */
+/* Exceção consciente: a volta do circuito é um segmento de 38 px dentro de
+   um seletor de 44 px, e os três dividem a largura da tela — o alvo efetivo
+   fica bem acima da área mínima recomendada. */
 .volta{ min-height:38px; }
 
 :focus-visible{
@@ -1137,4 +1137,16 @@ button, .tocavel{
     animation-duration:.01ms !important;
     transition-duration:.01ms !important;
   }
+}
+
+/* --- Backup e avisos fortes ------------------------------------------------ */
+.linha-botoes{ display:flex; gap:9px; }
+.linha-botoes .btn{ flex:1; }
+/* Nota que precisa ser lida antes de confirmar algo irreversível. */
+.nota.destaque{
+  background:var(--acao-tenue);
+  border:1.5px solid var(--acao-contorno);
+  border-radius:var(--r-linha-menor);
+  padding:11px 14px;
+  color:var(--acao-escura); font-weight:600;
 }

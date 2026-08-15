@@ -4,7 +4,7 @@ import { clonar } from '../nucleo/armazem.js';
 import { diaDaSemana, semanaDe, dataCurta, rotuloDuracao } from '../nucleo/tempo.js';
 import { treinoDoDia, voltasDoTreino, progressoDoTreino, exercicioFeito } from '../nucleo/modelo.js';
 import { h, icone, cabecalhoTela, pilula, barraProgresso, estadoVazio, stepper,
-         ajustarHora, proximoDaLista, rotuloSecao } from '../ui/index.js';
+         ajustarHora, rotuloSecao, abrirFolhaTexto } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 3 — TREINO
@@ -229,9 +229,14 @@ export function treinoEmEdicao(iso, treino){
 export function acharTreino(dados, id){ return dados.treinos.filter(t => t.id === id)[0]; }
 
 export function renomearTreino(treino){
-  agir('Treino renomeado', d => {
-    const t = acharTreino(d, treino.id);
-    t.nome = proximoDaLista(NOMES_TREINO, t.nome);
+  abrirFolhaTexto({
+    titulo: 'Nome do treino',
+    valor: treino.nome,
+    exemplo: 'Ex.: Peito e tríceps',
+    sugestoes: NOMES_TREINO,
+    aoConfirmar: nome => agir('Treino renomeado', d => {
+      acharTreino(d, treino.id).nome = nome;
+    })
   });
 }
 

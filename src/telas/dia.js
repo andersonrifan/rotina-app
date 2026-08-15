@@ -6,7 +6,8 @@ import { hojeISO, deISO, diaDaSemana, semanaDe, dataCurta, ehHoje, ehPassado,
          paraMinutos, paraHora, rotuloDuracao } from '../nucleo/tempo.js';
 import { blocosDoDia, blocoAtual, ordenarPorHora, materializar, statusDoBloco, proximoStatus,
          ehSomenteLeitura, treinoDoDia, corDaCategoria } from '../nucleo/modelo.js';
-import { h, icone, cabecalhoTela, pilula, estadoVazio, stepper, ajustarHora, abrirFolha, fecharFolha } from '../ui/index.js';
+import { h, icone, cabecalhoTela, pilula, estadoVazio, stepper, ajustarHora,
+         abrirFolha, fecharFolha, abrirFolhaTexto } from '../ui/index.js';
 import { avisoDeAtraso } from './extras.js';
 
 /* ===========================================================================
@@ -232,7 +233,10 @@ export function cartaoEditavel(iso, bloco, soLeitura){
         onPointerDown: ev => iniciarArraste(ev, iso, bloco, 'mover', soLeitura)
       }, icone('alca', 18)),
       h('span', {class:'bloco-barra', style:'background:' + corDaCategoria(bloco.cat)}),
-      h('div', {class:'cartao-edicao-texto'},
+      /* O título é tocável: sem isto não haveria como renomear um bloco que
+         já existe — só criar outro e apagar o antigo. */
+      h('div', {class:'cartao-edicao-texto tocavel', 'aria-label':'Renomear ' + bloco.titulo,
+        onTap: () => renomearBloco(iso, bloco, soLeitura)},
         h('div', {class:'bloco-titulo'}, bloco.titulo),
         h('div', {class:'cartao-edicao-faixa'}, bloco.hora + ' – ' + fim + ' · ' + rotuloDuracao(bloco.dur))
       ),
@@ -246,6 +250,21 @@ export function cartaoEditavel(iso, bloco, soLeitura){
       onPointerDown: ev => iniciarArraste(ev, iso, bloco, 'duracao', soLeitura)
     }, h('span', {class:'pega'}))
   );
+}
+
+function renomearBloco(iso, bloco, soLeitura){
+  if(soLeitura){ avisar('Reabra o dia para editar'); return; }
+  abrirFolhaTexto({
+    titulo: 'Nome do bloco',
+    valor: bloco.titulo,
+    exemplo: 'Ex.: Consulta médica',
+    sugestoes: TITULOS_SUGERIDOS,
+    aoConfirmar: titulo => agir('Bloco renomeado', d => {
+      const lista = materializar(d, iso);
+      const alvo = lista.filter(b => b.id === bloco.id)[0];
+      if(alvo) alvo.titulo = titulo;
+    })
+  });
 }
 
 export function removerBloco(iso, bloco, soLeitura){

@@ -1,9 +1,11 @@
-import { Dados, agir, definirTela } from '../nucleo/estado.js';
+import { Dados, agir, avisar, definirTela } from '../nucleo/estado.js';
+import { baixarBackup, interpretarBackup, restaurar, resumirBackup } from '../nucleo/backup.js';
 import { hojeISO, diaDaSemana, dataCabecalho, saudacao, agoraEmMinutos,
          paraMinutos, paraHora, rotuloDuracao } from '../nucleo/tempo.js';
 import { blocoAtual, proximoBloco, remedioTomado, remediosPendentesHoje, treinoDoDia,
          progressoDoTreino, totaisDoDia, comprasAtuais, comprasFaltando } from '../nucleo/modelo.js';
-import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, numeroBR } from '../ui/index.js';
+import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, numeroBR,
+         abrirFolha, fecharFolha } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 1 — INÍCIO
@@ -26,8 +28,91 @@ export function telaInicio(){
     cartaoAgora(iso),
     cartaoRemedios(iso),
     h('div', {class:'grade-dupla'}, cartaoTreino(iso), cartaoComida(iso)),
-    linhaCompras()
+    linhaCompras(),
+    cartaoDeDados()
   );
+}
+
+/* --- Backup --------------------------------------------------------------
+   Os dados vivem em um aparelho só, num armazenamento que o navegador pode
+   apagar sozinho. Esta é a única porta de saída — e a única forma de levar a
+   rotina para um celular novo. */
+function cartaoDeDados(){
+  return h('section', {class:'cartao'},
+    rotuloSecao('Seus dados'),
+    h('p', {class:'nota'},
+      'Tudo fica só neste aparelho. Baixe um backup de vez em quando — é o que ' +
+      'permite trocar de celular ou voltar atrás se algo der errado.'),
+    h('div', {class:'linha-botoes'},
+      h('button', {class:'btn btn-suave', type:'button', onTap: exportar}, 'Baixar backup'),
+      h('button', {class:'btn btn-suave', type:'button', onTap: escolherArquivo}, 'Restaurar')
+    )
+  );
+}
+
+function exportar(){
+  try{
+    const nome = baixarBackup();
+    avisar('Backup salvo: ' + nome);
+  }catch(err){
+    console.error('Falha ao exportar:', err);
+    avisar('Não consegui baixar o arquivo neste navegador.');
+  }
+}
+
+/* Um <input type=file> descartável: criar na hora evita deixar no DOM um
+   elemento invisível que só serve uma vez a cada muitos meses. */
+function escolherArquivo(){
+  const entrada = document.createElement('input');
+  entrada.type = 'file';
+  entrada.accept = 'application/json,.json';
+  entrada.addEventListener('change', () => {
+    const arquivo = entrada.files && entrada.files[0];
+    if(arquivo) lerArquivo(arquivo);
+  });
+  entrada.click();
+}
+
+function lerArquivo(arquivo){
+  const leitor = new FileReader();
+  leitor.onerror = () => avisar('Não consegui ler esse arquivo.');
+  leitor.onload = () => {
+    let dados;
+    try{
+      dados = interpretarBackup(String(leitor.result));
+    }catch(err){
+      avisar(err.message);
+      return;
+    }
+    confirmarRestauracao(String(leitor.result), dados);
+  };
+  leitor.readAsText(arquivo);
+}
+
+/* Restaurar apaga tudo o que está no aparelho. Isso pede uma confirmação que
+   diga o que vai entrar — e não um "tem certeza?" genérico. */
+function confirmarRestauracao(texto, dados){
+  abrirFolha({
+    titulo: 'Restaurar backup',
+    rotuloConfirmar: 'Substituir tudo',
+    corpo: () => h('div', {class:'folha-corpo'},
+      h('p', {class:'nota'},
+        'O backup traz: ' + resumirBackup(dados) + '.'),
+      h('p', {class:'nota destaque'},
+        'Isto substitui TODOS os dados que estão neste aparelho agora. ' +
+        'Não dá para desfazer depois de fechar o app.')
+    ),
+    confirmar: () => {
+      try{
+        restaurar(texto);
+        fecharFolha();
+        definirTela({aba: 'inicio'});
+        avisar('Backup restaurado.');
+      }catch(err){
+        avisar(err.message);
+      }
+    }
+  });
 }
 
 /* --- Acontecendo agora ---------------------------------------------------- */
@@ -83,7 +168,7 @@ export function cartaoRemedios(iso){
     );
   }
 
-  const pendentes = remediosPendentesHoje().length;
+  const pendentes = remediosPendentesHoje(iso).length;
 
   return h('section', {class:'cartao'},
     h('div', {class:'cartao-topo'},

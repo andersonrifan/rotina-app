@@ -99,6 +99,29 @@ Duas formas de trocar:
 
 ---
 
+## Mandar para alguém testar
+
+O caminho recomendado é **hospedar a PWA**, não mandar arquivo:
+
+```bash
+npm run build          # gera dist/
+```
+
+Arraste a pasta `dist/` em [app.netlify.com/drop](https://app.netlify.com/drop)
+e você recebe uma URL em segundos. Quem abrir no celular pode usar
+*Menu → Adicionar à tela inicial*: fica com ícone, abre em tela cheia e passa a
+funcionar offline.
+
+Por que não mandar o `.html` de arquivo único para testar: no Android, abrir um
+HTML vindo do WhatsApp geralmente cai num visualizador em vez do navegador, e
+sob `file://` o armazenamento é frágil — os dados do testador podem sumir entre
+uma sessão e outra. O arquivo único serve para mostrar o app a alguém na hora,
+não para uma rodada de testes de dias.
+
+**Peça a quem testar:** depois de alguns dias, tocar em *Baixar backup* na tela
+Início e te enviar o JSON. Você consegue restaurar no seu aparelho e ver
+exatamente o que a pessoa montou.
+
 ## Publicar
 
 Veja [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md). Resumo:

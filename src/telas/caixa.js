@@ -1,9 +1,9 @@
-import { DIAS, COMPARTIMENTOS, DOSES } from '../dados/modelo.js';
+import { DIAS, COMPARTIMENTOS, DOSES, NOMES_REMEDIO_SUGERIDOS } from '../dados/modelo.js';
 import { Dados, Tela, agir, agirSemAviso, avisar, definirTela } from '../nucleo/estado.js';
 import { hojeISO, diaDaSemana, semanaDe, ehFuturo } from '../nucleo/tempo.js';
 import { compartimentosEmUso, remediosDoCompartimento, estadoDaCelula, DIAS_PARA_REPOR } from '../nucleo/modelo.js';
 import { h, icone, cabecalhoTela, pilula, rotuloSecao, barraProgresso, estadoVazio,
-         stepper, ajustarHora, proximoDaLista } from '../ui/index.js';
+         stepper, ajustarHora, proximoDaLista, abrirFolhaTexto } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 5 — CAIXA DE REMÉDIOS
@@ -183,11 +183,14 @@ export function caixaEmEdicao(){
 export function acharRemedio(dados, id){ return dados.remedios.filter(m => m.id === id)[0]; }
 
 export function renomearRemedio(med){
-  const NOMES = ['Vitamina D', 'Ômega 3', 'Multivitamínico', 'Magnésio', 'Creatina',
-                 'Vitamina B12', 'Vitamina C', 'Zinco', 'Colágeno'];
-  agir('Remédio renomeado', d => {
-    const m = acharRemedio(d, med.id);
-    m.nome = proximoDaLista(NOMES, m.nome);
+  abrirFolhaTexto({
+    titulo: 'Nome do remédio',
+    valor: med.nome,
+    exemplo: 'Ex.: Losartana 50 mg',
+    sugestoes: NOMES_REMEDIO_SUGERIDOS,
+    aoConfirmar: nome => agir('Remédio renomeado', d => {
+      acharRemedio(d, med.id).nome = nome;
+    })
   });
 }
 

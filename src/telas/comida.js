@@ -5,7 +5,7 @@ import { pratoDe, nutriDaReceita, totaisDoDia, refeicaoFeita, gerarCompras,
          comprasAtuais, SECOES_COMPRA } from '../nucleo/modelo.js';
 import { RECEITAS } from '../dados/receitas.js';
 import { h, icone, cabecalhoTela, pilula, rotuloSecao, barraProgresso, estadoVazio,
-         stepper, ajustarHora, proximoDaLista, numeroBR, abrirFolha, fecharFolha } from '../ui/index.js';
+         stepper, ajustarHora, numeroBR, abrirFolha, fecharFolha, abrirFolhaTexto } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 4 — COMIDA
@@ -73,8 +73,7 @@ export function comidaHoje(iso){
 
     h('div', {class:'lista-refeicoes'},
       Dados.slots.map(slot => linhaDeRefeicao(iso, diaK, slot))
-    ),
-
+    )
   );
 }
 
@@ -339,9 +338,14 @@ export function edicaoDasRefeicoes(){
 }
 
 export function renomearSlot(slot){
-  agir('Refeição renomeada', d => {
-    const s = d.slots.filter(x => x.id === slot.id)[0];
-    s.nome = proximoDaLista(NOMES_REFEICAO, s.nome);
+  abrirFolhaTexto({
+    titulo: 'Nome da refeição',
+    valor: slot.nome,
+    exemplo: 'Ex.: Café reforçado',
+    sugestoes: NOMES_REFEICAO,
+    aoConfirmar: nome => agir('Refeição renomeada', d => {
+      d.slots.filter(x => x.id === slot.id)[0].nome = nome;
+    })
   });
 }
 

@@ -1,4 +1,5 @@
-import { Tela, avisoAtual, desfazer, definirTela } from '../nucleo/estado.js';
+import { Tela, avisoAtual, desfazer, definirTela, avisar } from '../nucleo/estado.js';
+import { redesenhar } from '../nucleo/render.js';
 import { paraMinutos, paraHora } from '../nucleo/tempo.js';
 
 /* ===========================================================================
@@ -241,3 +242,59 @@ export function desenharFolha(){
 
 export function abrirFolha(config){ definirTela({folha: config}); }
 export function fecharFolha(){ definirTela({folha: null}); }
+
+/* ===========================================================================
+   FOLHA DE TEXTO
+
+   Renomear qualquer coisa no app passa por aqui: um campo de texto de
+   verdade, com as sugestões logo abaixo para quem quiser ir rápido.
+
+   O protótipo do handoff ciclava listas prontas porque não tinha teclado —
+   e o próprio handoff pedia campos reais na implementação. Sem isto, alguém
+   que chama a refeição de "Café reforçado" simplesmente não consegue.
+   =========================================================================== */
+
+/* Rascunho do texto em edição. Vive fora do estado porque some ao fechar. */
+let textoEmEdicao = '';
+
+/**
+ * abrirFolhaTexto({
+ *   titulo:    'Renomear refeição',
+ *   valor:     'Café da manhã',
+ *   sugestoes: ['Café', 'Desjejum', ...],   // opcional
+ *   aoConfirmar: novoNome => { ... }
+ * })
+ */
+export function abrirFolhaTexto(config){
+  textoEmEdicao = config.valor || '';
+  abrirFolha({
+    titulo: config.titulo,
+    rotuloConfirmar: config.rotuloConfirmar || 'Salvar',
+    corpo: () => h('div', {class:'folha-corpo'},
+      h('input', {
+        class:'campo-entrada', type:'text', value: textoEmEdicao,
+        maxlength: String(config.limite || 60),
+        placeholder: config.exemplo || 'Escreva aqui',
+        'aria-label': config.titulo,
+        onInput: ev => { textoEmEdicao = ev.target.value; }
+      }),
+      config.sugestoes && config.sugestoes.length
+        ? h('div', null,
+            h('span', {class:'campo-rotulo'}, 'Sugestões'),
+            h('div', {class:'sugestoes'},
+              config.sugestoes.map(s => h('button', {
+                class:'sugestao', type:'button',
+                onTap: () => { textoEmEdicao = s; redesenhar(); }
+              }, s)))
+          )
+        : null
+    ),
+    confirmar: () => {
+      const limpo = textoEmEdicao.trim();
+      /* Nome vazio não salva: some da lista e a pessoa não entende por quê. */
+      if(!limpo){ avisar('O nome não pode ficar vazio'); return; }
+      config.aoConfirmar(limpo);
+      fecharFolha();
+    }
+  });
+}

@@ -308,3 +308,10 @@ export const MODELO_VAZIO = {
   remedios: [],
   cardapio: {Seg:{}, Ter:{}, Qua:{}, Qui:{}, Sex:{}, 'Sáb':{}, Dom:{}}
 };
+
+/* Sugestões do campo "Nome do remédio". São atalhos — o campo aceita
+   qualquer texto, inclusive medicamento com dosagem no nome. */
+export const NOMES_REMEDIO_SUGERIDOS = [
+  'Vitamina D', 'Ômega 3', 'Multivitamínico', 'Magnésio',
+  'Creatina', 'Vitamina B12', 'Vitamina C', 'Zinco'
+];
