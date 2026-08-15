@@ -1,9 +1,11 @@
 import { DIAS, COMPARTIMENTOS, DOSES, NOMES_REMEDIO_SUGERIDOS } from '../dados/modelo.js';
 import { Dados, Tela, agir, agirSemAviso, avisar, definirTela } from '../nucleo/estado.js';
+import { redesenhar } from '../nucleo/render.js';
 import { hojeISO, diaDaSemana, semanaDe, ehFuturo } from '../nucleo/tempo.js';
 import { compartimentosEmUso, remediosDoCompartimento, estadoDaCelula, DIAS_PARA_REPOR } from '../nucleo/modelo.js';
 import { h, icone, cabecalhoTela, pilula, rotuloSecao, barraProgresso, estadoVazio,
-         stepper, ajustarHora, proximoDaLista, abrirFolhaTexto } from '../ui/index.js';
+         stepper, ajustarHora, proximoDaLista, abrirFolhaTexto,
+         pilulaConcluir, ligarToqueLongo, consumirToqueLongo, abrirFolha, fecharFolha } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 5 — CAIXA DE REMÉDIOS
@@ -21,9 +23,7 @@ export function telaCaixa(){
   const editando = Tela.editando.caixa;
   return h('div', {class:'tela tela-caixa'},
     cabecalhoTela(null, 'Caixa', null,
-      [pilula(editando ? 'Concluir' : 'Editar',
-              () => definirTela({editando: Object.assign({}, Tela.editando, {caixa: !editando})}),
-              {ativa: editando})]),
+      editando ? [pilulaConcluir(() => definirTela({editando: Object.assign({}, Tela.editando, {caixa: false})}))] : null),
     editando ? caixaEmEdicao() : caixaEmLeitura()
   );
 }
@@ -88,13 +88,20 @@ export function celulaDaCaixa(iso, comp){
     return h('div', {class:'celula-caixa ' + estado, 'aria-hidden':'true'});
   }
 
-  return h('button', {
+  const celula = h('button', {
       class:'celula-caixa ' + estado,
       type:'button',
       'aria-label': rotulo,
       'aria-pressed': String(estado === 'tomado'),
-      onTap: () => alternarCompartimento(iso, comp, meds, estado)
+      onTap: () => {
+        if(consumirToqueLongo()) return;
+        alternarCompartimento(iso, comp, meds, estado);
+      }
     }, estado === 'tomado' ? icone('check', 16) : null);
+  ligarToqueLongo(celula, () => definirTela({
+    editando: Object.assign({}, Tela.editando, {caixa: true})
+  }));
+  return celula;
 }
 
 export function alternarCompartimento(iso, comp, meds, estado){
@@ -145,84 +152,162 @@ export function cartaoDeEstoque(){
   );
 }
 
-/* --- Modo edição ---------------------------------------------------------- */
+
+/* ===========================================================================
+   MODO EDIÇÃO
+
+   Um formulário por remédio, aberto numa folha. A versão anterior ciclava
+   valor por valor no próprio cartão — tocar cinco vezes no chip para chegar
+   em "Noite", mais o stepper de 15 em 15 para o horário. Para uma coisa que
+   se configura uma vez e quase não se mexe, o formulário é o formato certo.
+   =========================================================================== */
+
 export function caixaEmEdicao(){
   return h('div', null,
     h('p', {class:'nota'},
-      'Toque no compartimento para mover o remédio entre manhã, almoço, tarde e noite. A coluna só aparece na grade quando alguém está usando ela.'),
+      'Toque num remédio para configurar compartimento, horário, dose e estoque. ' +
+      'A coluna só aparece na grade quando algum remédio está usando ela.'),
 
     h('div', {class:'lista-edicao-remedios'},
-      Dados.remedios.map(med => h('div', {class:'cartao linha-remedio'},
+      Dados.remedios.map(med => h('div', {class:'cartao linha-remedio tocavel',
+          'aria-label': 'Configurar ' + med.nome,
+          onTap: () => abrirFormularioDeRemedio(med)},
         h('div', {class:'linha-slot-topo'},
           h('span', {class:'slot-nome'}, med.nome),
-          h('div', {class:'linha-slot-acoes'},
-            h('button', {class:'btn-renomear', type:'button', onTap: () => renomearRemedio(med)},
-              icone('lapis', 13), 'Renomear'),
-            h('button', {class:'btn-mini perigo', type:'button', 'aria-label':'Remover ' + med.nome,
-              onTap: () => removerRemedio(med)}, icone('fechar', 14))
-          )
+          icone('seta', 16)
         ),
-        h('div', {class:'linha-remedio-controles'},
-          h('button', {class:'chip-comp', type:'button',
-            onTap: () => ciclarCompartimento(med)}, med.compartimento),
-          stepper(med.hora, passos => agirSemAviso(d => {
-            const m = acharRemedio(d, med.id);
-            m.hora = ajustarHora(m.hora, passos, 15);
-          })),
-          h('button', {class:'chip-dose', type:'button',
-            onTap: () => ciclarDose(med)}, med.dose)
+        h('div', {class:'linha-remedio-resumo'},
+          h('span', {class:'chip-comp'}, med.compartimento),
+          h('span', {class:'remedio-meta'}, med.hora + ' · ' + med.dose),
+          med.diasRestantes !== undefined
+            ? h('span', {class:'remedio-meta'}, 'estoque ' + med.diasRestantes + ' d')
+            : null
         )
       ))
     ),
 
     h('button', {class:'adicionar-tracejado', type:'button', onTap: adicionarRemedio},
-      icone('mais', 15), 'Adicionar remédio')
+      icone('mais', 15), 'Adicionar remédio'),
+
+    Dados.remedios.length
+      ? h('p', {class:'nota'},
+          'O estoque é quantos dias ainda dá para tomar. Ele não é descontado ' +
+          'sozinho: atualize ao comprar uma caixa nova. Abaixo de ' +
+          DIAS_PARA_REPOR + ' dias, o remédio entra na lista de compras.')
+      : null
   );
 }
 
-export function acharRemedio(dados, id){ return dados.remedios.filter(m => m.id === id)[0]; }
+export function acharRemedio(dados, id){
+  return dados.remedios.filter(m => m.id === id)[0];
+}
 
-export function renomearRemedio(med){
-  abrirFolhaTexto({
-    titulo: 'Nome do remédio',
-    valor: med.nome,
-    exemplo: 'Ex.: Losartana 50 mg',
-    sugestoes: NOMES_REMEDIO_SUGERIDOS,
-    aoConfirmar: nome => agir('Remédio renomeado', d => {
-      acharRemedio(d, med.id).nome = nome;
-    })
+/* Rascunho do remédio em edição. Fora do estado: some ao fechar a folha. */
+let rascunhoRemedio = null;
+
+function abrirFormularioDeRemedio(med){
+  rascunhoRemedio = {
+    id: med.id,
+    nome: med.nome,
+    compartimento: med.compartimento,
+    hora: med.hora,
+    dose: med.dose,
+    diasRestantes: med.diasRestantes === undefined ? 30 : med.diasRestantes
+  };
+  abrirFolha({
+    titulo: 'Remédio',
+    rotuloConfirmar: 'Salvar',
+    corpo: corpoDoFormulario,
+    confirmar: salvarRemedio
   });
 }
 
-export function ciclarCompartimento(med){
-  agir(med.nome + ' movido', d => {
-    const m = acharRemedio(d, med.id);
-    m.compartimento = proximoDaLista(COMPARTIMENTOS, m.compartimento);
-  });
+function corpoDoFormulario(){
+  const r = rascunhoRemedio;
+  return h('div', {class:'folha-corpo'},
+    h('label', {class:'campo'},
+      h('span', {class:'campo-rotulo'}, 'Nome'),
+      h('input', {class:'campo-entrada', type:'text', value: r.nome, maxlength:'40',
+        placeholder:'Ex.: Losartana 50 mg',
+        onInput: ev => { r.nome = ev.target.value; }})
+    ),
+    h('div', {class:'sugestoes'},
+      NOMES_REMEDIO_SUGERIDOS.map(n => h('button', {class:'sugestao', type:'button',
+        onTap: () => { r.nome = n; redesenhar(); }}, n))
+    ),
+
+    h('div', {class:'campo'},
+      h('span', {class:'campo-rotulo'}, 'Compartimento'),
+      h('div', {class:'chips-categoria'},
+        COMPARTIMENTOS.map(c => h('button', {
+          class:'chip-cat' + (r.compartimento === c ? ' ativo' : ''),
+          type:'button',
+          onTap: () => { r.compartimento = c; redesenhar(); }
+        }, c)))
+    ),
+
+    h('div', {class:'campo-duplo'},
+      h('label', {class:'campo'},
+        h('span', {class:'campo-rotulo'}, 'Horário'),
+        h('input', {class:'campo-entrada campo-hora', type:'time', step:'300', value: r.hora,
+          onInput: ev => { r.hora = ev.target.value; }})
+      ),
+      h('div', {class:'campo'},
+        h('span', {class:'campo-rotulo'}, 'Estoque (dias)'),
+        stepper(String(r.diasRestantes), passos => {
+          r.diasRestantes = Math.max(0, r.diasRestantes + passos * 5);
+          redesenhar();
+        })
+      )
+    ),
+
+    h('div', {class:'campo'},
+      h('span', {class:'campo-rotulo'}, 'Dose'),
+      h('div', {class:'chips-categoria'},
+        DOSES.map(d => h('button', {
+          class:'chip-cat' + (r.dose === d ? ' ativo' : ''),
+          type:'button',
+          onTap: () => { r.dose = d; redesenhar(); }
+        }, d)))
+    ),
+
+    h('button', {class:'btn btn-contorno-perigo largura-cheia', type:'button',
+      onTap: () => removerRemedio(r)}, 'Remover este remédio')
+  );
 }
 
-export function ciclarDose(med){
-  agir('Dose alterada', d => {
-    const m = acharRemedio(d, med.id);
-    m.dose = proximoDaLista(DOSES, m.dose);
+function salvarRemedio(){
+  const r = rascunhoRemedio;
+  const nome = (r.nome || '').trim();
+  if(!nome){ avisar('O nome não pode ficar vazio'); return; }
+  agir(nome + ' salvo', d => {
+    const m = acharRemedio(d, r.id);
+    if(!m) return;
+    m.nome = nome;
+    m.compartimento = r.compartimento;
+    m.hora = r.hora;
+    m.dose = r.dose;
+    m.diasRestantes = r.diasRestantes;
   });
+  fecharFolha();
 }
 
-export function removerRemedio(med){
+function removerRemedio(med){
   agir(med.nome + ' removido', d => {
     d.remedios = d.remedios.filter(m => m.id !== med.id);
   });
+  fecharFolha();
 }
 
-export function adicionarRemedio(){
-  agir('Remédio adicionado', d => {
+function adicionarRemedio(){
+  const id = 'm' + Date.now().toString(36);
+  agirSemAviso(d => {
     d.remedios.push({
-      id: 'm' + Date.now().toString(36),
-      nome: 'Novo remédio',
-      compartimento: 'Manhã',
-      hora: '07:00',
-      dose: '1 cáps.',
-      diasRestantes: 30
+      id: id, nome: 'Novo remédio', compartimento: 'Manhã',
+      hora: '07:00', dose: DOSES[0], diasRestantes: 30
     });
   });
+  /* Abre o formulário já preenchido: um remédio chamado "Novo remédio" na
+     lista não serve pra nada até ser configurado. */
+  abrirFormularioDeRemedio(Dados.remedios[Dados.remedios.length - 1]);
 }

@@ -1,33 +1,39 @@
 import { DIAS, CATEGORIAS, TITULOS_SUGERIDOS, MESES } from '../dados/modelo.js';
-import { Dados, Tela, agir, agirSemAviso, avisar, definirTela, mostrarAviso, salvarDados } from '../nucleo/estado.js';
-import { clonar } from '../nucleo/armazem.js';
+import { Dados, Tela, agir, agirSemAviso, avisar, definirTela, salvarDados } from '../nucleo/estado.js';
 import { redesenhar } from '../nucleo/render.js';
 import { hojeISO, deISO, diaDaSemana, semanaDe, dataCurta, ehHoje, ehPassado,
          paraMinutos, paraHora, rotuloDuracao } from '../nucleo/tempo.js';
 import { blocosDoDia, blocoAtual, ordenarPorHora, materializar, statusDoBloco, proximoStatus,
          ehSomenteLeitura, treinoDoDia, corDaCategoria } from '../nucleo/modelo.js';
-import { h, icone, cabecalhoTela, pilula, estadoVazio, stepper, ajustarHora,
-         abrirFolha, fecharFolha, abrirFolhaTexto } from '../ui/index.js';
+import { h, icone, cabecalhoTela, pilula, pilulaConcluir, estadoVazio,
+         abrirFolha, fecharFolha, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 import { avisoDeAtraso } from './extras.js';
 
 /* ===========================================================================
    TELA 2 — DIA
 
-   Dois modos sobre a mesma lista de blocos:
+   Duas visões e dois modos, sobre a mesma lista de blocos.
 
-   LEITURA  toque cicla a marcação (sem marca → feito → atrasei → pulei);
-            toque e segure 480 ms entra em edição.
-   EDIÇÃO   cada bloco vira um cartão que se arrasta para mover e tem uma alça
-            embaixo para mudar a duração.
+   VISÕES   AGENDA  a altura de cada bloco é proporcional à duração, então o
+                    dia tem a forma que ele realmente tem: 8 h de sono ocupam
+                    8 h de tela. É a visão para enxergar o dia.
+            LISTA   tudo com a mesma altura, mais denso. É a visão para marcar.
 
-   Um dia passado é só leitura até ser reaberto. Um dia futuro é editável
-   normalmente — é assim que dá pra ajustar amanhã antes de amanhã chegar.
+   MODOS    LEITURA toque cicla a marcação (sem marca → feito → atrasei → pulei)
+            EDIÇÃO  arrastar move, a alça de baixo muda a duração, e tocar
+                    abre o editor com horário de início e fim.
+
+   Não há botão "Editar": segurar qualquer bloco entra no modo de edição, e só
+   então aparece o "Concluir".
    =========================================================================== */
 
-export const MS_TOQUE_LONGO = 480;
-export const PX_QUE_CANCELA_TOQUE_LONGO = 8;
-export const PX_POR_MINUTO = 1.1;      // sensibilidade do arraste
-export const PASSO_MINUTOS = 5;        // o arraste encaixa de 5 em 5
+const PX_POR_MINUTO_ARRASTE = 1.1;   // sensibilidade do arraste
+const PASSO_MINUTOS = 5;             // o arraste encaixa de 5 em 5
+
+/* Escala da visão agenda. Um minuto vale menos de um pixel, senão um dia
+   inteiro daria 1440 px de rolagem só de sono. */
+const PX_POR_MINUTO_AGENDA = 0.42;
+const ALTURA_MINIMA_AGENDA = 46;
 
 export function telaDia(){
   const iso = Tela.data;
@@ -41,22 +47,48 @@ export function telaDia(){
       null,
       [
         !ehHoje(iso) ? pilula('Hoje', () => definirTela({data: hojeISO()})) : null,
-        pilula(editando ? 'Concluir' : 'Editar',
-               () => definirTela({editando: Object.assign({}, Tela.editando, {dia: !editando})}),
-               {ativa: editando})
+        editando ? pilulaConcluir(() => sairDaEdicao()) : null
       ]
     ),
     faixaDaSemana(iso),
     cabecalhoDoDia(iso),
     ehHoje(iso) && !editando ? avisoDeAtraso(iso) : null,
-    editando ? h('p', {class:'dica-edicao'}, 'Arraste o bloco para mover · a alça de baixo para durar') : null,
-    editando ? listaEmEdicao(iso, soLeitura) : listaEmLeitura(iso, soLeitura),
+    seletorDeVisao(editando),
+    editando
+      ? h('p', {class:'dica-edicao'}, 'Arraste para mover · a alça de baixo para durar · toque para os horários')
+      : null,
+    listaDeBlocos(iso, editando, soLeitura),
     !editando ? botaoFlutuante(iso) : null
   );
 }
 
+function sairDaEdicao(){
+  definirTela({editando: Object.assign({}, Tela.editando, {dia: false})});
+}
+
+function entrarNaEdicao(soLeitura){
+  if(soLeitura){ avisar('Reabra o dia para editar'); return; }
+  definirTela({editando: Object.assign({}, Tela.editando, {dia: true})});
+}
+
+/* --- Alternador de visão --------------------------------------------------
+   Some no modo de edição: lá a altura já é o controle de duração, e ter duas
+   escalas ao mesmo tempo confundiria o gesto. */
+function seletorDeVisao(editando){
+  if(editando) return null;
+  const opcoes = [['agenda', 'Agenda'], ['lista', 'Lista']];
+  return h('div', {class:'segmentado segmentado-visao'},
+    opcoes.map(([id, rotulo]) => h('button', {
+        class:'segmento' + (Tela.visaoDia === id ? ' ativo' : ''),
+        type:'button',
+        'aria-pressed': String(Tela.visaoDia === id),
+        onTap: () => definirTela({visaoDia: id})
+      }, rotulo))
+  );
+}
+
 /* --- Faixa da semana ------------------------------------------------------ */
-export function faixaDaSemana(iso){
+function faixaDaSemana(iso){
   const hoje = hojeISO();
   return h('div', {class:'faixa-semana'},
     semanaDe(iso).map((d, i) => {
@@ -81,7 +113,7 @@ export function faixaDaSemana(iso){
 }
 
 /* --- Cabeçalho do dia ----------------------------------------------------- */
-export function cabecalhoDoDia(iso){
+function cabecalhoDoDia(iso){
   const dia = diaDaSemana(iso);
   const soLeitura = ehSomenteLeitura(iso);
   const reaberto = !!Dados.reabertos[iso];
@@ -94,7 +126,7 @@ export function cabecalhoDoDia(iso){
   } else if(ehPassado(iso) && reaberto){
     rotulo = 'Reaberto';
   } else if(ehHoje(iso)){
-    rotulo = 'toque para marcar';
+    rotulo = 'toque para marcar · segure para editar';
   } else {
     rotulo = 'Previsto';
     nota = 'Previsto. Ajuste agora e o dia chega pronto.';
@@ -115,35 +147,59 @@ export function cabecalhoDoDia(iso){
 }
 
 /* ===========================================================================
-   MODO LEITURA
+   A LISTA
+
+   Uma função só desenha as duas visões e os dois modos. O que muda é a altura
+   do bloco e o que o toque faz — a estrutura é a mesma, e é por isso que os
+   dois modos parecem o mesmo lugar em vez de duas telas diferentes.
    =========================================================================== */
 
-export function listaEmLeitura(iso, soLeitura){
+function listaDeBlocos(iso, editando, soLeitura){
   const blocos = blocosDoDia(iso);
   const atual = blocoAtual(iso);
+  const agenda = Tela.visaoDia === 'agenda' || editando;
 
   if(!blocos.length){
-    return estadoVazio('Dia vazio', 'Nenhum bloco previsto. Toque no + para começar a montar este dia.');
+    return estadoVazio('Dia vazio',
+      'Nenhum bloco previsto. Toque no + para começar a montar este dia.');
   }
 
-  return h('div', {class:'lista-blocos'},
-    blocos.map(bloco => linhaDeBloco(iso, bloco, atual, soLeitura))
+  const lista = h('div', {class:'lista-blocos' + (agenda ? ' visao-agenda' : '') +
+                                 (editando ? ' em-edicao' : '')},
+    blocos.map(bloco => desenharBloco(iso, bloco, {
+      atual: atual, editando: editando, soLeitura: soLeitura, agenda: agenda
+    })),
+    editando
+      ? h('button', {class:'adicionar-tracejado', type:'button', onTap: () => abrirFolhaNovoBloco(iso)},
+          icone('mais', 15), 'Adicionar bloco')
+      : null
   );
+  return lista;
 }
 
-export function linhaDeBloco(iso, bloco, atual, soLeitura){
-  const status = statusDoBloco(iso, bloco);
-  const emAndamento = atual && atual.id === bloco.id;
+function alturaDoBloco(bloco, agenda){
+  if(!agenda) return null;
+  return Math.max(ALTURA_MINIMA_AGENDA, Math.round(bloco.dur * PX_POR_MINUTO_AGENDA));
+}
 
-  const linha = h('div', {
+function desenharBloco(iso, bloco, ctx){
+  const status = statusDoBloco(iso, bloco);
+  const emAndamento = ctx.atual && ctx.atual.id === bloco.id;
+  const fim = paraHora(paraMinutos(bloco.hora) + bloco.dur);
+  const altura = alturaDoBloco(bloco, ctx.agenda);
+
+  const el = h('div', {
       class: 'bloco' +
         (emAndamento ? ' em-andamento' : '') +
         (status ? ' marcado' : '') +
-        (status === 'pulei' ? ' pulado' : '') +
-        (Tela.segurando === bloco.id ? ' segurando' : ''),
+        (status === 'pulei' ? ' pulado' : ''),
+      style: altura ? 'min-height:' + altura + 'px' : null,
+      'data-id': bloco.id,
       onTap: () => {
-        if(seguranciaDisparou){ seguranciaDisparou = false; return; }
-        if(soLeitura){ avisar('Dia encerrado — toque em Reabrir'); return; }
+        /* Se o gesto virou "segurar", o clique que vem junto não vale. */
+        if(consumirToqueLongo()) return;
+        if(ctx.editando){ abrirEditorDeBloco(iso, bloco, ctx.soLeitura); return; }
+        if(ctx.soLeitura){ avisar('Dia encerrado — toque em Reabrir'); return; }
         const novo = proximoStatus(status);
         agir(bloco.titulo + ' · ' + (novo || 'sem marca'), d => {
           d.status[iso + ':' + bloco.id] = novo;
@@ -155,119 +211,128 @@ export function linhaDeBloco(iso, bloco, atual, soLeitura){
       h('div', {class:'bloco-titulo'}, bloco.titulo),
       bloco.sub ? h('div', {class:'bloco-sub'}, bloco.sub) : null
     ),
-    status ? h('span', {class:'etiqueta etiqueta-' + status}, status.toUpperCase()) : null,
+    status && !ctx.editando
+      ? h('span', {class:'etiqueta etiqueta-' + status}, status.toUpperCase())
+      : null,
     h('div', {class:'bloco-horario'},
-      h('div', {class:'bloco-hora'}, bloco.hora),
+      h('div', {class:'bloco-hora'}, ctx.editando ? bloco.hora + '–' + fim : bloco.hora),
       h('div', {class:'bloco-dur'}, rotuloDuracao(bloco.dur))
-    )
+    ),
+    ctx.editando
+      ? h('button', {class:'btn-remover', type:'button', 'aria-label':'Remover ' + bloco.titulo,
+          onTap: () => removerBloco(iso, bloco, ctx.soLeitura)}, icone('fechar', 15))
+      : null,
+    /* A alça de duração só existe em edição, e vive na base do cartão. */
+    ctx.editando
+      ? h('div', {class:'alca-duracao', 'aria-label':'Mudar a duração de ' + bloco.titulo,
+          onPointerDown: ev => iniciarArraste(ev, iso, bloco, 'duracao', ctx.soLeitura, el)},
+          h('span', {class:'pega'}))
+      : null
   );
 
-  if(!soLeitura) ligarToqueLongo(linha, bloco);
-  return linha;
-}
+  if(ctx.editando){
+    /* Em edição o cartão inteiro arrasta — não há alça separada de mover,
+       que era um alvo pequeno demais para o polegar. */
+    el.addEventListener('pointerdown', ev => {
+      if(ev.target.closest('.alca-duracao, .btn-remover')) return;
+      iniciarArraste(ev, iso, bloco, 'mover', ctx.soLeitura, el);
+    });
+  } else if(!ctx.soLeitura){
+    ligarToqueLongo(el, () => entrarNaEdicao(ctx.soLeitura));
+  }
 
-/* --- Toque e segure -------------------------------------------------------
-   480 ms parado abre o modo de edição. Sair mais de 8 px cancela — assim
-   rolar a lista não vira edição por acidente. */
-let temporizadorSegurar = null;
-let yInicialSegurar = null;
-let seguranciaDisparou = false;   // impede que o clique do fim do toque cicle o status
-
-export function ligarToqueLongo(el, bloco){
-  el.addEventListener('pointerdown', ev => {
-    if(Tela.editando.dia) return;
-    yInicialSegurar = ev.clientY;
-    seguranciaDisparou = false;
-    definirTela({segurando: bloco.id});
-    clearTimeout(temporizadorSegurar);
-    temporizadorSegurar = setTimeout(() => {
-      seguranciaDisparou = true;
-      const fotoAntes = clonar(Dados);
-      definirTela({segurando: null, editando: Object.assign({}, Tela.editando, {dia: true})});
-      mostrarAviso('Modo de edição — arraste os blocos', fotoAntes);
-      redesenhar();
-    }, MS_TOQUE_LONGO);
-  });
-  el.addEventListener('pointermove', ev => {
-    if(yInicialSegurar !== null && Math.abs(ev.clientY - yInicialSegurar) > PX_QUE_CANCELA_TOQUE_LONGO){
-      cancelarToqueLongo();
-    }
-  });
-  el.addEventListener('pointerup', cancelarToqueLongo);
-  el.addEventListener('pointercancel', cancelarToqueLongo);
-}
-
-export function cancelarToqueLongo(){
-  clearTimeout(temporizadorSegurar);
-  yInicialSegurar = null;
-  if(Tela.segurando) definirTela({segurando: null});
+  return el;
 }
 
 /* ===========================================================================
-   MODO EDIÇÃO
+   EDITOR DE BLOCO
+
+   Aberto ao tocar um bloco em modo de edição. Usa <input type="time">, que
+   abre o seletor de horário nativo do aparelho — o handoff pedia exatamente
+   isso, e resolve de uma vez a limitação dos steppers de 15 em 15 minutos.
    =========================================================================== */
 
-export function listaEmEdicao(iso, soLeitura){
-  const blocos = blocosDoDia(iso);
-  return h('div', {class:'lista-edicao'},
-    blocos.map(bloco => cartaoEditavel(iso, bloco, soLeitura)),
-    h('button', {class:'adicionar-tracejado', type:'button', onTap:()=> abrirFolhaNovoBloco(iso)},
-      icone('mais', 15), 'Adicionar bloco')
-  );
-}
+let rascunhoBloco = null;
 
-export function cartaoEditavel(iso, bloco, soLeitura){
-  const arrastando = Tela.arrastando && Tela.arrastando.id === bloco.id;
-  const modoAtual = arrastando ? Tela.arrastando.modo : null;
-  const fim = paraHora(paraMinutos(bloco.hora) + bloco.dur);
-
-  /* A altura do cartão cresce com a duração, pra lista lembrar a proporção
-     real do dia sem virar uma timeline de escala fixa. */
-  const espacador = Math.max(0, Math.min(90, Math.round((bloco.dur - 15) * 0.28)));
-
-  return h('div', {class:'cartao-edicao' + (arrastando ? ' arrastando' : '')},
-    h('div', {class:'cartao-edicao-topo'},
-      h('span', {
-        class:'alca-arraste',
-        'aria-label':'Arrastar ' + bloco.titulo,
-        onPointerDown: ev => iniciarArraste(ev, iso, bloco, 'mover', soLeitura)
-      }, icone('alca', 18)),
-      h('span', {class:'bloco-barra', style:'background:' + corDaCategoria(bloco.cat)}),
-      /* O título é tocável: sem isto não haveria como renomear um bloco que
-         já existe — só criar outro e apagar o antigo. */
-      h('div', {class:'cartao-edicao-texto tocavel', 'aria-label':'Renomear ' + bloco.titulo,
-        onTap: () => renomearBloco(iso, bloco, soLeitura)},
-        h('div', {class:'bloco-titulo'}, bloco.titulo),
-        h('div', {class:'cartao-edicao-faixa'}, bloco.hora + ' – ' + fim + ' · ' + rotuloDuracao(bloco.dur))
-      ),
-      h('button', {class:'btn-remover', type:'button', 'aria-label':'Remover ' + bloco.titulo,
-        onTap: () => removerBloco(iso, bloco, soLeitura)}, icone('fechar', 15))
-    ),
-    espacador ? h('div', {style:'height:' + espacador + 'px'}) : null,
-    h('div', {
-      class:'alca-duracao' + (modoAtual === 'duracao' ? ' ativa' : ''),
-      'aria-label':'Mudar a duração de ' + bloco.titulo,
-      onPointerDown: ev => iniciarArraste(ev, iso, bloco, 'duracao', soLeitura)
-    }, h('span', {class:'pega'}))
-  );
-}
-
-function renomearBloco(iso, bloco, soLeitura){
+function abrirEditorDeBloco(iso, bloco, soLeitura){
   if(soLeitura){ avisar('Reabra o dia para editar'); return; }
-  abrirFolhaTexto({
-    titulo: 'Nome do bloco',
-    valor: bloco.titulo,
-    exemplo: 'Ex.: Consulta médica',
-    sugestoes: TITULOS_SUGERIDOS,
-    aoConfirmar: titulo => agir('Bloco renomeado', d => {
-      const lista = materializar(d, iso);
-      const alvo = lista.filter(b => b.id === bloco.id)[0];
-      if(alvo) alvo.titulo = titulo;
-    })
+  const fim = paraHora(paraMinutos(bloco.hora) + bloco.dur);
+  rascunhoBloco = {titulo: bloco.titulo, cat: bloco.cat, inicio: bloco.hora, fim: fim};
+
+  abrirFolha({
+    titulo: 'Editar bloco',
+    rotuloConfirmar: 'Salvar',
+    corpo: () => corpoEditorDeBloco(),
+    confirmar: () => salvarEdicaoDeBloco(iso, bloco)
   });
 }
 
-export function removerBloco(iso, bloco, soLeitura){
+function corpoEditorDeBloco(){
+  return h('div', {class:'folha-corpo'},
+    h('label', {class:'campo'},
+      h('span', {class:'campo-rotulo'}, 'Título'),
+      h('input', {
+        class:'campo-entrada', type:'text', value: rascunhoBloco.titulo, maxlength:'60',
+        onInput: ev => { rascunhoBloco.titulo = ev.target.value; }
+      })
+    ),
+    h('div', {class:'campo-duplo'},
+      h('label', {class:'campo'},
+        h('span', {class:'campo-rotulo'}, 'Começa'),
+        h('input', {
+          class:'campo-entrada campo-hora', type:'time', value: rascunhoBloco.inicio, step:'300',
+          onInput: ev => { rascunhoBloco.inicio = ev.target.value; }
+        })
+      ),
+      h('label', {class:'campo'},
+        h('span', {class:'campo-rotulo'}, 'Termina'),
+        h('input', {
+          class:'campo-entrada campo-hora', type:'time', value: rascunhoBloco.fim, step:'300',
+          onInput: ev => { rascunhoBloco.fim = ev.target.value; }
+        })
+      )
+    ),
+    h('div', {class:'campo'},
+      h('span', {class:'campo-rotulo'}, 'Categoria'),
+      chipsDeCategoria(() => rascunhoBloco.cat, cat => { rascunhoBloco.cat = cat; })
+    )
+  );
+}
+
+function chipsDeCategoria(lerAtual, definir){
+  return h('div', {class:'chips-categoria'},
+    Object.keys(CATEGORIAS).map(id =>
+      h('button', {
+          class:'chip-cat' + (lerAtual() === id ? ' ativo' : ''),
+          type:'button',
+          style:'--cor-cat:' + CATEGORIAS[id].cor,
+          onTap: () => { definir(id); redesenhar(); }
+        }, CATEGORIAS[id].rotulo))
+  );
+}
+
+function salvarEdicaoDeBloco(iso, bloco){
+  const r = rascunhoBloco;
+  const inicio = paraMinutos(r.inicio);
+  let dur = paraMinutos(r.fim) - inicio;
+  /* Fim antes do início = o bloco atravessa a meia-noite. É legítimo (dormir),
+     e a conta com o dia inteiro resolve sem precisar avisar nada. */
+  if(dur <= 0) dur += 1440;
+
+  agir('Bloco atualizado', d => {
+    const lista = materializar(d, iso);
+    const alvo = lista.filter(b => b.id === bloco.id)[0];
+    if(!alvo) return;
+    alvo.titulo = (r.titulo || '').trim() || 'Sem título';
+    alvo.cat = r.cat;
+    alvo.hora = r.inicio;
+    alvo.dur = dur;
+    d.blocos[iso] = ordenarPorHora(lista);
+  });
+  fecharFolha();
+}
+
+function removerBloco(iso, bloco, soLeitura){
   if(soLeitura){ avisar('Reabra o dia para editar'); return; }
   agir(bloco.titulo + ' removido do dia', d => {
     const lista = materializar(d, iso);
@@ -275,60 +340,75 @@ export function removerBloco(iso, bloco, soLeitura){
   });
 }
 
-/* --- Arraste --------------------------------------------------------------
-   Move ou redimensiona conforme o `modo`. A fotografia para desfazer é tirada
-   uma vez, no começo do gesto: desfazer volta pro estado de antes de encostar
-   no bloco, não pro quadro anterior do movimento. */
+/* ===========================================================================
+   ARRASTE
+
+   O cartão segue o dedo pelo `transform`, e só o rótulo do horário é
+   reescrito durante o movimento. A versão anterior redesenhava a lista
+   inteira a cada quadro, o que engasgava e fazia o cartão "pular" embaixo
+   do dedo. A lista só é reordenada ao soltar.
+   =========================================================================== */
+
 let arrasto = null;
 
-export function iniciarArraste(ev, iso, bloco, modo, soLeitura){
-  ev.preventDefault();
-  ev.stopPropagation();
+function iniciarArraste(ev, iso, bloco, modo, soLeitura, elemento){
   if(soLeitura){ avisar('Reabra o dia para editar'); return; }
+  if(ev.button !== undefined && ev.button !== 0) return;
+  ev.preventDefault();
+  if(modo === 'duracao') ev.stopPropagation();
 
   agirSemAviso(d => { materializar(d, iso); });
-
   const atual = blocosDoDia(iso).filter(b => b.id === bloco.id)[0];
   if(!atual) return;
 
   arrasto = {
-    iso: iso, id: bloco.id, modo: modo,
+    iso, id: bloco.id, modo, elemento,
     yInicial: ev.clientY,
     minutoInicial: paraMinutos(atual.hora),
     duracaoInicial: atual.dur,
     titulo: atual.titulo,
-    foto: clonar(Dados),
-    moveu: false
+    moveu: false,
+    delta: 0
   };
 
   document.addEventListener('pointermove', durante);
   document.addEventListener('pointerup', terminar);
   document.addEventListener('pointercancel', terminar);
-  definirTela({arrastando: {id: bloco.id, modo: modo}});
 }
 
-export function durante(ev){
+function durante(ev){
   if(!arrasto) return;
   const dy = ev.clientY - arrasto.yInicial;
-  if(Math.abs(dy) > 3) arrasto.moveu = true;
+  if(Math.abs(dy) > 4) arrasto.moveu = true;
+  if(!arrasto.moveu) return;
 
-  const deltaMinutos = dy / PX_POR_MINUTO;
-  const alvo = (Dados.blocos[arrasto.iso] || []).filter(b => b.id === arrasto.id)[0];
-  if(!alvo) return;
+  arrasto.elemento.classList.add('arrastando');
+  const minutos = arredondarNoPasso(dy / PX_POR_MINUTO_ARRASTE);
+  arrasto.delta = minutos;
+
+  const rotulo = arrasto.elemento.querySelector('.bloco-hora');
+  const duracao = arrasto.elemento.querySelector('.bloco-dur');
 
   if(arrasto.modo === 'mover'){
-    alvo.hora = paraHora(arredondarNoPasso(arrasto.minutoInicial + deltaMinutos));
+    /* O cartão acompanha o dedo, encaixado nos passos de 5 min. */
+    arrasto.elemento.style.transform = 'translateY(' + (minutos * PX_POR_MINUTO_ARRASTE) + 'px)';
+    const ini = arrasto.minutoInicial + minutos;
+    if(rotulo) rotulo.textContent = paraHora(ini) + '–' + paraHora(ini + arrasto.duracaoInicial);
   } else {
-    alvo.dur = Math.max(PASSO_MINUTOS, arredondarNoPasso(arrasto.duracaoInicial + deltaMinutos));
+    const nova = Math.max(PASSO_MINUTOS, arrasto.duracaoInicial + minutos);
+    arrasto.elemento.style.minHeight =
+      Math.max(ALTURA_MINIMA_AGENDA, Math.round(nova * PX_POR_MINUTO_AGENDA)) + 'px';
+    if(rotulo) rotulo.textContent =
+      paraHora(arrasto.minutoInicial) + '–' + paraHora(arrasto.minutoInicial + nova);
+    if(duracao) duracao.textContent = rotuloDuracao(nova);
   }
-  redesenhar();
 }
 
-export function arredondarNoPasso(minutos){
+function arredondarNoPasso(minutos){
   return Math.round(minutos / PASSO_MINUTOS) * PASSO_MINUTOS;
 }
 
-export function terminar(){
+function terminar(){
   document.removeEventListener('pointermove', durante);
   document.removeEventListener('pointerup', terminar);
   document.removeEventListener('pointercancel', terminar);
@@ -336,41 +416,41 @@ export function terminar(){
 
   const g = arrasto;
   arrasto = null;
+  g.elemento.classList.remove('arrastando');
+  g.elemento.style.transform = '';
 
-  /* A lista só reordena ao soltar: reordenar durante o gesto faria o cartão
-     pular de posição embaixo do dedo. */
+  if(!g.moveu){ redesenhar(); return; }
+
+  const alvo = (Dados.blocos[g.iso] || []).filter(b => b.id === g.id)[0];
+  if(alvo){
+    if(g.modo === 'mover'){
+      alvo.hora = paraHora(g.minutoInicial + g.delta);
+    } else {
+      alvo.dur = Math.max(PASSO_MINUTOS, g.duracaoInicial + g.delta);
+    }
+  }
+  /* A lista só reordena agora: reordenar durante o gesto faria o cartão
+     saltar de posição embaixo do dedo. */
   Dados.blocos[g.iso] = ordenarPorHora(Dados.blocos[g.iso] || []);
   salvarDados();
-
-  definirTela({arrastando: null});
-  if(g.moveu){
-    mostrarAviso(g.titulo + (g.modo === 'mover' ? ' movido' : ' com nova duração'), g.foto);
-  }
-  redesenhar();
+  avisar(g.titulo + (g.modo === 'mover' ? ' movido' : ' com nova duração'));
 }
 
 /* ===========================================================================
    BOTÃO FLUTUANTE E FOLHA DE NOVO BLOCO
    =========================================================================== */
 
-export function botaoFlutuante(iso){
+function botaoFlutuante(iso){
   return h('button', {class:'flutuante', type:'button', 'aria-label':'Novo bloco',
     onTap: () => abrirFolhaNovoBloco(iso)}, icone('mais', 24));
 }
 
-/* Rascunho do bloco sendo criado. Vive fora do estado persistido porque some
-   quando a folha fecha. */
-let rascunho = null;
+let rascunhoNovo = null;
 
 export function abrirFolhaNovoBloco(iso){
   if(ehSomenteLeitura(iso)){ avisar('Reabra o dia para editar'); return; }
-  rascunho = {
-    tituloIdx: 0,
-    titulo: TITULOS_SUGERIDOS[0],
-    cat: 'hobby',
-    hora: '21:30',
-    dur: 45,
-    repetir: false
+  rascunhoNovo = {
+    titulo: '', cat: 'hobby', inicio: '21:30', fim: '22:15', repetir: false
   };
   abrirFolha({
     titulo: 'Novo bloco',
@@ -380,84 +460,72 @@ export function abrirFolhaNovoBloco(iso){
   });
 }
 
-export function corpoFolhaNovoBloco(iso){
+function corpoFolhaNovoBloco(iso){
   const dia = diaDaSemana(iso);
   return h('div', {class:'folha-corpo'},
-
     h('label', {class:'campo'},
       h('span', {class:'campo-rotulo'}, 'Título'),
       h('input', {
-        class:'campo-entrada', type:'text', value: rascunho.titulo, maxlength:'60',
-        placeholder: 'Toque para escrever',
-        onInput: ev => { rascunho.titulo = ev.target.value; }
+        class:'campo-entrada', type:'text', value: rascunhoNovo.titulo, maxlength:'60',
+        placeholder: 'Ex.: Consulta médica',
+        onInput: ev => { rascunhoNovo.titulo = ev.target.value; }
       })
     ),
     h('div', {class:'sugestoes'},
       TITULOS_SUGERIDOS.map(t =>
         h('button', {class:'sugestao', type:'button', onTap: () => {
-          rascunho.titulo = t;
+          rascunhoNovo.titulo = t;
           redesenhar();
         }}, t))
     ),
-
+    h('div', {class:'campo-duplo'},
+      h('label', {class:'campo'},
+        h('span', {class:'campo-rotulo'}, 'Começa'),
+        h('input', {class:'campo-entrada campo-hora', type:'time', step:'300',
+          value: rascunhoNovo.inicio,
+          onInput: ev => { rascunhoNovo.inicio = ev.target.value; }})
+      ),
+      h('label', {class:'campo'},
+        h('span', {class:'campo-rotulo'}, 'Termina'),
+        h('input', {class:'campo-entrada campo-hora', type:'time', step:'300',
+          value: rascunhoNovo.fim,
+          onInput: ev => { rascunhoNovo.fim = ev.target.value; }})
+      )
+    ),
     h('div', {class:'campo'},
       h('span', {class:'campo-rotulo'}, 'Categoria'),
-      h('div', {class:'chips-categoria'},
-        Object.keys(CATEGORIAS).map(id =>
-          h('button', {
-              class:'chip-cat' + (rascunho.cat === id ? ' ativo' : ''),
-              type:'button',
-              style:'--cor-cat:' + CATEGORIAS[id].cor,
-              onTap: () => { rascunho.cat = id; redesenhar(); }
-            }, CATEGORIAS[id].rotulo))
-      )
+      chipsDeCategoria(() => rascunhoNovo.cat, cat => { rascunhoNovo.cat = cat; })
     ),
-
-    h('div', {class:'campo-duplo'},
-      h('div', {class:'campo'},
-        h('span', {class:'campo-rotulo'}, 'Início'),
-        stepper(rascunho.hora, passos => {
-          rascunho.hora = ajustarHora(rascunho.hora, passos, 15);
-          redesenhar();
-        })
-      ),
-      h('div', {class:'campo'},
-        h('span', {class:'campo-rotulo'}, 'Duração'),
-        stepper(rotuloDuracao(rascunho.dur), passos => {
-          rascunho.dur = Math.max(5, rascunho.dur + passos * 15);
-          redesenhar();
-        })
-      )
-    ),
-
     h('label', {class:'interruptor-linha'},
       h('span', null, 'Repetir toda ' + dia.full),
       h('button', {
-        class:'interruptor' + (rascunho.repetir ? ' ligado' : ''),
-        type:'button', role:'switch', 'aria-checked': String(rascunho.repetir),
-        onTap: () => { rascunho.repetir = !rascunho.repetir; redesenhar(); }
+        class:'interruptor' + (rascunhoNovo.repetir ? ' ligado' : ''),
+        type:'button', role:'switch', 'aria-checked': String(rascunhoNovo.repetir),
+        onTap: () => { rascunhoNovo.repetir = !rascunhoNovo.repetir; redesenhar(); }
       }, h('span', {class:'interruptor-bola'}))
     )
   );
 }
 
-export function criarBloco(iso){
-  const r = rascunho;
+function criarBloco(iso){
+  const r = rascunhoNovo;
   const titulo = (r.titulo || '').trim() || 'Novo bloco';
   const dia = diaDaSemana(iso);
+  let dur = paraMinutos(r.fim) - paraMinutos(r.inicio);
+  if(dur <= 0) dur += 1440;
 
   agir(titulo + ' adicionado', d => {
     if(r.repetir){
-      /* Repetir entra na semana-modelo: passa a existir em todas as
-         quintas, e não só nesta. Os dias já materializados recebem uma
-         cópia, senão a mudança não apareceria neles. */
-      d.fixos[dia.k].push([r.hora, r.dur, titulo, r.cat]);
+      /* Repetir entra na semana-modelo: passa a existir em todas as quintas,
+         e não só nesta. Os dias já materializados recebem uma cópia, senão a
+         mudança não apareceria neles. */
+      d.fixos[dia.k].push([r.inicio, dur, titulo, r.cat]);
       const lista = d.blocos[iso];
       if(lista) lista.push({id:'fixo:' + dia.k + ':' + (d.fixos[dia.k].length - 1),
-                            hora:r.hora, dur:r.dur, titulo:titulo, cat:r.cat, sub:''});
+                            hora:r.inicio, dur:dur, titulo:titulo, cat:r.cat, sub:''});
     } else {
       const lista = materializar(d, iso);
-      lista.push({id:'novo:' + Date.now().toString(36), hora:r.hora, dur:r.dur,
+      lista.push({id:'novo:' + Date.now().toString(36), hora:r.inicio, dur:dur,
                   titulo:titulo, cat:r.cat, sub:''});
     }
   });

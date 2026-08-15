@@ -1025,13 +1025,6 @@ input{ font:inherit; color:inherit; }
   font-size:11.5px; font-weight:600;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.aviso-desfazer{
-  min-height:36px; padding:0 14px;
-  border-radius:var(--r-pilula);
-  background:var(--fundo); color:var(--texto);
-  font-size:11px; font-weight:700;
-  flex-shrink:0;
-}
 
 /* --- Primeiro uso --- */
 .primeiro-uso{
@@ -1188,3 +1181,91 @@ button, .tocavel{
    botão desaparece no fundo. Sobe um degrau para a superfície clara. */
 .cartao .btn-suave{ background:var(--superficie-clara); }
 .cartao .btn-suave:hover{ background:var(--fundo); }
+
+/* ===========================================================================
+   12. AJUSTES DA REVISÃO DE USO
+   =========================================================================== */
+
+/* --- Toque e segure --------------------------------------------------------
+   O encolher acontece por classe, aplicada direto no elemento durante o
+   gesto. Nada é redesenhado — era o redesenho no pointerdown que cancelava a
+   rolagem e fazia a edição abrir sozinha ao rolar a lista. */
+.segurando{ transform:scale(0.97); }
+.bloco, .refeicao, .exercicio, .celula-caixa{ transition:transform .14s ease; }
+
+/* --- Aviso, agora sem botão ------------------------------------------------ */
+.aviso{ cursor:pointer; }
+
+/* --- Alça da folha, agora arrastável --------------------------------------- */
+.folha{ transition:transform .22s ease; will-change:transform; }
+.folha-alca-area{
+  /* Área de pega generosa: a alça desenhada tem 5 px, mas o alvo precisa ser
+     confortável para o polegar. */
+  padding:10px 0 6px;
+  margin:-10px 0 0;
+  display:flex; justify-content:center;
+  cursor:grab; touch-action:none;
+  flex-shrink:0;
+}
+.folha-alca-area:active{ cursor:grabbing; }
+
+/* --- Alternador de visão do Dia -------------------------------------------- */
+.segmentado-visao{ grid-template-columns:repeat(2, 1fr); }
+
+/* --- Visão agenda ----------------------------------------------------------
+   A altura do bloco vem do JS (min-height proporcional à duração), então
+   aqui só é preciso deixar o conteúdo respirar no topo em vez de centralizar:
+   um bloco de 8 h com o texto no meio pareceria um erro de layout. */
+.lista-blocos.visao-agenda .bloco{ align-items:flex-start; padding-top:11px; }
+.lista-blocos.visao-agenda .bloco-horario{ padding-top:1px; }
+
+/* --- Modo edição do Dia ----------------------------------------------------- */
+.lista-blocos.em-edicao .bloco{
+  padding-bottom:22px;          /* espaço para a alça de duração */
+  position:relative;
+  cursor:grab; touch-action:pan-x;
+  background:var(--superficie);
+}
+.lista-blocos.em-edicao .bloco.arrastando{
+  background:var(--superficie-clara);
+  box-shadow:var(--sombra-arraste);
+  transform:scale(1.02);
+  z-index:5;
+  transition:none;              /* durante o arraste, seguir o dedo sem atraso */
+}
+.lista-blocos.em-edicao .alca-duracao{
+  position:absolute; left:0; right:0; bottom:0;
+  height:20px;
+  display:flex; align-items:center; justify-content:center;
+  background:#f3ead9;
+  border-radius:0 0 var(--r-linha-menor) var(--r-linha-menor);
+  cursor:ns-resize; touch-action:none;
+}
+.lista-blocos.em-edicao .alca-duracao .pega{
+  width:40px; height:4px; border-radius:var(--r-pilula); background:var(--linha);
+}
+.lista-blocos.em-edicao .btn-remover{
+  width:36px; height:36px; flex-shrink:0;
+}
+
+/* --- Campo de horário nativo ------------------------------------------------
+   `<input type=time>` abre o seletor do próprio aparelho, que era o que o
+   handoff pedia — e resolve de vez o passo de 15 em 15 minutos. */
+.campo-hora{
+  text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+
+/* --- Resumo do remédio na edição da Caixa ---------------------------------- */
+.linha-remedio-resumo{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.linha-remedio-resumo .chip-comp{
+  min-height:0; padding:4px 11px; font-size:10px;
+}
+
+/* --- Dica de gesto ---------------------------------------------------------- */
+.dica-gesto{
+  margin:0; font-size:11px; font-weight:500; color:var(--texto-fraco);
+  text-align:center;
+}

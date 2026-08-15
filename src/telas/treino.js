@@ -4,7 +4,8 @@ import { clonar } from '../nucleo/armazem.js';
 import { diaDaSemana, semanaDe, dataCurta, rotuloDuracao } from '../nucleo/tempo.js';
 import { treinoDoDia, voltasDoTreino, progressoDoTreino, exercicioFeito } from '../nucleo/modelo.js';
 import { h, icone, cabecalhoTela, pilula, barraProgresso, estadoVazio, stepper,
-         ajustarHora, rotuloSecao, abrirFolhaTexto } from '../ui/index.js';
+         ajustarHora, rotuloSecao, abrirFolhaTexto,
+         pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 3 — TREINO
@@ -28,9 +29,7 @@ export function telaTreino(){
       dataCurta(iso) + ' · ' + dia.full,
       'Treino',
       null,
-      treino ? [pilula(editando ? 'Concluir' : 'Editar',
-                       () => definirTela({editando: Object.assign({}, Tela.editando, {treino: !editando})}),
-                       {ativa: editando})] : null
+      editando ? [pilulaConcluir(() => definirTela({editando: Object.assign({}, Tela.editando, {treino: false})}))] : null
     ),
     chipsDosTreinos(iso),
     treino
@@ -76,8 +75,7 @@ export function treinoEmLeitura(iso, treino){
       h('h2', {class:'treino-nome'}, treino.nome),
       h('div', {class:'chips-formato'},
         h('span', {class:'chip-formato'}, treino.formato),
-        h('span', {class:'chip-formato'}, rotuloDuracao(treino.dur)),
-        h('span', {class:'chip-formato'}, treino.hora)
+        h('span', {class:'chip-formato'}, rotuloDuracao(treino.dur))
       ),
       h('div', {class:'treino-progresso'},
         barraProgresso(progresso.total ? progresso.feitos / progresso.total : 0, 'barra-salvia'),
@@ -103,9 +101,10 @@ export function seletorDeVolta(voltas){
 
 export function linhaDeExercicio(iso, treino, indice, ex){
   const feito = exercicioFeito(iso, treino.id, Tela.volta, indice);
-  return h('div', {
+  const linha = h('div', {
       class:'exercicio' + (feito ? ' feito' : ''),
       onTap: () => {
+        if(consumirToqueLongo()) return;
         agir(ex.n + (feito ? ' desmarcado' : ' feito'), d => {
           d.exercFeitos[iso + ':' + treino.id + ':' + Tela.volta + ':' + indice] = !feito;
         });
@@ -115,6 +114,10 @@ export function linhaDeExercicio(iso, treino, indice, ex){
     h('span', {class:'exercicio-nome'}, ex.n),
     h('span', {class:'exercicio-alvo'}, ex.a)
   );
+  ligarToqueLongo(linha, () => definirTela({
+    editando: Object.assign({}, Tela.editando, {treino: true})
+  }));
+  return linha;
 }
 
 /* --- Dia de descanso ------------------------------------------------------ */
@@ -174,24 +177,15 @@ export function treinoEmEdicao(iso, treino){
       h('div', {class:'chips-formato'},
         h('button', {class:'chip-formato acionavel', type:'button',
           onTap: () => trocarFormato(treino)}, treino.formato),
-        h('span', {class:'chip-formato'}, rotuloDuracao(treino.dur)),
-        h('span', {class:'chip-formato'}, treino.hora)
+        h('span', {class:'chip-formato'}, rotuloDuracao(treino.dur))
       ),
-      h('div', {class:'campo-duplo'},
-        h('div', {class:'campo'},
-          h('span', {class:'campo-rotulo'}, 'Começa'),
-          stepper(treino.hora, passos => agirSemAviso(d => {
-            const t = acharTreino(d, treino.id);
-            t.hora = ajustarHora(t.hora, passos, 15);
-          }))
-        ),
-        h('div', {class:'campo'},
-          h('span', {class:'campo-rotulo'}, 'Duração'),
-          stepper(rotuloDuracao(treino.dur), passos => agirSemAviso(d => {
-            const t = acharTreino(d, treino.id);
-            t.dur = Math.max(5, t.dur + passos * 5);
-          }))
-        )
+      /* Só a duração. O horário de início vem do bloco de exercício no Dia —
+         perguntar duas vezes a mesma coisa era pedir para elas divergirem. */
+      h('div', {class:'campo'},
+        h('span', {class:'campo-rotulo'}, 'Duração'),
+        stepper(rotuloDuracao(treino.dur), passos => agirSemAviso(d => {
+          acharTreino(d, treino.id).dur = Math.max(5, acharTreino(d, treino.id).dur + passos * 5);
+        }))
       )
     ),
 

@@ -17,7 +17,7 @@ export const CHAVE = 'rotina_v4';
 /** A versão do esquema que ESTA build entende. Suba ao mudar o formato. */
 export const VERSAO_ESQUEMA = 5;
 
-/** Cópia profunda — a base das fotografias do desfazer. */
+/** Cópia profunda. Usada ao semear dados e ao simular hipóteses. */
 export function clonar(valor){
   return JSON.parse(JSON.stringify(valor));
 }

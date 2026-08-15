@@ -182,6 +182,19 @@ export function pratoDe(diaK, slotId){
   return {id: receita.id, nome: receita.nome, kcal: Math.round(n.kcal), prot: Math.round(n.prot)};
 }
 
+/**
+ * O horário em que a refeição acontece NAQUELE dia.
+ *
+ * Normalmente é o horário configurado do slot. Mas se o dia foi editado —
+ * você arrastou o almoço para 12:05 na aba Dia — quem manda é o bloco, não o
+ * modelo da semana. Sem isto as duas telas discordam sobre o mesmo dia, que
+ * era exatamente o que acontecia.
+ */
+export function horaDaRefeicaoNoDia(iso, slot){
+  const doDia = (Dados.blocos[iso] || []).filter(b => b.id === 'slot:' + slot.id)[0];
+  return doDia ? doDia.hora : slot.hora;
+}
+
 /** Converte a quantidade de um ingrediente para gramas (ml conta como g). */
 export function emGramas(idAlimento, qtd){
   const a = ALIMENTOS[idAlimento];

@@ -13,15 +13,22 @@ direito — "o botão X tá estranho" já é suficiente. Eu organizo depois.
 
 <!-- Escreva aqui. Uma linha por ideia, ou parágrafos, tanto faz. -->
 
-- Gostaria de remover os botões de editar no geral. A ideia é que se for para editar clique e segure. Aí pode aparecer o concluir quando finalizar.
--  A aba Dia (que é a mais importante do APP) não é nada boa para o usuário. toques para rolar a tela está abrindo a edição. O modo editar que precisa de muito mais atenção (fazer baseado Microsoft teams, volte o toogle de visualização de agenda (duração do bloco consome mais espaço no dia) e a lista (como é atualmente). No modo edição ao clicar no item deve ser possível editar a hora inicial até a final. Deve ser bem interativo, os cartões se moverem quando arrastados etc. Pode consumir bastante aqui para ficar o melhor possível, tome referência dos apps de agenda das big techs.
-- Melhorar aba treino para ser ter as funcionalidades que tinha no antigo de marcar as quantidades feitas, duração etc. Essa aba também deve ser bem melhorada, adicionar exercício é bem limitado, ao editar não precisa colocar quando começa só a duração, se for adicionar o exercício no Dia já resolve quando começa. onde diz o tempo (ao lado de Séries, bi-sets...) está mal diagramado não centralizado.
-- Adiciona no início gráficos e visualizações do que der no geral e sobre os exercícios. no perfil adicione aba de Estatísticas.
-- Em Caixa não está claro o que define o estoque. onde isso é colocado?
-- Em Comida as horas não atualizam se eu alterar em Dia, por exemplo, se eu alterar o Almoço para 12:05 em Comida fica aparecendo que é 12:00
-- Em Caixa > Editar. clicar 1 em um para alterar é muito ruim. Ao adicionar remédio o ideal é que abra um popup para configurar o remédio.
-- Remover o desfazer, ele atrapalha muito
-- Em todas as telas a barra (quando abre algum popup, por exemplo) é de enfeite, não funciona arrastar a barra para sair do popup
+-
+
+### Da primeira rodada — ainda em aberto
+
+Só sobraram estes dois. O resto foi feito e está listado em "Já resolvido".
+
+- [ ] **Aba Treino: registrar o que foi feito.** Marcar quantidades, carga e
+      duração da sessão, como o app antigo fazia. Hoje só há o círculo de
+      "fiz o exercício". Precisa de uma entidade nova (sessão de treino) e de
+      uma tela de histórico — é o maior item em aberto.
+- [ ] **Adicionar exercício é limitado.** Só dá para escolher da lista de
+      sugestões; não dá para escrever um exercício próprio nem definir o alvo
+      ("3 × 8–12"). Deveria abrir um formulário, como o de remédio agora abre.
+- [ ] **Gráficos e estatísticas.** No Início, uma visão geral; no Perfil, uma
+      aba de Estatísticas. Depende do item de registro acima para ter o que
+      mostrar sobre treino — sem sessões gravadas, não há série temporal.
 
 
 ---
@@ -100,6 +107,28 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 ## Já resolvido
 
 Fica registrado para não voltar à discussão.
+
+**Da revisão de uso de 15/08:**
+
+- ~~Botões "Editar" espalhados~~ — segurar qualquer item entra na edição, e só
+  o "Concluir" fica visível
+- ~~Rolar a lista abria a edição~~ — o gesto não redesenha mais a tela, que era
+  o que cancelava a rolagem
+- ~~Faltava o alternador Agenda/Lista no Dia~~ — voltou, e a agenda dá a cada
+  bloco a altura da sua duração
+- ~~Não dava para editar o horário de um bloco~~ — tocar em edição abre o
+  editor com campos de hora nativos (resolve também o passo de 15 min)
+- ~~Arraste não respondia~~ — o cartão segue o dedo e o horário atualiza ao vivo
+- ~~Desfazer atrapalhava~~ — removido; as ações destrutivas confirmam antes
+- ~~A alça dos popups era enfeite~~ — puxar para baixo fecha
+- ~~Comida não refletia horário alterado no Dia~~ — o dia manda sobre o modelo
+- ~~Caixa: ciclar chip por chip~~ — formulário numa folha
+- ~~Não estava claro o que define o estoque~~ — editável no formulário e
+  explicado na tela
+- ~~Treino pedia horário e duração~~ — só duração; o horário vem do bloco no Dia
+- ~~Chip de horário solto no Treino~~ — removido
+
+**Anteriores:**
 
 - ~~Backup dos dados~~ — Perfil → Seus dados
 - ~~Renomear só ciclava listas fixas~~ — agora é campo de texto livre

@@ -2,10 +2,11 @@ import { DIAS, NOMES_REFEICAO, REFEICOES_SUGERIDAS } from '../dados/modelo.js';
 import { Dados, Tela, agir, agirSemAviso, definirTela } from '../nucleo/estado.js';
 import { diaDaSemana, semanaDe, dataCurta, paraMinutos } from '../nucleo/tempo.js';
 import { pratoDe, nutriDaReceita, totaisDoDia, refeicaoFeita, gerarCompras,
-         comprasAtuais, SECOES_COMPRA } from '../nucleo/modelo.js';
+         comprasAtuais, SECOES_COMPRA, horaDaRefeicaoNoDia } from '../nucleo/modelo.js';
 import { RECEITAS } from '../dados/receitas.js';
 import { h, icone, cabecalhoTela, pilula, rotuloSecao, barraProgresso, estadoVazio,
-         stepper, ajustarHora, numeroBR, abrirFolha, fecharFolha, abrirFolhaTexto } from '../ui/index.js';
+         stepper, ajustarHora, numeroBR, abrirFolha, fecharFolha, abrirFolhaTexto,
+         pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 4 — COMIDA
@@ -30,9 +31,7 @@ export function telaComida(){
       dataCurta(iso) + ' · ' + diaDaSemana(iso).full,
       'Comida',
       null,
-      [pilula(editando ? 'Concluir' : 'Editar',
-              () => definirTela({editando: Object.assign({}, Tela.editando, {comida: !editando})}),
-              {ativa: editando})]
+      editando ? [pilulaConcluir(() => definirTela({editando: Object.assign({}, Tela.editando, {comida: false})}))] : null
     ),
     segmentado(),
     editando ? edicaoDasRefeicoes()
@@ -86,22 +85,25 @@ export function linhaDeRefeicao(iso, diaK, slot){
   if(!prato){
     return h('div', {class:'refeicao a-definir', onTap: () => definirTela({abaComida:'semana'})},
       h('div', {class:'refeicao-texto'},
-        h('div', {class:'refeicao-rotulo'}, slot.nome + ' · ' + slot.hora),
+        h('div', {class:'refeicao-rotulo'}, slot.nome + ' · ' + horaDaRefeicaoNoDia(iso, slot)),
         h('div', {class:'refeicao-prato'}, 'A definir')
       ),
       icone('seta', 16)
     );
   }
 
-  return h('div', {
+  const linha = h('div', {
       class:'refeicao' + (feita ? ' feita' : ''),
-      onTap: () => agir(slot.nome + (feita ? ' desmarcado' : ' marcado'), d => {
-        d.refeicoesFeitas[iso + ':' + slot.id] = !feita;
-      })
+      onTap: () => {
+        if(consumirToqueLongo()) return;
+        agir(slot.nome + (feita ? ' desmarcado' : ' marcado'), d => {
+          d.refeicoesFeitas[iso + ':' + slot.id] = !feita;
+        });
+      }
     },
     h('span', {class:'refeicao-circulo'}, feita ? icone('check', 14) : null),
     h('div', {class:'refeicao-texto'},
-      h('div', {class:'refeicao-rotulo'}, slot.nome + ' · ' + slot.hora),
+      h('div', {class:'refeicao-rotulo'}, slot.nome + ' · ' + horaDaRefeicaoNoDia(iso, slot)),
       h('div', {class:'refeicao-prato'}, prato.nome)
     ),
     h('div', {class:'refeicao-nums'},
@@ -109,6 +111,12 @@ export function linhaDeRefeicao(iso, diaK, slot){
       h('div', {class:'refeicao-prot'}, prato.prot + ' g')
     )
   );
+  /* Segurar qualquer refeição abre a edição da lista — o mesmo gesto da
+     aba Dia, para não haver duas gramáticas no mesmo app. */
+  ligarToqueLongo(linha, () => definirTela({
+    editando: Object.assign({}, Tela.editando, {comida: true})
+  }));
+  return linha;
 }
 
 /* ===========================================================================
@@ -159,7 +167,7 @@ export function comidaSemana(iso){
           const prato = pratoDe(diaDaSemana(iso).k, slot.id);
           return h('div', {class:'refeicao', onTap: () => abrirEscolhaDePrato(diaDaSemana(iso).k, slot)},
             h('div', {class:'refeicao-texto'},
-              h('div', {class:'refeicao-rotulo'}, slot.nome + ' · ' + slot.hora),
+              h('div', {class:'refeicao-rotulo'}, slot.nome + ' · ' + horaDaRefeicaoNoDia(iso, slot)),
               h('div', {class:'refeicao-prato'}, prato ? prato.nome : 'A definir')
             ),
             icone('seta', 16)

@@ -1,4 +1,4 @@
-import { Tela, avisoAtual, desfazer, definirTela, avisar } from '../nucleo/estado.js';
+import { Tela, avisoAtual, fecharAviso, definirTela, avisar } from '../nucleo/estado.js';
 import { redesenhar } from '../nucleo/render.js';
 import { paraMinutos, paraHora } from '../nucleo/tempo.js';
 
@@ -197,19 +197,99 @@ export function numeroBR(n){
 
 
 /* ===========================================================================
-   AVISO DE DESFAZER
+   AVISO
 
-   Fica 180 px acima da base pra não cobrir o botão flutuante da aba Dia,
-   como pede o handoff.
+   Confirmação passageira do que acabou de acontecer. Não tem botão: tocar
+   nele apenas o dispensa, para nunca ficar no caminho.
    =========================================================================== */
 export function desenharAviso(){
   if(!avisoAtual) return null;
-  return h('div', {class:'aviso', role:'status'},
-    h('span', {class:'aviso-msg'}, avisoAtual.msg),
-    avisoAtual.foto
-      ? h('button', {class:'aviso-desfazer', type:'button', onTap: desfazer}, 'Desfazer')
-      : null
+  return h('div', {class:'aviso', role:'status', onTap: fecharAviso},
+    h('span', {class:'aviso-msg'}, avisoAtual)
   );
+}
+
+
+/* ===========================================================================
+   TOQUE E SEGURE
+
+   Substitui os botões "Editar" espalhados pelas telas: segurar qualquer item
+   entra no modo de edição daquela tela, e só o "Concluir" fica visível.
+
+   O detalhe que faz funcionar: NADA é redesenhado durante a espera. A versão
+   anterior redesenhava a tela inteira no `pointerdown` para aplicar o efeito
+   de encolher — e trocar o DOM embaixo do dedo cancelava a rolagem, que era
+   exatamente a queixa de "tento rolar e abre a edição". Aqui o efeito é uma
+   classe CSS aplicada direto no elemento, sem passar pelo ciclo de desenho.
+   =========================================================================== */
+
+const MS_TOQUE_LONGO = 500;
+const PX_QUE_CANCELA = 12;   // uma rolagem de verdade passa disso em poucos ms
+
+/* Fica true no instante em que a espera completa, para o `click` que vem
+   depois do dedo levantar não ser interpretado como um toque comum. */
+let toqueLongoDisparou = false;
+
+export function consumirToqueLongo(){
+  if(!toqueLongoDisparou) return false;
+  toqueLongoDisparou = false;
+  return true;
+}
+
+/**
+ * Liga o gesto de segurar num elemento.
+ *
+ *   ligarToqueLongo(cartao, () => entrarEmEdicao());
+ */
+export function ligarToqueLongo(el, aoAtivar){
+  let timer = null;
+  let inicioY = null;
+  let inicioX = null;
+
+  const cancelar = () => {
+    clearTimeout(timer);
+    inicioY = null;
+    el.classList.remove('segurando');
+  };
+
+  el.addEventListener('pointerdown', ev => {
+    /* Só o botão principal / o dedo. Botão direito não deve armar o gesto. */
+    if(ev.button !== undefined && ev.button !== 0) return;
+    inicioY = ev.clientY;
+    inicioX = ev.clientX;
+    toqueLongoDisparou = false;
+    el.classList.add('segurando');
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      toqueLongoDisparou = true;
+      el.classList.remove('segurando');
+      /* Vibração curta: confirma o gesto sem precisar olhar. */
+      if(navigator.vibrate) navigator.vibrate(12);
+      aoAtivar();
+    }, MS_TOQUE_LONGO);
+  });
+
+  el.addEventListener('pointermove', ev => {
+    if(inicioY === null) return;
+    const andou = Math.abs(ev.clientY - inicioY) + Math.abs(ev.clientX - inicioX);
+    if(andou > PX_QUE_CANCELA) cancelar();
+  });
+
+  el.addEventListener('pointerup', cancelar);
+  el.addEventListener('pointercancel', cancelar);
+  /* Rolagem em qualquer ancestral cancela: é o sinal mais confiável de que o
+     dedo estava rolando, e não segurando. */
+  el.addEventListener('touchmove', cancelar, {passive: true});
+}
+
+/** Pílula "Concluir", que aparece só quando a tela está em edição. */
+export function pilulaConcluir(aoConcluir){
+  return pilula('Concluir', aoConcluir, {ativa: true});
+}
+
+/** Dica que explica o gesto, mostrada quando a tela NÃO está em edição. */
+export function dicaDeEdicao(texto){
+  return h('p', {class:'dica-gesto'}, texto);
 }
 
 
@@ -221,24 +301,77 @@ export function desenharAviso(){
 export function desenharFolha(){
   if(!Tela.folha) return null;
   const folha = Tela.folha;
-  return h('div', {class:'folha-fundo', onTap: fecharFolha},
-    h('div', {
-        class:'folha',
-        role:'dialog',
-        'aria-modal':'true',
-        onTap: ev => ev.stopPropagation()   // clique dentro não fecha
-      },
-      h('div', {class:'folha-alca'}),
-      h('h2', {class:'folha-titulo'}, folha.titulo),
-      folha.corpo(),
-      /* `acoes: false` é para folhas em que escolher um item já conclui a
-         tarefa — um par Cancelar/Confirmar ali seria um passo a mais à toa. */
-      folha.acoes === false ? null : h('div', {class:'folha-acoes'},
-        h('button', {class:'btn btn-suave', type:'button', onTap: fecharFolha}, 'Cancelar'),
-        h('button', {class:'btn btn-forte', type:'button', onTap: folha.confirmar}, folha.rotuloConfirmar)
-      )
+  const painel = h('div', {
+      class:'folha',
+      role:'dialog',
+      'aria-modal':'true',
+      onTap: ev => ev.stopPropagation()   // clique dentro não fecha
+    },
+    alcaArrastavel(),
+    h('h2', {class:'folha-titulo'}, folha.titulo),
+    folha.corpo(),
+    /* `acoes: false` é para folhas em que escolher um item já conclui a
+       tarefa — um par Cancelar/Confirmar ali seria um passo a mais à toa. */
+    folha.acoes === false ? null : h('div', {class:'folha-acoes'},
+      h('button', {class:'btn btn-suave', type:'button', onTap: fecharFolha}, 'Cancelar'),
+      h('button', {class:'btn btn-forte', type:'button', onTap: folha.confirmar}, folha.rotuloConfirmar)
     )
   );
+  return h('div', {class:'folha-fundo', onTap: fecharFolha}, painel);
+}
+
+/**
+ * A alça da folha, que agora arrasta de verdade.
+ *
+ * Ela existia só como enfeite: o desenho pede uma alça, todo app tem uma, e
+ * quem vê tenta puxar. Uma alça que não responde é pior que alça nenhuma.
+ *
+ * O arraste mexe no `transform` do painel direto, sem passar pelo ciclo de
+ * desenho — em 60 quadros por segundo, redesenhar a folha inteira a cada
+ * movimento engasgaria.
+ */
+function alcaArrastavel(){
+  const alca = h('div', {class:'folha-alca-area', 'aria-label':'Puxe para fechar'},
+    h('div', {class:'folha-alca'}));
+
+  let inicioY = null;
+  let deslocamento = 0;
+  let painel = null;
+
+  const mover = ev => {
+    if(inicioY === null) return;
+    /* Só para baixo: puxar para cima não deveria esticar a folha. */
+    deslocamento = Math.max(0, ev.clientY - inicioY);
+    painel.style.transition = 'none';
+    painel.style.transform = 'translateY(' + deslocamento + 'px)';
+  };
+
+  const soltar = () => {
+    if(inicioY === null) return;
+    document.removeEventListener('pointermove', mover);
+    document.removeEventListener('pointerup', soltar);
+    document.removeEventListener('pointercancel', soltar);
+    inicioY = null;
+    painel.style.transition = '';
+    /* Passou de um terço da altura: a intenção era fechar. */
+    if(deslocamento > painel.offsetHeight / 3){
+      fecharFolha();
+    } else {
+      painel.style.transform = '';
+    }
+  };
+
+  alca.addEventListener('pointerdown', ev => {
+    ev.preventDefault();
+    painel = alca.closest('.folha');
+    inicioY = ev.clientY;
+    deslocamento = 0;
+    document.addEventListener('pointermove', mover);
+    document.addEventListener('pointerup', soltar);
+    document.addEventListener('pointercancel', soltar);
+  });
+
+  return alca;
 }
 
 export function abrirFolha(config){ definirTela({folha: config}); }
