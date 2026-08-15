@@ -1269,3 +1269,167 @@ button, .tocavel{
   margin:0; font-size:11px; font-weight:500; color:var(--texto-fraco);
   text-align:center;
 }
+
+/* ===========================================================================
+   13. GRÁFICOS E ESTATÍSTICAS
+
+   Uma hue só nas marcas: as cores das categorias reprovaram no validador de
+   paletas (ver o cabeçalho de ui/graficos.js), então elas aparecem apenas
+   como o pontinho ao lado do rótulo. `--acao` dá 5,09:1 sobre o cartão, bem
+   acima dos 3:1 exigidos de uma marca.
+   =========================================================================== */
+
+.figura{ margin:0; display:flex; flex-direction:column; gap:9px; }
+.figura-titulo{
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.18em; color:var(--texto-fraco);
+}
+.figura-nota{
+  margin:0; font-size:10.5px; font-weight:500; color:var(--texto-fraco);
+  line-height:1.45;
+}
+.figura-vazia{
+  margin:0; padding:18px 4px;
+  font-size:11.5px; font-weight:500; color:var(--texto-fraco);
+  text-align:center;
+}
+
+/* --- Números-herói --------------------------------------------------------- */
+.fileira-destaques{ display:flex; gap:14px; }
+.destaque{ flex:1; min-width:0; }
+.destaque-numero{
+  font-size:26px; font-weight:700; line-height:1.05; color:var(--texto);
+  font-variant-numeric:tabular-nums;
+}
+.destaque-unidade{ font-size:14px; font-weight:600; margin-left:2px; }
+.destaque-rotulo{
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--texto-fraco); margin-top:3px;
+}
+.destaque-apoio{ font-size:10.5px; font-weight:500; color:var(--texto-4); margin-top:1px; }
+
+/* --- SVG: colunas e linha --------------------------------------------------- */
+.gd{ width:100%; height:auto; display:block; overflow:visible; margin-inline:auto; }
+.gd-trilho{ fill:var(--superficie-clara); }
+.gd-coluna{ fill:var(--acao); opacity:.55; }
+.gd-coluna.destacada{ opacity:1; }
+.gd-rotulo-eixo{
+  font-family:var(--texto-fonte); font-size:9.5px; font-weight:600;
+  fill:var(--texto-fraco);
+}
+.gd-rotulo-eixo.destacado{ fill:var(--texto); font-weight:700; }
+/* Texto nunca veste a cor do dado: o número fica em tinta, a marca carrega
+   a identidade. */
+.gd-valor{
+  font-family:var(--texto-fonte); font-size:10px; font-weight:700;
+  fill:var(--texto); font-variant-numeric:tabular-nums;
+}
+.gd-eixo{ stroke:var(--linha); stroke-width:1; }
+.gd-traco{ stroke:var(--acao); stroke-width:2; fill:none; stroke-linejoin:round; stroke-linecap:round; }
+/* Anel na cor da superfície: o marcador continua legível onde cruza a linha. */
+.gd-anel{ fill:var(--superficie); }
+.gd-ponto-linha{ fill:var(--acao); }
+
+/* --- Barras horizontais ----------------------------------------------------- */
+.gd-barras{ display:flex; flex-direction:column; gap:7px; }
+.gd-barra-linha{ display:grid; grid-template-columns:82px 1fr auto; align-items:center; gap:8px; }
+.gd-barra-rotulo{
+  display:flex; align-items:center; gap:5px;
+  font-size:10.5px; font-weight:600; color:var(--texto-3);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.gd-ponto{ width:7px; height:7px; border-radius:2px; flex-shrink:0; display:inline-block; }
+.gd-barra-trilho{
+  height:12px; border-radius:4px;
+  background:var(--superficie-clara); overflow:hidden;
+}
+.gd-barra-preenche{
+  height:100%; background:var(--acao);
+  border-radius:0 4px 4px 0;   /* ponta arredondada, base quadrada */
+}
+.gd-barra-valor{
+  font-size:10.5px; font-weight:700; color:var(--texto);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+
+/* --- Medidor ---------------------------------------------------------------- */
+.medidores{ display:flex; flex-direction:column; gap:11px; }
+.gd-medidor{ display:flex; flex-direction:column; gap:5px; }
+.gd-medidor-topo{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.gd-medidor-rotulo{ font-size:11px; font-weight:600; color:var(--texto-3); }
+.gd-medidor-valor{
+  font-size:11px; font-weight:700; color:var(--texto);
+  font-variant-numeric:tabular-nums;
+}
+
+/* --- Histórico -------------------------------------------------------------- */
+.historico{ display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+.historico-linha{
+  display:flex; align-items:baseline; gap:9px;
+  font-size:11.5px; font-weight:500; color:var(--texto-3);
+}
+.historico-data{
+  width:64px; flex-shrink:0; font-weight:600;
+  font-variant-numeric:tabular-nums; color:var(--texto-4);
+}
+.historico-nome{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.historico-meta{
+  flex-shrink:0; font-weight:600; color:var(--texto-4);
+  font-variant-numeric:tabular-nums;
+}
+.historico-meta.alerta{ color:var(--acao-escura); font-weight:700; }
+
+/* --- Tela cheia de estatísticas --------------------------------------------- */
+.tela-estatisticas{
+  position:absolute; inset:0;
+  background:var(--fundo);
+  overflow-y:auto;
+  padding:0 var(--pad-tela) calc(24px + env(safe-area-inset-bottom));
+}
+
+/* --- Resumo na tela Início --------------------------------------------------- */
+.cartao-resumo{ text-align:left; align-items:stretch; width:100%; }
+.resumo-pct{
+  font-size:15px; font-weight:700; color:var(--texto);
+  font-variant-numeric:tabular-nums;
+}
+
+/* --- Registro de séries ------------------------------------------------------ */
+.lista-series{ display:flex; flex-direction:column; gap:7px; }
+.serie{ display:flex; align-items:flex-end; gap:8px; }
+.serie-numero{
+  width:26px; flex-shrink:0; padding-bottom:12px;
+  font-size:11px; font-weight:700; color:var(--texto-fraco);
+}
+.serie-campo{ flex:1; min-width:0; }
+.campo-numero{ text-align:center; font-variant-numeric:tabular-nums; }
+
+.exercicio-registro{
+  display:block; margin-top:2px;
+  font-size:10.5px; font-weight:700; color:var(--salvia-texto);
+  font-variant-numeric:tabular-nums;
+}
+.exercicio-anterior{
+  display:block; margin-top:2px;
+  font-size:10.5px; font-weight:500; color:var(--texto-fraco);
+  font-variant-numeric:tabular-nums;
+}
+.exercicio-seta{ color:var(--texto-fraco); flex-shrink:0; display:flex; }
+.exercicio .exercicio-texto{ flex:1; min-width:0; }
+.exercicio-circulo{
+  background:none;
+  /* o círculo é botão agora: precisa de alvo próprio sem inflar a linha */
+  padding:0;
+}
+.exercicio.feito .exercicio-circulo{ background:var(--salvia); border-color:var(--salvia); color:var(--branco); }
+
+.sessao-resumo{
+  display:flex; gap:14px; flex-wrap:wrap;
+  font-size:12px; font-weight:700; color:var(--texto);
+  font-variant-numeric:tabular-nums;
+}
+.sessao-nota{
+  margin:0; font-size:11.5px; font-weight:500; color:var(--texto-3);
+  background:var(--superficie-clara);
+  border-radius:var(--r-linha-menor); padding:9px 13px;
+}

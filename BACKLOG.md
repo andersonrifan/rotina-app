@@ -108,7 +108,7 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 
 Fica registrado para não voltar à discussão.
 
-**Da revisão de uso de 15/08:**
+undefined
 
 - ~~Botões "Editar" espalhados~~ — segurar qualquer item entra na edição, e só
   o "Concluir" fica visível

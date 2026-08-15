@@ -22,6 +22,7 @@ import { telaComida } from './telas/comida.js';
 import { telaCaixa } from './telas/caixa.js';
 import { telaPrimeiroUso, telaReplanejar } from './telas/extras.js';
 import { telaBoasVindas, telaPerfil, precisaDeNome } from './telas/perfil.js';
+import { telaEstatisticas } from './telas/estatisticas.js';
 
 const ABAS = [
   {id:'inicio', rotulo:'Início', icone:'casa',       desenhar: telaInicio},
@@ -55,6 +56,7 @@ function desenharTudo(){
     camadas.textContent = '';
     /* Ordem importa: a última anexada fica por cima. */
     if(Tela.perfil) camadas.appendChild(telaPerfil());
+    if(Tela.estatisticas) camadas.appendChild(telaEstatisticas());
     if(Tela.replanejar) camadas.appendChild(telaReplanejar());
     /* A abertura tem uma ORDEM: primeiro o nome, depois a rotina.
        O `else if` importa — empilhar as duas deixaria a de baixo invisível
@@ -137,10 +139,20 @@ export function iniciar(){
     if(Tela.aba === 'inicio' || Tela.aba === 'dia') desenharTudo();
   }, 60000);
 
-  /* Voltar ao app depois de um tempo: se o dia virou, a tela acompanha. */
+  /* Voltar ao app depois de um tempo: se A DATA VIROU enquanto ele estava em
+     segundo plano, a tela acompanha.
+
+     A condição é essa e não "o dia selecionado está no passado". Rever a
+     quarta passada é uso normal — trocar de app e voltar não pode jogar você
+     para hoje e fazer perder o lugar. */
+  let dataDoUltimoDesenho = hojeISO();
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState !== 'visible') return;
-    if(Tela.data && ehPassado(Tela.data) && !Dados.blocos[Tela.data]) Tela.data = hojeISO();
+    const agora = hojeISO();
+    if(agora !== dataDoUltimoDesenho){
+      dataDoUltimoDesenho = agora;
+      Tela.data = agora;
+    }
     desenharTudo();
   });
 }

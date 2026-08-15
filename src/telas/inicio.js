@@ -1,5 +1,6 @@
 import { Dados, agir, definirTela } from '../nucleo/estado.js';
 import { botaoDePerfil } from './perfil.js';
+import { resumoDaSemana } from './estatisticas.js';
 import { hojeISO, diaDaSemana, dataCabecalho, saudacao, agoraEmMinutos,
          paraMinutos, paraHora, rotuloDuracao } from '../nucleo/tempo.js';
 import { blocoAtual, proximoBloco, remedioTomado, remediosPendentesHoje, treinoDoDia,
@@ -28,7 +29,8 @@ export function telaInicio(){
     cartaoAgora(iso),
     cartaoRemedios(iso),
     h('div', {class:'grade-dupla'}, cartaoTreino(iso), cartaoComida(iso)),
-    linhaCompras()
+    linhaCompras(),
+    resumoDaSemana(iso)
   );
 }
 

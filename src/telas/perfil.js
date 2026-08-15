@@ -21,6 +21,7 @@ import { baixarBackup, interpretarBackup, restaurar, resumirBackup } from '../nu
 import { h, icone, cabecalhoTela, pilula, rotuloSecao, stepper, abrirFolha,
          fecharFolha, abrirFolhaTexto } from '../ui/index.js';
 import { reabrirPrimeiroUso } from './extras.js';
+import { abrirEstatisticas } from './estatisticas.js';
 
 /* Injetada no build a partir do package.json. Fora do build (testes), cai
    em 'dev' — útil pra saber de qual versão veio um relato de erro. */
@@ -112,6 +113,15 @@ export function telaPerfil(){
         h('button', {class:'btn-renomear', type:'button', onTap: renomearPessoa},
           icone('lapis', 13), 'Mudar')
       )
+    ),
+
+    /* --- Estatísticas --- */
+    h('button', {class:'linha-atalho', type:'button', onTap: abrirEstatisticas},
+      h('div', null,
+        rotuloSecao('Estatísticas'),
+        h('div', {class:'atalho-apoio'}, 'Aderência, tempo por área, treinos e comida')
+      ),
+      icone('seta', 18)
     ),
 
     /* --- Metas --- */

@@ -15,7 +15,7 @@
 export const CHAVE = 'rotina_v4';
 
 /** A versão do esquema que ESTA build entende. Suba ao mudar o formato. */
-export const VERSAO_ESQUEMA = 5;
+export const VERSAO_ESQUEMA = 6;
 
 /** Cópia profunda. Usada ao semear dados e ao simular hipóteses. */
 export function clonar(valor){
@@ -53,6 +53,14 @@ const MIGRACOES = {
   4: (dados) => {
     delete dados.agua;
     if(dados.perfil && dados.perfil.metas) delete dados.perfil.metas.copos;
+    return dados;
+  },
+
+  /* v5 → v6: o treino passa a registrar o que foi feito (séries, carga,
+     duração), não só quais exercícios foram marcados. Quem já usava não tem
+     sessões antigas para converter — o histórico começa agora. */
+  5: (dados) => {
+    if(!dados.sessoes) dados.sessoes = {};
     return dados;
   }
 };

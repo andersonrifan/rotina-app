@@ -46,6 +46,10 @@ export function dadosIniciais(modelo){
     exercFeitos:     {},   // 'data:treino:volta:i' → true/false
     reabertos:       {},   // 'data'                → true (dia passado liberado)
 
+    /* Sessões de treino: o que foi FEITO, não o que estava planejado.
+       Chave 'data:idDoTreino'. Ver `sessaoDe` em sessoes.js. */
+    sessoes: {},
+
     /* Lista de compras materializada. null = ainda não gerada. */
     compras: null
   };
@@ -121,7 +125,9 @@ export const Tela = {
      a pessoa não escolhe, nada aconteceu. */
   primeiroUso: false,
   /* Tela de perfil aberta por cima do app. */
-  perfil: false
+  perfil: false,
+  /* Tela de estatísticas, aberta a partir do Perfil ou do Início. */
+  estatisticas: false
 };
 
 export function definirTela(patch){
