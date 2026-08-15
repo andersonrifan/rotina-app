@@ -55,7 +55,7 @@ src/
   ui/index.js         h(), ícones, peças reaproveitadas, folha, aviso
   telas/              uma por aba, mais primeiro-uso e replanejar
 
-testes/               67 testes sobre o núcleo
+testes/               91 testes sobre o núcleo
 docs/                 publicação e privacidade
 ```
 
@@ -97,6 +97,11 @@ Duas formas de trocar:
 - **No código:** substitua o `MODELO` daquele arquivo. Nenhum outro precisa ser
   tocado.
 
+Essa tela não some para sempre depois da primeira escolha: *Início → Seus dados
+→ **Recomeçar do início*** traz ela de volta, agora com aviso de que apaga tudo,
+atalho para baixar o backup antes e a saída "Voltar sem mudar nada". Reabrir não
+grava nada — os dados só são tocados quando uma das opções é escolhida.
+
 ---
 
 ## Mandar para alguém testar
@@ -133,9 +138,6 @@ Veja [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md). Resumo:
 - falta gerar capturas de tela e o gráfico de destaque;
 - a política de privacidade está escrita em
   [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md) e precisa ser hospedada.
-
-**Recomeçar:** *Início → Seus dados → Recomeçar do início* traz de volta a tela
-de escolha entre a rotina-modelo e começar do zero.
 
 Alternativa sem loja: o `dist/` é uma PWA completa. Hospedado em qualquer
 HTTPS, instala pelo próprio navegador.
