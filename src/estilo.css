@@ -1,0 +1,1140 @@
+﻿/* ===========================================================================
+   ROTINA â€” folha de estilo
+
+   Design system "Organic" do handoff: creme + terracota + sÃ¡lvia, Caprasimo
+   nos tÃ­tulos, Figtree em todo o resto.
+
+   Toda decisÃ£o visual mora na seÃ§Ã£o 01. As demais seÃ§Ãµes sÃ³ consomem token â€”
+   nÃ£o existe cor, medida ou sombra solta no meio do arquivo. Trocar a
+   identidade do app inteiro Ã© reescrever a seÃ§Ã£o 01.
+
+   SUMÃRIO
+     01. Tokens
+     02. Base e moldura do app
+     03. PeÃ§as compartilhadas (cartÃ£o, botÃ£o, pÃ­lula, barra, stepper, campo)
+     04. Barra de abas
+     05. InÃ­cio
+     06. Dia
+     07. Treino
+     08. Comida
+     09. Caixa
+     10. Folha, aviso e telas cheias
+     11. Acessibilidade
+
+   REGRAS INVIOLÃVEIS DO HANDOFF, e onde estÃ£o garantidas:
+     1. Alvo de toque â‰¥ 44 Ã— 44 px  â†’ `.tocavel` e `button` na seÃ§Ã£o 11.
+     2. Texto < 18,66 px com 4,5:1  â†’ a paleta da seÃ§Ã£o 01 jÃ¡ foi auditada;
+        nunca use --neutro-tracejado nem --linha como cor de TEXTO.
+     3. Branco sÃ³ sobre --acao, --acao-cartao ou --salvia.
+   =========================================================================== */
+
+
+/* ===========================================================================
+   00. FONTES
+
+   Os arquivos vivem no repositório e entram no pacote — o app não busca nada
+   na rede em momento algum. `font-display: swap` faz o texto aparecer na hora
+   com a fonte de sistema e trocar quando a definitiva carrega, o que no
+   segundo uso é instantâneo porque ela já está em cache.
+
+   Figtree é uma fonte variável: um arquivo só cobre os pesos 500 a 700, daí
+   o intervalo em `font-weight`. Os subconjuntos latin e latin-ext juntos
+   cobrem o português (á, ç, ã, õ, ê).
+   =========================================================================== */
+@font-face{
+  font-family:'Caprasimo';
+  src:url('./fontes/caprasimo-latin.woff2') format('woff2');
+  font-weight:400; font-style:normal; font-display:swap;
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,
+                U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,
+                U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:'Caprasimo';
+  src:url('./fontes/caprasimo-latin-ext.woff2') format('woff2');
+  font-weight:400; font-style:normal; font-display:swap;
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,
+                U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,
+                U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face{
+  font-family:'Figtree';
+  src:url('./fontes/figtree-latin.woff2') format('woff2');
+  font-weight:500 700; font-style:normal; font-display:swap;
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,
+                U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,
+                U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:'Figtree';
+  src:url('./fontes/figtree-latin-ext.woff2') format('woff2');
+  font-weight:500 700; font-style:normal; font-display:swap;
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,
+                U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,
+                U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+
+/* ===========================================================================
+   01. TOKENS
+   =========================================================================== */
+:root{
+  /* --- SuperfÃ­cies --- */
+  --fundo:            #f5ead8;   /* fundo de todas as telas */
+  --superficie:       #ebddc5;   /* cartÃµes, barra de abas, chips inativos */
+  --superficie-clara: #f9f4ed;   /* cartÃ£o dentro de cartÃ£o, botÃ£o de stepper */
+  --superficie-marcada:#f0ead9;  /* bloco do dia jÃ¡ marcado */
+
+  /* --- Texto (auditado para 4,5:1 sobre --fundo e --superficie) --- */
+  --texto:      #201e1d;
+  --texto-2:    #3f3a32;
+  --texto-3:    #544c41;
+  --texto-4:    #5c5347;
+  --texto-fraco:#645c50;         /* o mais claro permitido em texto â‰¥ 11 px */
+  --branco:     #ffffff;
+
+  /* --- Terracota --- */
+  --acao:         #8c491a;       /* controle ativo, com texto branco */
+  --acao-cartao:  #a4501f;       /* cartÃ£o "agora" e cartÃ£o de kcal */
+  --acao-escura:  #7d3a12;       /* faixa interna, texto de alerta */
+  --acao-clara:   #ffe1d0;       /* bloco atual, chip de aviso */
+  --acao-tenue:   #fff2eb;       /* fundo de item pendente */
+  --acao-contorno:#f6a06b;       /* borda de item pendente */
+  --acao-viva:    #c67139;       /* cartÃ£o do replanejar, categoria hobby */
+
+  /* --- SÃ¡lvia --- */
+  --salvia:       #56633f;       /* concluÃ­do, chip ativo, barras */
+  --salvia-clara: #e1eecc;       /* cartÃ£o de treino, item concluÃ­do */
+  --salvia-tenue: #f0fae1;       /* chip dentro do cartÃ£o de treino */
+  --salvia-texto: #3d472b;       /* texto sobre --salvia-clara */
+
+  /* --- Neutros de contorno (NUNCA como cor de texto) --- */
+  --neutro-tracejado:#a19786;
+  --tracejado-forte: #7b7266;
+  --linha:           #c0b6a5;
+  --sono:            #474238;
+
+  /* --- Tipografia --- */
+  --display: 'Caprasimo', Georgia, 'Times New Roman', serif;
+  --texto-fonte: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* --- Raios (a escala do handoff) --- */
+  --r-aparelho:44px; --r-grande:28px; --r-medio:24px; --r-pequeno:22px;
+  --r-linha:20px;    --r-linha-menor:18px; --r-celula:14px; --r-min:9px;
+  --r-pilula:999px;
+
+  /* --- EspaÃ§amento --- */
+  --gap-cartoes:12px;      /* entre cartÃµes */
+  --pad-cartao:16px;       /* interno dos cartÃµes */
+  --gap-linhas:7px;        /* entre linhas de lista */
+  --pad-tela:22px;         /* margem lateral das telas */
+
+  /* --- Sombras --- */
+  --sombra-aparelho: 0 20px 50px rgba(46,43,37,.28);
+  --sombra-flutuante:0 8px 20px rgba(46,43,37,.3);
+  --sombra-arraste:  0 10px 24px rgba(46,43,37,.26);
+  --sombra-aviso:    0 10px 26px rgba(32,30,29,.3);
+
+  /* --- Alvo de toque --- */
+  --toque:44px;
+}
+
+
+/* ===========================================================================
+   02. BASE E MOLDURA
+   =========================================================================== */
+*, *::before, *::after{ box-sizing:border-box; }
+
+html, body{ height:100%; }
+
+body{
+  margin:0;
+  background:var(--fundo);
+  color:var(--texto);
+  font-family:var(--texto-fonte);
+  font-size:12.5px;
+  font-weight:500;
+  line-height:1.45;
+  -webkit-text-size-adjust:100%;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* A moldura ocupa a tela toda no celular. Em telas maiores ela vira o
+   aparelho de referÃªncia do handoff (390 Ã— 844), centralizado. */
+#aparelho{
+  position:relative;
+  display:flex; flex-direction:column;
+  width:100%; height:100dvh;
+  max-width:none;
+  margin:0 auto;
+  background:var(--fundo);
+  overflow:hidden;
+}
+@media (min-width:520px){
+  body{ background:#e6d9c1; display:flex; align-items:center; justify-content:center; }
+  #aparelho{
+    width:390px; height:844px; max-height:100dvh;
+    border-radius:var(--r-aparelho);
+    box-shadow:var(--sombra-aparelho);
+  }
+}
+
+#conteudo{
+  flex:1; min-height:0;
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:0 var(--pad-tela) 16px;
+  scrollbar-width:none;
+}
+#conteudo::-webkit-scrollbar{ display:none; }
+
+.tela{ display:flex; flex-direction:column; gap:var(--gap-cartoes); padding-bottom:8px; }
+
+button{ font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+input{ font:inherit; color:inherit; }
+
+/* NÃºmeros de horÃ¡rio e quantidade sempre alinhados em colunas. */
+.bloco-hora, .bloco-dur, .dia-numero, .kcal-numero, .estoque-dias, .refeicao-kcal,
+.refeicao-prot, .impacto-valor, .stepper-valor, .compra-qtd,
+.ajuste-detalhe, .cartao-edicao-faixa, .agora-ate, .agora-faixa-hora, .treino-contagem{
+  font-variant-numeric:tabular-nums;
+}
+
+#erro-inicio{
+  display:none;
+  position:fixed; inset:0 0 auto 0; z-index:200;
+  background:var(--acao-clara); color:var(--acao-escura);
+  padding:12px 16px; font-size:12px; font-weight:600;
+}
+#erro-inicio.visivel{ display:block; }
+
+
+/* ===========================================================================
+   03. PEÃ‡AS COMPARTILHADAS
+   =========================================================================== */
+
+/* --- CabeÃ§alho de tela --- */
+.cabecalho{
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:10px; padding:16px 0 4px;
+}
+.cabecalho-acima{
+  font-size:12px; font-weight:600; color:var(--texto-fraco);
+}
+.titulo-tela{
+  font-family:var(--display); font-weight:400;
+  font-size:34px; line-height:1; margin:4px 0 0;
+  color:var(--texto);
+}
+.titulo-tela.grande{ font-size:32px; }
+.cabecalho-abaixo{
+  margin-top:6px;
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.14em; color:var(--texto-fraco);
+}
+.cabecalho-acoes{ display:flex; gap:6px; flex-shrink:0; padding-bottom:2px; }
+
+/* Telas cujo tÃ­tulo Ã© curto usam um tamanho menor, como no handoff. */
+.tela-dia .titulo-tela, .tela-replanejar .titulo-tela{ font-size:26px; line-height:1.05; }
+
+/* --- RÃ³tulos --- */
+.rotulo-secao{
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.18em; color:var(--texto-fraco);
+}
+.rotulo-claro{
+  font-size:9.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.16em; color:rgba(255,255,255,.85);
+}
+.campo-rotulo{
+  display:block;
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.12em; color:var(--texto-fraco);
+  margin-bottom:5px;
+}
+.nota{
+  margin:0; font-size:11.5px; font-weight:500; color:var(--texto-fraco);
+  line-height:1.5;
+}
+
+/* --- CartÃ£o --- */
+.cartao{
+  background:var(--superficie);
+  border-radius:var(--r-medio);
+  padding:var(--pad-cartao);
+  display:flex; flex-direction:column; gap:9px;
+}
+.cartao-topo{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+
+/* --- BotÃµes --- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  min-height:var(--toque);
+  padding:0 18px;
+  border-radius:var(--r-pilula);
+  font-size:12.5px; font-weight:700;
+  transition:filter .15s ease;
+}
+.btn:active{ filter:brightness(.94); }
+.btn-forte{ background:var(--acao); color:var(--branco); }
+.btn-salvia{ background:var(--salvia); color:var(--branco); }
+.btn-suave{ background:var(--superficie); color:var(--texto-3); font-weight:600; }
+.btn-transparente{ background:transparent; color:var(--texto-3); font-weight:600; }
+.btn-contorno-perigo{
+  background:transparent; color:var(--acao);
+  border:1.5px solid var(--acao-contorno);
+}
+.btn.alto{ min-height:54px; }
+.btn.cresce{ flex:1.4; }
+.largura-cheia{ width:100%; }
+
+/* --- PÃ­lula --- */
+.pilula{
+  min-height:var(--toque);
+  padding:0 14px;
+  border-radius:var(--r-pilula);
+  background:var(--superficie); color:var(--texto-3);
+  font-size:11.5px; font-weight:600;
+  white-space:nowrap;
+}
+.pilula.ativa{ background:var(--acao); color:var(--branco); font-weight:700; }
+
+/* --- Barra de progresso --- */
+/* `flex:1 1 auto`, e nÃ£o `flex:1`. Em contÃªiner-linha (o cartÃ£o "agora", o
+   progresso do treino) os dois crescem igual na horizontal; mas `flex:1`
+   significa `flex-basis:0`, que em contÃªiner-coluna vira ALTURA zero e faz a
+   barra sumir â€” foi o que aconteceu no cartÃ£o de kcal e no estoque. Com
+   `auto`, a altura de 8 px Ã© respeitada nos dois casos. */
+.barra{
+  flex:1 1 auto; width:100%; height:8px;
+  border-radius:var(--r-pilula);
+  background:var(--linha); overflow:hidden;
+}
+.barra-preenche{
+  height:100%; border-radius:var(--r-pilula);
+  background:var(--acao);
+  transition:width .25s ease;
+}
+.barra-clara{ background:rgba(255,255,255,.34); }
+.barra-clara .barra-preenche{ background:var(--branco); }
+.barra-salvia .barra-preenche{ background:var(--salvia); }
+.barra-alerta .barra-preenche{ background:var(--acao-cartao); }
+
+/* --- Stepper --- */
+/* O stepper inteiro tem exatamente a altura de um alvo de toque: os dois
+   botÃµes ocupam essa altura toda, sem padding no contÃªiner roubando pixels. */
+.stepper{
+  display:inline-flex; align-items:center;
+  background:var(--superficie-clara);
+  border-radius:var(--r-pilula);
+}
+.stepper-btn{
+  width:var(--toque); height:var(--toque);
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  color:var(--texto-3);
+}
+.stepper-btn:active{ background:var(--superficie); }
+.stepper-valor{
+  min-width:62px; text-align:center;
+  font-size:12.5px; font-weight:700; color:var(--texto);
+}
+
+/* --- Campos --- */
+.campo{ display:block; }
+.campo-duplo{ display:flex; gap:10px; }
+.campo-duplo .campo{ flex:1; }
+.campo-entrada{
+  width:100%; min-height:var(--toque);
+  padding:0 14px;
+  border:none; border-radius:var(--r-linha-menor);
+  background:var(--superficie);
+  font-size:16px;          /* 16px evita o zoom automÃ¡tico do iOS ao focar */
+  font-weight:600; color:var(--texto);
+}
+.campo-entrada::placeholder{ color:var(--texto-fraco); font-weight:500; }
+
+/* --- SugestÃµes e chips genÃ©ricos --- */
+.sugestoes{ display:flex; flex-wrap:wrap; gap:6px; }
+.sugestao, .chip-acao{
+  min-height:var(--toque);
+  padding:0 13px;
+  border-radius:var(--r-pilula);
+  background:var(--superficie); color:var(--texto-3);
+  font-size:11px; font-weight:500;
+}
+.chip-acao{ background:var(--superficie-clara); }
+
+/* --- Linha tracejada de adicionar --- */
+.adicionar-tracejado{
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  width:100%; min-height:var(--toque);
+  border:1.5px dashed var(--tracejado-forte);
+  border-radius:var(--r-linha);
+  color:var(--texto-3); font-size:11.5px; font-weight:600;
+}
+
+/* --- BotÃµes pequenos de lista --- */
+.btn-mini{
+  width:var(--toque); height:var(--toque);
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  background:var(--superficie-clara); color:var(--texto-3);
+}
+.btn-mini.perigo{ background:var(--acao-tenue); color:var(--acao); }
+.btn-renomear{
+  display:inline-flex; align-items:center; gap:5px;
+  min-height:var(--toque); padding:0 12px;
+  border-radius:var(--r-pilula);
+  background:var(--superficie-clara); color:var(--texto-3);
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+}
+
+/* --- Estado vazio --- */
+.vazio{
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  text-align:center; padding:40px 10px;
+}
+.vazio-titulo{ font-family:var(--display); font-weight:400; font-size:24px; line-height:1.1; }
+.vazio-texto{ font-size:12px; font-weight:500; color:var(--texto-fraco); max-width:270px; }
+.vazio-acoes{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-top:4px; }
+
+/* --- Grade de dois cartÃµes --- */
+.grade-dupla{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+
+
+/* ===========================================================================
+   04. BARRA DE ABAS
+   =========================================================================== */
+#abas{
+  flex-shrink:0;
+  display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;
+  background:var(--superficie);
+  border-radius:var(--r-grande) var(--r-grande) 0 0;
+  padding:10px 10px calc(22px + env(safe-area-inset-bottom));
+}
+.aba{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  min-height:52px;
+  border-radius:var(--r-pequeno);
+  color:var(--texto-4);
+  font-size:10.5px; font-weight:600;
+}
+.aba.ativa{ background:var(--acao); color:var(--branco); font-weight:700; }
+.aba-rotulo{ line-height:1; }
+
+
+/* ===========================================================================
+   05. INÃCIO
+   =========================================================================== */
+.cartao-agora{
+  background:var(--acao-cartao); color:var(--branco);
+  border-radius:var(--r-grande);
+  padding:16px 18px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.agora-topo{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.agora-ate{ font-size:11.5px; font-weight:600; color:rgba(255,255,255,.9); }
+.agora-titulo{ font-size:22px; font-weight:700; line-height:1.15; }
+.agora-sub{ font-size:11.5px; font-weight:500; color:rgba(255,255,255,.85); margin-top:-4px; }
+.agora-progresso{ display:flex; align-items:center; gap:10px; }
+.agora-faltam{ font-size:11.5px; font-weight:700; white-space:nowrap; }
+.agora-faixa{
+  display:flex; align-items:center; gap:8px;
+  background:var(--acao-escura);
+  border-radius:16px;
+  padding:10px 13px;
+  margin-top:2px;
+}
+.agora-faixa-rotulo{
+  font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.14em;
+  color:rgba(255,255,255,.75); flex-shrink:0;
+}
+.agora-faixa-titulo{
+  font-size:12px; font-weight:700;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.agora-faixa-hora{ margin-left:auto; font-size:11.5px; font-weight:600; flex-shrink:0; }
+
+.contador-pendente{ font-size:11px; font-weight:700; color:var(--acao-escura); }
+
+.lista-remedios{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.remedio{
+  display:flex; align-items:center; gap:10px;
+  min-height:46px;
+  border-radius:var(--r-pilula);
+  padding:6px 14px 6px 8px;
+}
+.remedio.tomado{ background:var(--salvia-clara); }
+.remedio.pendente{ background:var(--acao-tenue); border:1px solid var(--acao-contorno); }
+.remedio-circulo{
+  width:28px; height:28px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+}
+.remedio.tomado .remedio-circulo{ background:var(--salvia); color:var(--branco); }
+.remedio.pendente .remedio-circulo{ border:2px solid var(--acao); }
+.remedio-nome{
+  font-size:13px; font-weight:600; color:var(--texto);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.remedio-meta{ margin-left:auto; font-size:10.5px; font-weight:500; color:var(--texto-4); flex-shrink:0; }
+.remedio-info{ background:var(--superficie-clara); padding-left:14px; }
+.remedio-comp{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--acao); min-width:52px; flex-shrink:0;
+}
+
+.cartao-atalho{ text-align:left; align-items:stretch; }
+.atalho-valor{ font-size:14px; font-weight:700; color:var(--texto); line-height:1.25; }
+.atalho-apoio{ font-size:11px; font-weight:500; color:var(--texto-4); }
+
+.linha-atalho{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--superficie);
+  border-radius:var(--r-medio);
+  padding:14px var(--pad-cartao);
+  color:var(--texto-3);
+  text-align:left;
+}
+
+
+/* ===========================================================================
+   06. DIA
+   =========================================================================== */
+.faixa-semana{ display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; }
+.dia-faixa{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  height:64px;
+  border-radius:var(--r-pequeno);
+  color:var(--texto-4);
+}
+.dia-letra{ font-size:11px; font-weight:700; }
+.dia-numero{ font-size:16px; font-weight:600; color:var(--texto-2); }
+.dia-faixa.hoje .dia-numero{ font-weight:700; color:var(--texto); }
+.dia-ponto{ width:6px; height:6px; border-radius:var(--r-pilula); }
+.ponto-treino{ background:var(--salvia); }
+.ponto-util{ background:#b2622d; }
+.ponto-fds{ background:var(--linha); }
+.dia-faixa.selecionado{ background:var(--acao); }
+.dia-faixa.selecionado .dia-letra,
+.dia-faixa.selecionado .dia-numero{ color:var(--branco); }
+.dia-faixa.selecionado .dia-ponto{ background:var(--branco); }
+
+.cabecalho-dia{ display:flex; flex-direction:column; gap:6px; }
+.cabecalho-dia-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.dia-data{ font-size:15px; font-weight:700; }
+.dia-nome{ font-size:12px; font-weight:500; color:var(--texto-4); margin-left:7px; }
+.rotulo-estado{
+  font-size:11px; font-weight:600; color:var(--texto-fraco);
+  display:inline-flex; align-items:center;
+  min-height:var(--toque); padding:0 4px;
+  flex-shrink:0;
+}
+.rotulo-estado.acionavel{
+  color:var(--acao-escura); font-weight:700;
+  padding:0 12px; border-radius:var(--r-pilula); background:var(--acao-clara);
+}
+
+.dica-edicao{
+  margin:0; font-size:11px; font-weight:600; color:var(--acao-escura);
+  background:var(--acao-clara);
+  border-radius:var(--r-linha-menor);
+  padding:10px 14px;
+}
+
+.faixa-atraso{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  width:100%; text-align:left;
+  background:var(--acao-clara); color:var(--acao-escura);
+  border:1.5px solid var(--acao-contorno);
+  border-radius:var(--r-linha);
+  padding:11px 14px;
+}
+.faixa-atraso-titulo{ font-size:12px; font-weight:700; }
+.faixa-atraso-sub{ font-size:10.5px; font-weight:500; margin-top:1px; }
+
+/* --- Lista em leitura --- */
+.lista-blocos{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.bloco{
+  display:flex; align-items:center; gap:10px;
+  min-height:52px;
+  background:var(--superficie);
+  border-radius:var(--r-linha-menor);
+  padding:8px 14px 8px 10px;
+  transition:transform .15s ease, background .15s ease;
+}
+.bloco.marcado{ background:var(--superficie-marcada); }
+.bloco.em-andamento{ background:var(--acao-clara); }
+.bloco.segurando{ transform:scale(0.97); }
+.bloco-barra{ width:4px; align-self:stretch; min-height:26px; border-radius:var(--r-pilula); flex-shrink:0; }
+.bloco-texto{ min-width:0; flex:1; }
+.bloco-titulo{
+  font-size:13px; font-weight:600; color:var(--texto);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.bloco.pulado .bloco-titulo{ text-decoration:line-through; }
+.bloco.em-andamento .bloco-titulo{ font-weight:700; }
+.bloco-sub{
+  font-size:11px; font-weight:500; color:var(--texto-4); margin-top:1px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.bloco-horario{ text-align:right; flex-shrink:0; }
+.bloco-hora{ font-size:12px; font-weight:600; color:var(--texto-2); }
+.bloco.em-andamento .bloco-hora{ font-weight:700; color:var(--acao-escura); }
+.bloco-dur{ font-size:10px; font-weight:500; color:var(--texto-fraco); }
+
+.etiqueta{
+  font-size:9px; font-weight:700; letter-spacing:.08em;
+  border-radius:var(--r-pilula);
+  padding:5px 9px;
+  flex-shrink:0;
+}
+.etiqueta-feito{ background:var(--salvia-clara); color:var(--salvia-texto); }
+.etiqueta-atrasei{ background:var(--acao-clara); color:var(--acao-escura); }
+.etiqueta-pulei{ background:var(--superficie); color:var(--texto-3); }
+.bloco.marcado .etiqueta-pulei{ background:var(--fundo); }
+
+/* --- Lista em ediÃ§Ã£o --- */
+.lista-edicao{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.cartao-edicao{
+  background:var(--superficie);
+  border-radius:var(--r-linha);
+  padding:10px 12px 0;
+  position:relative;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.cartao-edicao.arrastando{
+  background:var(--superficie-clara);
+  box-shadow:var(--sombra-arraste);
+  transform:scale(1.02);
+  z-index:5;
+}
+.cartao-edicao-topo{ display:flex; align-items:center; gap:9px; }
+.alca-arraste{
+  width:var(--toque); height:var(--toque);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--texto-fraco);
+  cursor:grab; touch-action:none;
+  flex-shrink:0; margin-left:-10px;
+}
+.alca-arraste:active{ cursor:grabbing; }
+.cartao-edicao-texto{ flex:1; min-width:0; }
+.cartao-edicao-faixa{ font-size:11px; font-weight:600; color:var(--texto-4); margin-top:1px; }
+.btn-remover{
+  width:var(--toque); height:var(--toque);
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  background:var(--acao-tenue); color:var(--acao);
+  flex-shrink:0;
+}
+.alca-duracao{
+  height:26px;
+  display:flex; align-items:center; justify-content:center;
+  background:#f3ead9;
+  border-radius:0 0 var(--r-linha) var(--r-linha);
+  margin:8px -12px 0;
+  cursor:ns-resize; touch-action:none;
+}
+.alca-duracao .pega{ width:40px; height:5px; border-radius:var(--r-pilula); background:var(--linha); }
+.alca-duracao.ativa{ background:var(--salvia-clara); }
+.alca-duracao.ativa .pega{ background:var(--salvia); }
+
+/* --- BotÃ£o flutuante --- */
+.flutuante{
+  position:absolute; right:22px; bottom:106px; z-index:20;
+  width:58px; height:58px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  background:var(--acao); color:var(--branco);
+  box-shadow:var(--sombra-flutuante);
+}
+
+/* --- Chips de categoria da folha --- */
+.chips-categoria{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip-cat{
+  min-height:var(--toque);
+  padding:0 13px;
+  border-radius:var(--r-pilula);
+  background:var(--superficie); color:var(--texto-3);
+  font-size:11px; font-weight:600;
+  border:2px solid transparent;
+}
+.chip-cat.ativo{
+  border-color:var(--cor-cat);
+  background:var(--superficie-clara);
+  color:var(--texto); font-weight:700;
+}
+
+/* --- Interruptor --- */
+.interruptor-linha{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  min-height:var(--toque);
+  font-size:12.5px; font-weight:600;
+}
+.interruptor{
+  width:48px; height:28px; flex-shrink:0;
+  border-radius:var(--r-pilula);
+  background:var(--linha);
+  padding:3px;
+  display:flex; align-items:center;
+  transition:background .18s ease;
+}
+.interruptor.ligado{ background:var(--salvia); justify-content:flex-end; }
+.interruptor-bola{
+  width:22px; height:22px; border-radius:var(--r-pilula);
+  background:var(--branco);
+}
+
+
+/* ===========================================================================
+   07. TREINO
+   =========================================================================== */
+.chips-treino{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip-treino{
+  min-height:var(--toque);
+  padding:0 13px;
+  border-radius:var(--r-pilula);
+  background:var(--superficie); color:var(--texto-3);
+  font-size:11px; font-weight:600;
+}
+.chip-treino.ativo{ background:var(--salvia); color:var(--branco); font-weight:700; }
+
+.cartao-treino{
+  background:var(--salvia-clara);
+  border-radius:var(--r-medio);
+  padding:var(--pad-cartao);
+  display:flex; flex-direction:column; gap:10px;
+}
+.treino-nome{ font-size:17px; font-weight:700; margin:0; color:var(--texto); }
+.linha-renomear{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.chips-formato{ display:flex; flex-wrap:wrap; gap:5px; }
+.chip-formato{
+  background:var(--salvia-tenue); color:var(--salvia-texto);
+  border-radius:var(--r-pilula);
+  padding:5px 11px;
+  font-size:10.5px; font-weight:600;
+}
+.chip-formato.acionavel{ min-height:var(--toque); display:inline-flex; align-items:center; font-weight:700; }
+.treino-progresso{ display:flex; align-items:center; gap:10px; }
+.treino-contagem{ font-size:11px; font-weight:700; color:var(--salvia-texto); white-space:nowrap; }
+
+.seletor-volta{
+  display:flex; gap:3px;
+  background:var(--superficie);
+  border-radius:var(--r-pilula);
+  padding:3px;
+}
+.volta{
+  flex:1; min-height:38px;
+  border-radius:var(--r-pilula);
+  font-size:11px; font-weight:600; color:var(--texto-3);
+}
+.volta.ativa{ background:var(--salvia); color:var(--branco); font-weight:700; }
+
+.lista-exercicios{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.exercicio{
+  display:flex; align-items:center; gap:10px;
+  min-height:48px;
+  background:var(--superficie);
+  border-radius:var(--r-linha-menor);
+  padding:6px 14px;
+}
+.exercicio.feito{ background:var(--salvia-clara); }
+.exercicio-circulo{
+  width:26px; height:26px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  border:2px solid var(--linha);
+}
+.exercicio.feito .exercicio-circulo{ background:var(--salvia); border-color:var(--salvia); color:var(--branco); }
+.exercicio-nome{
+  flex:1; min-width:0;
+  font-size:12.5px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.exercicio-alvo{ font-size:11px; font-weight:600; color:var(--texto-4); flex-shrink:0; }
+.exercicio-edicao{ align-items:center; }
+.exercicio-texto{ flex:1; min-width:0; }
+.exercicio-texto .exercicio-alvo{ display:block; margin-top:1px; font-weight:500; }
+.exercicio-acoes{ display:flex; gap:2px; flex-shrink:0; }
+
+
+/* ===========================================================================
+   08. COMIDA
+   =========================================================================== */
+/* Cada segmento Ã© um alvo de toque cheio (44 px). O contÃªiner fica com 50 px
+   por causa do respiro de 3 px â€” o handoff pede 44, e o nÃºmero que importa
+   para a regra 1 Ã© o do alvo, nÃ£o o da moldura. */
+.segmentado{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:3px;
+  background:var(--superficie);
+  border-radius:var(--r-pilula);
+  padding:3px;
+}
+.segmento{
+  min-height:var(--toque);
+  border-radius:var(--r-pilula);
+  font-size:11.5px; font-weight:600; color:var(--texto-3);
+}
+.segmento.ativo{ background:var(--acao); color:var(--branco); font-weight:700; }
+
+.cartao-kcal{
+  background:var(--acao-cartao); color:var(--branco);
+  border-radius:var(--r-grande);
+  padding:16px 18px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.kcal-numero{ font-size:26px; font-weight:700; line-height:1.05; }
+.kcal-un{ font-size:13px; font-weight:600; margin-left:5px; }
+.kcal-meta{ font-size:11.5px; font-weight:500; color:rgba(255,255,255,.88); }
+
+.lista-refeicoes{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.refeicao{
+  display:flex; align-items:center; gap:10px;
+  min-height:56px;
+  background:var(--superficie);
+  border-radius:var(--r-pequeno);
+  padding:8px 14px;
+}
+.refeicao.feita{ background:var(--salvia-clara); }
+.refeicao.a-definir{
+  background:var(--acao-tenue);
+  border:1.5px dashed var(--acao-contorno);
+}
+.refeicao-circulo{
+  width:26px; height:26px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  border:2px solid var(--linha);
+}
+.refeicao.feita .refeicao-circulo{ background:var(--salvia); border-color:var(--salvia); color:var(--branco); }
+.refeicao-texto{ flex:1; min-width:0; }
+.refeicao-rotulo{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--texto-fraco);
+}
+.refeicao-prato{
+  font-size:12.5px; font-weight:600; color:var(--texto); margin-top:2px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.refeicao-nums{ text-align:right; flex-shrink:0; }
+.refeicao-kcal{ font-size:12px; font-weight:700; }
+.refeicao-prot{ font-size:10.5px; font-weight:500; color:var(--texto-4); }
+
+
+/* --- Grade do cardÃ¡pio --- */
+.grade-cardapio{
+  display:grid;
+  grid-template-columns:64px repeat(7, 1fr);
+  gap:3px;
+  align-items:center;
+}
+.grade-canto{ min-height:1px; }
+.grade-cabecalho{
+  text-align:center;
+  font-size:9.5px; font-weight:700; color:var(--texto-fraco);
+}
+/* Quebra em duas linhas em vez de cortar: "CafÃ© da manhÃ£" nÃ£o vira
+   "CafÃ© da ma...". Cabe nos 30 px da cÃ©lula ao lado. */
+.grade-rotulo{
+  font-size:9.5px; font-weight:600; color:var(--texto-3);
+  line-height:1.15; padding-right:4px;
+}
+/* A cÃ©lula Ã© resumo visual, nÃ£o controle â€” quem edita Ã© a lista logo abaixo,
+   com linhas de 56 px. Ã‰ por isso que 30 px de altura aqui nÃ£o conflita com a
+   regra dos 44 px: nÃ£o hÃ¡ nada para tocar. */
+.celula-cardapio{ height:30px; border-radius:var(--r-min); pointer-events:none; }
+/* Trocar o dia mostrado na lista se faz pelo cabeÃ§alho da coluna, que Ã© um
+   alvo de toque de verdade. */
+.grade-cabecalho.dia-selecionavel{
+  min-height:var(--toque);
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-min);
+}
+.grade-cabecalho.dia-selecionavel.ativo{ background:var(--acao); color:var(--branco); }
+.celula-cardapio.definido{ background:var(--salvia); }
+.celula-cardapio.a-definir{ border:1.5px dashed var(--tracejado-forte); }
+.celula-cardapio.selecionado{ outline:2px solid var(--texto); outline-offset:2px; }
+
+.legenda-cardapio, .legenda-caixa{
+  display:flex; flex-wrap:wrap; gap:12px;
+  font-size:10px; font-weight:500; color:var(--texto-fraco);
+}
+.legenda-cardapio span, .legenda-caixa span{ display:inline-flex; align-items:center; gap:5px; }
+.amostra{ width:12px; height:12px; border-radius:4px; display:inline-block; }
+.amostra.definido{ background:var(--salvia); }
+.amostra.a-definir{ border:1.5px dashed var(--tracejado-forte); }
+
+/* --- Seletor de prato --- */
+.lista-pratos{ display:flex; flex-direction:column; gap:4px; max-height:44vh; overflow-y:auto; }
+.item-prato{
+  display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+  min-height:var(--toque);
+  padding:9px 13px;
+  border-radius:var(--r-linha-menor);
+  background:var(--superficie);
+  text-align:left;
+}
+.item-prato.atual{ background:var(--salvia-clara); }
+.item-prato-nome{ font-size:12.5px; font-weight:600; }
+.item-prato-meta{ font-size:10.5px; font-weight:500; color:var(--texto-4); }
+
+/* --- Compras --- */
+.lista-compras{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.compra{
+  display:flex; align-items:center; gap:10px;
+  min-height:var(--toque);
+  border-radius:var(--r-linha-menor);
+  padding:7px 13px;
+  background:var(--acao-tenue);
+  border:1.5px solid var(--acao-contorno);
+}
+.compra.feito{ background:var(--superficie); border-color:transparent; }
+.compra-circulo{
+  width:24px; height:24px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  border:2px solid var(--acao);
+}
+.compra.feito .compra-circulo{ background:var(--salvia); border-color:var(--salvia); color:var(--branco); }
+.compra-nome{
+  flex:1; min-width:0;
+  font-size:12.5px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.compra.feito .compra-nome{ text-decoration:line-through; color:var(--texto-3); font-weight:500; }
+.compra-qtd{ font-size:11px; font-weight:600; color:var(--texto-4); flex-shrink:0; }
+
+/* --- EdiÃ§Ã£o das refeiÃ§Ãµes --- */
+.lista-edicao-refeicoes, .lista-edicao-remedios{
+  display:flex; flex-direction:column; gap:var(--gap-linhas);
+}
+.linha-slot-topo{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.slot-nome{ font-size:13px; font-weight:700; }
+.linha-slot-acoes{ display:flex; align-items:center; gap:3px; flex-shrink:0; }
+.linha-slot-controles{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.linha-remedio-controles{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.chip-comp{
+  min-height:var(--toque); padding:0 14px;
+  border-radius:var(--r-pilula);
+  background:var(--acao); color:var(--branco);
+  font-size:11px; font-weight:700;
+}
+.chip-dose{
+  min-height:var(--toque); padding:0 14px;
+  border-radius:var(--r-pilula);
+  background:var(--superficie-clara); color:var(--texto-3);
+  font-size:11px; font-weight:600;
+}
+
+
+/* ===========================================================================
+   09. CAIXA
+   =========================================================================== */
+.grade-caixa{
+  display:grid;
+  grid-template-columns:38px repeat(var(--colunas), 1fr);
+  gap:4px;
+  align-items:center;
+}
+.caixa-dia{ font-size:10.5px; font-weight:500; color:var(--texto-3); }
+.caixa-dia.hoje{ font-weight:700; color:var(--texto); }
+.celula-caixa{
+  height:var(--toque);
+  border-radius:var(--r-celula);
+  display:flex; align-items:center; justify-content:center;
+}
+.celula-caixa.tomado{ background:var(--salvia); color:var(--branco); }
+.celula-caixa.a-tomar{ background:var(--acao-tenue); border:2px solid var(--acao); }
+.celula-caixa.nao-tomado{ border:1.5px dashed var(--tracejado-forte); }
+.celula-caixa.futuro{ background:var(--superficie-clara); }
+.celula-caixa.vazio{ background:var(--superficie-clara); opacity:.55; }
+
+.amostra-caixa{ width:12px; height:12px; border-radius:4px; display:inline-block; }
+.amostra-caixa.tomado{ background:var(--salvia); }
+.amostra-caixa.a-tomar{ background:var(--acao-tenue); border:2px solid var(--acao); }
+.amostra-caixa.nao-tomado{ border:1.5px dashed var(--tracejado-forte); }
+.amostra-caixa.futuro{ background:var(--superficie-clara); }
+
+.lista-estoque{ display:flex; flex-direction:column; gap:11px; }
+.estoque{ display:flex; flex-direction:column; gap:5px; }
+.estoque-topo{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.estoque-nome{ font-size:12px; font-weight:600; }
+.estoque-dias{ font-size:11px; font-weight:700; color:var(--texto-3); }
+.estoque.acabando .estoque-dias{ color:var(--acao-escura); }
+.estoque-aviso{ font-size:10px; font-weight:700; color:var(--acao-escura); }
+
+
+/* ===========================================================================
+   10. FOLHA, AVISO E TELAS CHEIAS
+   =========================================================================== */
+#camadas{ position:fixed; inset:0; pointer-events:none; z-index:100; }
+#camadas > *{ pointer-events:auto; }
+
+/* Nas telas grandes as camadas ficam presas ao aparelho, nÃ£o Ã  janela. */
+@media (min-width:520px){
+  #camadas{
+    inset:auto; position:fixed;
+    top:50%; left:50%; transform:translate(-50%, -50%);
+    width:390px; height:844px; max-height:100dvh;
+    border-radius:var(--r-aparelho);
+    overflow:hidden;
+  }
+}
+
+.folha-fundo{
+  position:absolute; inset:0;
+  background:rgba(32,30,29,.4);
+  display:flex; align-items:flex-end;
+}
+.folha{
+  width:100%; max-height:88%;
+  background:var(--superficie-clara);
+  border-radius:32px 32px 0 0;
+  padding:10px var(--pad-tela) calc(18px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:12px;
+  overflow-y:auto;
+  animation:sobe .22s ease;
+}
+@keyframes sobe{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
+.folha-alca{
+  width:46px; height:5px; border-radius:var(--r-pilula);
+  background:var(--linha);
+  margin:0 auto 2px;
+  flex-shrink:0;
+}
+.folha-titulo{ font-size:16px; font-weight:700; margin:0; }
+.folha-corpo{ display:flex; flex-direction:column; gap:12px; }
+.folha-acoes{ display:flex; gap:9px; margin-top:2px; }
+.folha-acoes .btn{ flex:1; min-height:50px; }
+
+.aviso{
+  position:absolute; left:50%; bottom:180px;
+  transform:translateX(-50%);
+  display:flex; align-items:center; gap:12px;
+  max-width:calc(100% - 44px);
+  background:var(--texto); color:var(--fundo);
+  border-radius:var(--r-linha);
+  padding:11px 12px 11px 18px;
+  box-shadow:var(--sombra-aviso);
+  animation:aparece .18s ease;
+}
+@keyframes aparece{ from{ opacity:0; transform:translate(-50%, 8px); } to{ opacity:1; transform:translate(-50%, 0); } }
+.aviso-msg{
+  font-size:11.5px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.aviso-desfazer{
+  min-height:36px; padding:0 14px;
+  border-radius:var(--r-pilula);
+  background:var(--fundo); color:var(--texto);
+  font-size:11px; font-weight:700;
+  flex-shrink:0;
+}
+
+/* --- Primeiro uso --- */
+.primeiro-uso{
+  position:absolute; inset:0;
+  background:var(--fundo);
+  display:flex; align-items:center;
+  overflow-y:auto;
+}
+.primeiro-uso-conteudo{
+  width:100%;
+  padding:32px var(--pad-tela) calc(32px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:14px;
+}
+.primeiro-uso-texto{ margin:0; font-size:12.5px; font-weight:500; color:var(--texto-3); line-height:1.55; }
+.passos{ display:flex; flex-direction:column; gap:9px; margin:4px 0; }
+.passo{
+  display:flex; align-items:flex-start; gap:12px;
+  background:var(--superficie);
+  border-radius:var(--r-medio);
+  padding:14px 16px;
+}
+.passo-numero{
+  width:26px; height:26px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  background:var(--acao); color:var(--branco);
+  font-size:12px; font-weight:700;
+}
+.passo-titulo{ font-size:13px; font-weight:700; }
+.passo-texto{ font-size:11.5px; font-weight:500; color:var(--texto-4); margin-top:2px; }
+.primeiro-uso-acoes{ display:flex; flex-direction:column; gap:7px; margin-top:6px; }
+.primeiro-uso-acoes .btn{ width:100%; }
+
+/* --- Replanejar --- */
+.tela-replanejar{
+  position:absolute; inset:0;
+  background:var(--fundo);
+  overflow-y:auto;
+  padding:0 var(--pad-tela) calc(24px + env(safe-area-inset-bottom));
+}
+.cartao-mudou{
+  background:var(--acao-viva); color:var(--acao-tenue);
+  border-radius:var(--r-medio);
+  padding:12px 18px;
+}
+.mudou-texto{ margin:5px 0 0; font-size:13.5px; font-weight:700; line-height:1.5; }
+.lista-ajustes{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.ajuste{
+  display:flex; align-items:center; gap:11px;
+  background:var(--superficie);
+  border-radius:var(--r-linha-menor);
+  padding:10px 14px;
+}
+.ajuste-mover{ opacity:.65; }
+.ajuste-mover .ajuste-titulo{ text-decoration:line-through; }
+.ajuste-texto{ min-width:0; flex:1; }
+.ajuste-titulo{ font-size:12.5px; font-weight:600; }
+.ajuste-detalhe{ font-size:10.5px; font-weight:500; color:var(--texto-fraco); margin-top:1px; }
+.ajuste-acao{ font-size:10px; font-weight:600; flex-shrink:0; color:var(--texto-fraco); }
+.ajuste-encurtar .ajuste-acao{ color:var(--acao); }
+.ajuste-intacto .ajuste-acao{ color:var(--salvia); }
+.chips-alternativa{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip-alternativa{
+  min-height:var(--toque); padding:0 13px;
+  border-radius:var(--r-pilula);
+  background:var(--superficie); color:var(--sono);
+  font-size:11px; font-weight:500;
+}
+.grade-impacto{ display:flex; gap:16px; }
+.impacto{ flex:1; }
+.impacto-rotulo{ font-size:10.5px; font-weight:600; color:var(--sono); }
+.impacto-valor{ font-size:14px; font-weight:700; margin-top:2px; }
+.impacto-delta{ font-size:9.5px; font-weight:500; margin-top:1px; color:var(--salvia); }
+.impacto-delta.negativo{ color:var(--acao); }
+.acoes-replanejar{ display:flex; gap:9px; margin-top:4px; }
+.acoes-replanejar .btn{ flex:1; }
+
+
+/* ===========================================================================
+   11. ACESSIBILIDADE
+
+   A regra 1 do handoff â€” 44 Ã— 44 px em tudo que se toca â€” Ã© garantida aqui,
+   uma vez, em vez de ser lembrada componente a componente.
+   =========================================================================== */
+button, .tocavel{
+  min-height:var(--toque);
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+/* ExceÃ§Ã£o consciente: a volta do circuito Ã© um segmento de 38 px dentro de
+   um seletor de 44 px, e os trÃªs dividem a largura da tela â€” o alvo efetivo
+   fica bem acima da Ã¡rea mÃ­nima recomendada. */
+.volta{ min-height:38px; }
+
+:focus-visible{
+  outline:2.5px solid var(--acao);
+  outline-offset:2px;
+  border-radius:var(--r-min);
+}
+
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{
+    animation-duration:.01ms !important;
+    transition-duration:.01ms !important;
+  }
+}

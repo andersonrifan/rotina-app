@@ -1,0 +1,34 @@
+# dependências
+node_modules/
+
+# builds
+dist/
+dist-arquivo-unico/
+
+# Android — o projeto nativo é gerado por `npx cap add android`, mas fica
+# versionado porque carrega ajustes manuais (ícones, cores, targetSdk).
+# O que NÃO entra é o resultado de compilação e as chaves de assinatura.
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/.idea/
+android/app/release/
+*.keystore
+*.jks
+chave-*.properties
+
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# o app antigo, guardado só para consulta
+_antigo/
+
+# pacote de design (referência, não código)
+Design de aplicativo de rotinas/
+Design de aplicativo de rotinas.zip
+
+# backups pessoais exportados do app
+rotina-backup-*.json

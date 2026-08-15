@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Rotina — camada de frente do ícone adaptativo</title>
+  <!-- SEM fundo: no ícone adaptativo do Android o fundo é uma camada separada
+       (uma cor sólida, definida em values/ic_launcher_background.xml). Pôr um
+       fundo aqui também criaria uma borda visível quando o sistema anima as
+       duas camadas em paralaxe.
+
+       O desenho fica em ~62% do canvas para caber na zona segura de qualquer
+       recorte — círculo, squircle ou gota, conforme o fabricante. -->
+  <g transform="translate(256 256) scale(0.62) translate(-256 -256)">
+    <rect x="140" y="96"  width="232" height="70"  rx="26" fill="#8c491a"/>
+    <rect x="140" y="182" width="232" height="52"  rx="22" fill="#c67139"/>
+    <rect x="140" y="250" width="232" height="94"  rx="30" fill="#56633f"/>
+    <rect x="140" y="360" width="232" height="56"  rx="24" fill="#c0b6a5"/>
+    <rect x="104" y="96"  width="18"  height="320" rx="9"  fill="#a4501f"/>
+  </g>
+</svg>

@@ -1,0 +1,33 @@
+{
+  "name": "rotina",
+  "version": "1.0.0",
+  "description": "App de rotina diária — calendário do dia, treinos, alimentação e caixa de remédios. Funciona 100% offline.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:arquivo-unico": "vite build --config vite.config.arquivo-unico.js",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "android:sincronizar": "npm run build && cap sync android",
+    "android:abrir": "cap open android"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "eslint": "^9.39.5",
+    "globals": "^17.11.0",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.0.0",
+    "vite-plugin-singlefile": "^2.0.0",
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0"
+  }
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5ead8">
+<meta name="description" content="Rotina — calendário do dia, treinos, alimentação e caixa de remédios num app só. Funciona offline, sem conta e sem servidor.">
+
+<!-- Instalação como app (iOS não lê o manifest para isto) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Rotina">
+<link rel="apple-touch-icon" href="/icones/icone-180.png">
+
+<title>Rotina</title>
+</head>
+<body>
+
+<div id="erro-inicio" role="alert"></div>
+
+<div id="aparelho">
+  <main id="conteudo"></main>
+  <nav id="abas" aria-label="Seções do app"></nav>
+</div>
+
+<!-- Folha, aviso de desfazer, primeiro uso e replanejar são desenhados aqui,
+     por cima de tudo. -->
+<div id="camadas"></div>
+
+<noscript>
+  <p style="padding:24px;font-family:sans-serif">
+    Este app precisa de JavaScript para funcionar. Ative-o nas configurações do navegador.
+  </p>
+</noscript>
+
+<script type="module" src="/src/principal.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(& \"C:\\\\Program Files\\\\Inkscape\\\\bin\\\\python.exe\" \"C:\\\\Users\\\\ander\\\\OneDrive\\\\�rea de Trabalho\\\\Rotina App\\\\src\\\\build.py\")",
+      "PowerShell(& \"C:\\\\Program Files\\\\Inkscape\\\\bin\\\\python.exe\" \"C:\\\\Users\\\\ander\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-ander-OneDrive--rea-de-Trabalho-Rotina-App\\\\71a60c54-6146-4b57-928d-7bbb5333f4ad\\\\scratchpad\\\\inspect.py\")",
+      "Bash(grep -o \"Replanejar[^<\\\\\"]\\\\{0,80\\\\}\\\\|encurtar[^<\\\\\"]\\\\{0,60\\\\}\\\\|Deixar como está[^<\\\\\"]\\\\{0,40\\\\}\\\\|Aplicar plano[^<\\\\\"]\\\\{0,40\\\\}\\\\|intacto[^<\\\\\"]\\\\{0,60\\\\}\\\\|estourou[^<\\\\\"]\\\\{0,80\\\\}\\\\|21:20[^<\\\\\"]\\\\{0,60\\\\}\" \"Rotina - Telas estáticas.dc.html\")"
+    ]
+  }
+}

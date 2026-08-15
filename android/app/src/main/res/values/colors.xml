@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#8C491A</color>
+    <color name="colorPrimaryDark">#7D3A12</color>
+    <color name="colorAccent">#56633F</color>
+    <!-- Fundo da tela de abertura: o mesmo creme do app, para não piscar
+         branco antes do primeiro quadro. -->
+    <color name="splashBackground">#F5EAD8</color>
+</resources>

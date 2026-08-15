@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rotina</string>
+    <string name="title_activity_main">Rotina</string>
+    <string name="package_name">br.com.rotina.diaria</string>
+    <string name="custom_url_scheme">br.com.rotina.diaria</string>
+</resources>
