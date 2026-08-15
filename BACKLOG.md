@@ -15,21 +15,6 @@ direito — "o botão X tá estranho" já é suficiente. Eu organizo depois.
 
 -
 
-### Da primeira rodada — ainda em aberto
-
-Só sobraram estes dois. O resto foi feito e está listado em "Já resolvido".
-
-- [ ] **Aba Treino: registrar o que foi feito.** Marcar quantidades, carga e
-      duração da sessão, como o app antigo fazia. Hoje só há o círculo de
-      "fiz o exercício". Precisa de uma entidade nova (sessão de treino) e de
-      uma tela de histórico — é o maior item em aberto.
-- [ ] **Adicionar exercício é limitado.** Só dá para escolher da lista de
-      sugestões; não dá para escrever um exercício próprio nem definir o alvo
-      ("3 × 8–12"). Deveria abrir um formulário, como o de remédio agora abre.
-- [ ] **Gráficos e estatísticas.** No Início, uma visão geral; no Perfil, uma
-      aba de Estatísticas. Depende do item de registro acima para ter o que
-      mostrar sobre treino — sem sessões gravadas, não há série temporal.
-
 
 ---
 
@@ -65,12 +50,9 @@ que não vale.
       com o prato principal. Consequência real: **a lista de compras pede menos
       arroz do que você usa.** É decisão de produto vinda do handoff, não
       restrição técnica.
-- [ ] **Horários andam de 15 em 15 minutos.** Partindo de 06:40 dá para chegar
-      em 06:55, não em 06:45. O handoff pedia trocar os steppers por seletor de
-      hora nativo na implementação real.
-- [ ] **Sem histórico de treinos.** O app antigo registrava sessões feitas (com
-      data, carga, observação). O novo só marca o exercício do dia. Há 2 sessões
-      registradas no backup antigo.
+- [ ] **Horário da refeição ainda anda de 15 em 15 minutos.** O bloco do Dia e
+      o remédio já usam o seletor nativo do aparelho; falta trocar o stepper do
+      horário da refeição, em Comida → Editar.
 - [ ] **Célula do cardápio não é tocável.** Os 30 px de altura vêm do handoff e
       não chegam ao alvo mínimo, então a edição é pela lista abaixo da grade.
       Funciona, mas alguém pode tentar tocar a célula primeiro.
@@ -108,7 +90,17 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 
 Fica registrado para não voltar à discussão.
 
-undefined
+**Da segunda rodada:**
+
+- ~~Treino não registrava o que foi feito~~ — sessões com séries, carga,
+  duração e observação, separadas da estrutura do treino
+- ~~Adicionar exercício era limitado~~ — nome e alvo em campos livres
+- ~~Faltavam gráficos e estatísticas~~ — resumo da semana no Início e tela
+  cheia de Estatísticas, aberta pelo resumo ou pelo Perfil
+- ~~Voltar ao app jogava você para hoje~~ — só troca de dia se a data virou
+  de verdade enquanto o app esteve em segundo plano
+
+**Da revisão de uso:**
 
 - ~~Botões "Editar" espalhados~~ — segurar qualquer item entra na edição, e só
   o "Concluir" fica visível

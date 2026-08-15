@@ -48,15 +48,18 @@ src/
   nucleo/             sem DOM, testável fora do navegador
     tempo.js          datas e horários
     modelo.js         regras derivadas do domínio
+    sessoes.js        o treino que foi FEITO, separado do planejado
+    estatisticas.js   as contas que os gráficos mostram
     estado.js         os dados, a gravação e o desfazer
     armazem.js        localStorage à prova de falha + migração de esquema
     render.js         o gancho que quebra o ciclo estado ↔ app
 
   ui/index.js         h(), ícones, peças reaproveitadas, folha, aviso
+  ui/graficos.js      SVG à mão: colunas, barras, linha, medidor
   telas/              uma por aba, mais boas-vindas, perfil,
                       primeiro-uso e replanejar
 
-testes/               103 testes sobre o núcleo
+testes/               143 testes sobre o núcleo
 docs/                 publicação e privacidade
 ```
 
