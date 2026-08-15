@@ -54,7 +54,9 @@ function desenharTudo(){
     camadas.textContent = '';
     /* Ordem importa: a última anexada fica por cima. */
     if(Tela.replanejar) camadas.appendChild(telaReplanejar());
-    if(!Dados.aceitouModelo) camadas.appendChild(telaPrimeiroUso());
+    /* Aparece sozinha na primeira vez, ou quando reaberta pelo botão
+       "Recomeçar" em Início → Seus dados. */
+    if(!Dados.aceitouModelo || Tela.primeiroUso) camadas.appendChild(telaPrimeiroUso());
     const folha = desenharFolha();
     if(folha) camadas.appendChild(folha);
     const aviso = desenharAviso();

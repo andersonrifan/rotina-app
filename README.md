@@ -134,5 +134,8 @@ Veja [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md). Resumo:
 - a política de privacidade está escrita em
   [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md) e precisa ser hospedada.
 
+**Recomeçar:** *Início → Seus dados → Recomeçar do início* traz de volta a tela
+de escolha entre a rotina-modelo e começar do zero.
+
 Alternativa sem loja: o `dist/` é uma PWA completa. Hospedado em qualquer
 HTTPS, instala pelo próprio navegador.

@@ -1,5 +1,6 @@
 import { Dados, agir, avisar, definirTela } from '../nucleo/estado.js';
 import { baixarBackup, interpretarBackup, restaurar, resumirBackup } from '../nucleo/backup.js';
+import { reabrirPrimeiroUso } from './extras.js';
 import { hojeISO, diaDaSemana, dataCabecalho, saudacao, agoraEmMinutos,
          paraMinutos, paraHora, rotuloDuracao } from '../nucleo/tempo.js';
 import { blocoAtual, proximoBloco, remedioTomado, remediosPendentesHoje, treinoDoDia,
@@ -46,7 +47,12 @@ function cartaoDeDados(){
     h('div', {class:'linha-botoes'},
       h('button', {class:'btn btn-suave', type:'button', onTap: exportar}, 'Baixar backup'),
       h('button', {class:'btn btn-suave', type:'button', onTap: escolherArquivo}, 'Restaurar')
-    )
+    ),
+    /* Volta para a tela de escolha entre a rotina-modelo e começar do zero.
+       Fica discreto, embaixo: é a saída para quem quer recomeçar, não algo
+       que se toca por engano. */
+    h('button', {class:'btn btn-transparente largura-cheia', type:'button',
+      onTap: reabrirPrimeiroUso}, 'Recomeçar do início')
   );
 }
 

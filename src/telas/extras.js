@@ -1,7 +1,8 @@
-import { MODELO_VAZIO } from '../dados/modelo.js';
-import { Dados, Tela, agir, agirSemAviso, definirTela, dadosIniciais, substituirDados, simular } from '../nucleo/estado.js';
+import { MODELO, MODELO_VAZIO } from '../dados/modelo.js';
+import { Dados, Tela, agir, avisar, definirTela, dadosIniciais, substituirDados, simular } from '../nucleo/estado.js';
+import { baixarBackup } from '../nucleo/backup.js';
 import { clonar } from '../nucleo/armazem.js';
-import { deISO, diaDaSemana, paraMinutos, paraHora, rotuloDuracao } from '../nucleo/tempo.js';
+import { hojeISO, deISO, diaDaSemana, paraMinutos, paraHora, rotuloDuracao } from '../nucleo/tempo.js';
 import { blocosDoDia, materializar, detectarAtraso, proporPlano, aplicarPlano,
          totaisDaSemana, corDaCategoria } from '../nucleo/modelo.js';
 import { h, icone, cabecalhoTela, pilula, rotuloSecao } from '../ui/index.js';
@@ -16,11 +17,24 @@ import { h, icone, cabecalhoTela, pilula, rotuloSecao } from '../ui/index.js';
 /* ===========================================================================
    6. PRIMEIRO USO
 
-   Só aparece enquanto a rotina-modelo não foi aceita nem recusada. É a porta
-   por onde outra pessoa entra no app: "Começar do zero" apaga tudo que é
-   pessoal e deixa a estrutura vazia pra ela montar a própria semana.
+   Aparece sozinha na primeira vez, e pode ser chamada de novo pelo botão
+   "Recomeçar" em Início → Seus dados.
+
+   Os dois casos usam a mesma tela, mas não são a mesma coisa:
+
+     PRIMEIRA VEZ   não há nada a perder. Escolher é só escolher.
+     RECOMEÇANDO    já existe uma rotina montada, e qualquer das duas opções
+                    vai apagá-la. Por isso, nesse caso, a tela ganha um aviso,
+                    um atalho para baixar o backup antes, e uma saída.
+
+   A reabertura NÃO é gravada: se a pessoa fechar o app aqui, nada aconteceu.
+   Os dados só são tocados quando ela escolhe uma das duas opções.
    =========================================================================== */
 export function telaPrimeiroUso(){
+  /* `Tela.primeiroUso` só é verdadeiro quando a tela foi reaberta de
+     propósito — é o que distingue os dois casos acima. */
+  const recomecando = Tela.primeiroUso;
+
   const passos = [
     ['1', 'Trabalho e faculdade', 'Os horários fixos da semana já posicionados, de segunda a sexta.'],
     ['2', 'Refeições e treinos',  'Cinco refeições com cardápio e três treinos de força e mobilidade.'],
@@ -29,11 +43,13 @@ export function telaPrimeiroUso(){
 
   return h('div', {class:'primeiro-uso'},
     h('div', {class:'primeiro-uso-conteudo'},
-      h('div', {class:'rotulo-secao'}, 'Primeiro uso'),
+      h('div', {class:'rotulo-secao'}, recomecando ? 'Recomeçar' : 'Primeiro uso'),
       h('h1', {class:'titulo-tela grande'}, 'Sua semana modelo'),
       h('p', {class:'primeiro-uso-texto'},
         'O app já vem com uma semana montada, pra você ver como tudo se encaixa antes de mexer. ' +
         'Nada aqui é definitivo: cada bloco, refeição e treino pode ser mudado depois.'),
+
+      recomecando ? avisoDeQuePerdeTudo() : null,
 
       h('div', {class:'passos'},
         passos.map(([n, titulo, texto]) => h('div', {class:'passo'},
@@ -47,25 +63,56 @@ export function telaPrimeiroUso(){
 
       h('div', {class:'primeiro-uso-acoes'},
         h('button', {class:'btn btn-forte alto', type:'button', onTap: aceitarModelo},
-          'Usar a rotina-modelo'),
+          recomecando ? 'Recomeçar com o exemplo' : 'Usar a rotina-modelo'),
         h('button', {class:'btn btn-transparente', type:'button', onTap: comecarDoZero},
-          'Começar do zero')
+          'Começar do zero'),
+        recomecando
+          ? h('button', {class:'btn btn-transparente', type:'button',
+              onTap: () => definirTela({primeiroUso: false})}, 'Voltar sem mudar nada')
+          : null
       )
     )
   );
 }
 
-export function aceitarModelo(){
-  agirSemAviso(d => { d.aceitouModelo = true; });
+/* Só aparece quando há uma rotina montada para perder. */
+function avisoDeQuePerdeTudo(){
+  return h('div', {class:'nota destaque'},
+    h('div', null,
+      'As duas opções abaixo apagam a rotina que está neste aparelho: ' +
+      'blocos, treinos, cardápio, remédios e todas as marcações.'),
+    h('button', {class:'btn btn-suave largura-cheia', type:'button',
+      onTap: baixarAntesDeRecomecar}, 'Baixar backup antes')
+  );
 }
 
+function baixarAntesDeRecomecar(){
+  try{
+    avisar('Backup salvo: ' + baixarBackup());
+  }catch(err){
+    console.error('Falha ao exportar antes de recomeçar:', err);
+    avisar('Não consegui baixar o arquivo neste navegador.');
+  }
+}
+
+/** Recarrega a rotina-modelo do zero, descartando o que existia. */
+export function aceitarModelo(){
+  /* Recarregar o MODELO importa quando a tela foi REABERTA: sem isso,
+     "recomeçar com o exemplo" manteria as edições da pessoa e não recomeçaria
+     nada. Na primeira vez os dados já são o MODELO, então é inofensivo. */
+  substituirDados(Object.assign(dadosIniciais(MODELO), {aceitouModelo: true}));
+  definirTela({primeiroUso: false, aba: 'inicio', data: hojeISO()});
+}
+
+/** Estrutura vazia, para a pessoa montar a própria semana. */
 export function comecarDoZero(){
-  agirSemAviso(d => {
-    const vazio = dadosIniciais(MODELO_VAZIO);
-    Object.keys(vazio).forEach(k => { d[k] = vazio[k]; });
-    d.aceitouModelo = true;
-  });
-  definirTela({aba: 'dia'});
+  substituirDados(Object.assign(dadosIniciais(MODELO_VAZIO), {aceitouModelo: true}));
+  definirTela({primeiroUso: false, aba: 'dia', data: hojeISO()});
+}
+
+/** Reabre a tela de escolha. Não grava nada — só muda o que está na tela. */
+export function reabrirPrimeiroUso(){
+  definirTela({primeiroUso: true, folha: null});
 }
 
 
