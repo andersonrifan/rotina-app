@@ -136,6 +136,12 @@ não para uma rodada de testes de dias.
 Início e te enviar o JSON. Você consegue restaurar no seu aparelho e ver
 exatamente o que a pessoa montou.
 
+## Backlog
+
+Ideias, incômodos e feedback dos testadores vão para
+[`BACKLOG.md`](BACKLOG.md) — inclusive a lista do que ficou conscientemente
+para depois, com o contexto para retomar.
+
 ## Publicar
 
 Veja [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md). Resumo:
