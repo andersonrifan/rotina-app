@@ -132,9 +132,10 @@ sob `file://` o armazenamento é frágil — os dados do testador podem sumir en
 uma sessão e outra. O arquivo único serve para mostrar o app a alguém na hora,
 não para uma rodada de testes de dias.
 
-**Peça a quem testar:** depois de alguns dias, tocar em *Baixar backup* na tela
-Início e te enviar o JSON. Você consegue restaurar no seu aparelho e ver
-exatamente o que a pessoa montou.
+**Peça a quem testar:** depois de alguns dias, abrir o **Perfil** (avatar no
+canto da tela Início), tocar em *Baixar backup* e te enviar o JSON. Você
+restaura no seu aparelho e vê exatamente o que a pessoa montou — quais
+refeições renomeou, o que abandonou, onde travou. Vale mais que "achei legal".
 
 ## Backlog
 
