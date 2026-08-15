@@ -50,14 +50,14 @@ src/
     modelo.js         regras derivadas do domínio
     sessoes.js        o treino que foi FEITO, separado do planejado
     estatisticas.js   as contas que os gráficos mostram
-    estado.js         os dados, a gravação e o desfazer
+    estado.js         os dados e a gravação
     armazem.js        localStorage à prova de falha + migração de esquema
     render.js         o gancho que quebra o ciclo estado ↔ app
 
   ui/index.js         h(), ícones, peças reaproveitadas, folha, aviso
   ui/graficos.js      SVG à mão: colunas, barras, linha, medidor
   telas/              uma por aba, mais boas-vindas, perfil,
-                      primeiro-uso e replanejar
+                      estatisticas, primeiro-uso e replanejar
 
 testes/               143 testes sobre o núcleo
 docs/                 publicação e privacidade
@@ -75,10 +75,18 @@ Quando você edita um dia específico, ele é **materializado**: vira uma lista
 própria que passa a ignorar a geração. É o que permite "hoje a aula atrasou"
 sem reescrever todas as quintas.
 
-**2. Toda mudança é desfazível.**
-`agir()` tira uma fotografia dos dados antes de mexer. O botão "Desfazer" do
-aviso restaura essa fotografia inteira. É por isso que desfazer um arraste
-volta para antes do gesto começar, e não para o quadro anterior do movimento.
+**2. O que foi feito é separado do que foi planejado.**
+O treino é estrutura: "Força A tem 8 exercícios" vale para todas as quartas. A
+sessão é fato: "na quarta dia 19 fiz 5, 4, 4 repetições" vale para aquela data.
+Por isso editar um treino não reescreve o passado, e excluí-lo não apaga o
+histórico. É essa separação que dá série temporal às estatísticas.
+
+O mesmo vale para o dia: a semana-modelo é o plano, `blocos[data]` é a exceção.
+
+**Não há desfazer.** Havia, e o aviso ficava no caminho o tempo todo — ele
+aparece a cada toque, e quase tudo aqui é um toque. As ações destrutivas de
+verdade (restaurar backup, recomeçar, excluir treino) confirmam antes, que é
+onde a proteção pertence.
 
 **3. A tela é redesenhada por inteiro.**
 Não há atualização parcial de DOM. Num app de celular isso é barato e elimina
