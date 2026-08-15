@@ -7,11 +7,16 @@
 
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import pacote from './package.json' with { type: 'json' };
 
 export default defineConfig({
   /* Caminhos relativos: o mesmo dist/ funciona hospedado numa subpasta e
      dentro do WebView do Android, onde a origem é um esquema próprio. */
   base: './',
+
+  /* A versão aparece no rodapé do Perfil. Serve pra saber de qual build veio
+     um relato de erro durante os testes. */
+  define: { __VERSAO__: JSON.stringify(pacote.version) },
 
   build: {
     outDir: 'dist',

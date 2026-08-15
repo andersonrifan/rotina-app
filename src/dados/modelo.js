@@ -103,7 +103,10 @@ export const TITULOS_SUGERIDOS = ['Aula de violão', 'Consulta médica', 'Corrid
 export const MODELO = {
 
   perfil: {
-    nome: 'Anderson',
+    /* Vazio de propósito: o nome vem da tela de boas-vindas, não do modelo.
+       A rotina-modelo entrega uma SEMANA, não uma identidade — por isso quem
+       escolhe "usar o exemplo" não herda o nome de outra pessoa. */
+    nome: '',
     /* Metas diárias. */
     metas: {kcal: 1500, prot: 80}
   },

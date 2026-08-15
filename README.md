@@ -53,9 +53,10 @@ src/
     render.js         o gancho que quebra o ciclo estado ↔ app
 
   ui/index.js         h(), ícones, peças reaproveitadas, folha, aviso
-  telas/              uma por aba, mais primeiro-uso e replanejar
+  telas/              uma por aba, mais boas-vindas, perfil,
+                      primeiro-uso e replanejar
 
-testes/               91 testes sobre o núcleo
+testes/               103 testes sobre o núcleo
 docs/                 publicação e privacidade
 ```
 
@@ -97,10 +98,18 @@ Duas formas de trocar:
 - **No código:** substitua o `MODELO` daquele arquivo. Nenhum outro precisa ser
   tocado.
 
-Essa tela não some para sempre depois da primeira escolha: *Início → Seus dados
-→ **Recomeçar do início*** traz ela de volta, agora com aviso de que apaga tudo,
-atalho para baixar o backup antes e a saída "Voltar sem mudar nada". Reabrir não
-grava nada — os dados só são tocados quando uma das opções é escolhida.
+O **nome não faz parte da rotina**: ele é pedido uma vez na abertura e sobrevive
+a trocar de rotina. A rotina-modelo vem com `perfil.nome` vazio de propósito —
+sem isso, quem escolhesse o exemplo seria saudado com o nome de outra pessoa.
+
+Essa tela não some para sempre depois da primeira escolha: **Perfil → Recomeçar
+do início** traz ela de volta, agora com aviso de que apaga tudo, atalho para
+baixar o backup antes e a saída "Voltar sem mudar nada". Reabrir não grava nada
+— os dados só são tocados quando uma das opções é escolhida.
+
+O **Perfil** (avatar no canto da tela Início) reúne o que vale para o app todo:
+nome, metas do dia, backup e recomeçar. Fica fora das cinco abas de propósito —
+a barra é do dia a dia, isto é configuração.
 
 ---
 

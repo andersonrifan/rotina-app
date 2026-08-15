@@ -95,18 +95,33 @@ function baixarAntesDeRecomecar(){
   }
 }
 
+/**
+ * Troca a rotina inteira, preservando quem você é.
+ *
+ * Nome e metas NÃO vêm do modelo: trocar de rotina não te transforma em outra
+ * pessoa, e a rotina-modelo não carrega o nome de ninguém (ver
+ * `MODELO.perfil.nome`, vazio de propósito).
+ */
+function trocarRotina(modelo){
+  const perfil = clonar(Dados.perfil);
+  substituirDados(Object.assign(dadosIniciais(modelo), {
+    aceitouModelo: true,
+    perfil: perfil
+  }));
+}
+
 /** Recarrega a rotina-modelo do zero, descartando o que existia. */
 export function aceitarModelo(){
   /* Recarregar o MODELO importa quando a tela foi REABERTA: sem isso,
      "recomeçar com o exemplo" manteria as edições da pessoa e não recomeçaria
      nada. Na primeira vez os dados já são o MODELO, então é inofensivo. */
-  substituirDados(Object.assign(dadosIniciais(MODELO), {aceitouModelo: true}));
+  trocarRotina(MODELO);
   definirTela({primeiroUso: false, aba: 'inicio', data: hojeISO()});
 }
 
 /** Estrutura vazia, para a pessoa montar a própria semana. */
 export function comecarDoZero(){
-  substituirDados(Object.assign(dadosIniciais(MODELO_VAZIO), {aceitouModelo: true}));
+  trocarRotina(MODELO_VAZIO);
   definirTela({primeiroUso: false, aba: 'dia', data: hojeISO()});
 }
 

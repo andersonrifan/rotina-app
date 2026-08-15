@@ -90,7 +90,7 @@
   --texto-2:    #3f3a32;
   --texto-3:    #544c41;
   --texto-4:    #5c5347;
-  --texto-fraco:#645c50;         /* o mais claro permitido em texto â‰¥ 11 px */
+  --texto-fraco:#645c50;         /* o mais claro permitido em texto ≥ 11 px */
   --branco:     #ffffff;
 
   /* --- Terracota --- */
@@ -210,7 +210,7 @@ input{ font:inherit; color:inherit; }
 
 
 /* ===========================================================================
-   03. PEÃ‡AS COMPARTILHADAS
+   03. PEÇAS COMPARTILHADAS
    =========================================================================== */
 
 /* --- Cabeçalho de tela --- */
@@ -1150,3 +1150,41 @@ button, .tocavel{
   padding:11px 14px;
   color:var(--acao-escura); font-weight:600;
 }
+
+/* --- Perfil e boas-vindas -------------------------------------------------- */
+
+/* Botão redondo com a inicial, no cabeçalho do Início. */
+.avatar{
+  width:var(--toque); height:var(--toque); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  background:var(--acao); color:var(--branco);
+  font-size:17px; font-weight:700;
+  font-family:var(--display);
+}
+
+.tela-perfil{
+  position:absolute; inset:0;
+  background:var(--fundo);
+  overflow-y:auto;
+  padding:0 var(--pad-tela) calc(24px + env(safe-area-inset-bottom));
+}
+.perfil-nome{ font-size:16px; font-weight:700; }
+.versao{
+  margin:var(--gap-cartoes) 0 0;
+  text-align:center;
+  font-size:10.5px; font-weight:500; color:var(--texto-fraco);
+}
+
+/* A tela de boas-vindas reaproveita a moldura do primeiro uso. */
+.form-nome{ display:flex; flex-direction:column; gap:10px; margin:4px 0; }
+.campo-nome{
+  min-height:54px;
+  font-size:17px; font-weight:600;
+  text-align:center;
+}
+
+/* Botão suave DENTRO de um cartão: sem isto os dois usam --superficie e o
+   botão desaparece no fundo. Sobe um degrau para a superfície clara. */
+.cartao .btn-suave{ background:var(--superficie-clara); }
+.cartao .btn-suave:hover{ background:var(--fundo); }

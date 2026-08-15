@@ -48,7 +48,8 @@ describe('recomeçar com o exemplo', () => {
 
     expect(Dados.slots).toHaveLength(MODELO.slots.length);
     expect(Dados.treinos).toHaveLength(MODELO.treinos.length);
-    expect(Dados.perfil.nome).toBe(MODELO.perfil.nome);
+    /* O nome NÃO vem do modelo: ele é da pessoa, não da rotina. */
+    expect(Dados.perfil.nome).toBe('Teste');
   });
 
   it('limpa as marcações antigas junto', () => {
@@ -76,7 +77,8 @@ describe('começar do zero', () => {
     comecarDoZero();
     expect(Dados.treinos).toEqual([]);
     expect(Dados.remedios).toEqual([]);
-    expect(Dados.perfil.nome).toBe('');
+    /* "Pessoal" aqui é a rotina, não a identidade — o nome fica. */
+    expect(Dados.perfil.nome).toBe('Teste');
   });
 
   it('mantém refeições genéricas, para o dia não nascer vazio', () => {

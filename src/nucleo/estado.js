@@ -119,7 +119,9 @@ export const Tela = {
   /* Tela de escolha reaberta de propósito. Fica só aqui, e não nos dados,
      porque reabrir não pode ser algo que sobrevive a fechar o app: enquanto
      a pessoa não escolhe, nada aconteceu. */
-  primeiroUso: false
+  primeiroUso: false,
+  /* Tela de perfil aberta por cima do app. */
+  perfil: false
 };
 
 export function definirTela(patch){

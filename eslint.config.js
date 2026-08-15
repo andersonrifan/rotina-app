@@ -22,7 +22,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: globals.browser
+      globals: {...globals.browser, __VERSAO__: 'readonly'}
     },
     rules: {
       /* Erros de verdade */

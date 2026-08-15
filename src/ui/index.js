@@ -34,6 +34,7 @@ export function h(tag, props){
       if(chave === 'onPointerUp'){ el.addEventListener('pointerup', valor); return; }
       if(chave === 'onInput'){ el.addEventListener('input', valor); return; }
       if(chave === 'onChange'){ el.addEventListener('change', valor); return; }
+      if(chave === 'onSubmit'){ el.addEventListener('submit', valor); return; }
       if(chave === 'value'){ el.value = valor; return; }
       if(chave === 'checked'){ el.checked = !!valor; return; }
       el.setAttribute(chave, valor);

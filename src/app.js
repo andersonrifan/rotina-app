@@ -21,6 +21,7 @@ import { telaTreino } from './telas/treino.js';
 import { telaComida } from './telas/comida.js';
 import { telaCaixa } from './telas/caixa.js';
 import { telaPrimeiroUso, telaReplanejar } from './telas/extras.js';
+import { telaBoasVindas, telaPerfil, precisaDeNome } from './telas/perfil.js';
 
 const ABAS = [
   {id:'inicio', rotulo:'Início', icone:'casa',       desenhar: telaInicio},
@@ -53,10 +54,16 @@ function desenharTudo(){
 
     camadas.textContent = '';
     /* Ordem importa: a última anexada fica por cima. */
+    if(Tela.perfil) camadas.appendChild(telaPerfil());
     if(Tela.replanejar) camadas.appendChild(telaReplanejar());
-    /* Aparece sozinha na primeira vez, ou quando reaberta pelo botão
-       "Recomeçar" em Início → Seus dados. */
-    if(!Dados.aceitouModelo || Tela.primeiroUso) camadas.appendChild(telaPrimeiroUso());
+    /* A abertura tem uma ORDEM: primeiro o nome, depois a rotina.
+       O `else if` importa — empilhar as duas deixaria a de baixo invisível
+       mas ainda alcançável por Tab e lida por leitor de tela. */
+    if(precisaDeNome()){
+      camadas.appendChild(telaBoasVindas());
+    } else if(!Dados.aceitouModelo || Tela.primeiroUso){
+      camadas.appendChild(telaPrimeiroUso());
+    }
     const folha = desenharFolha();
     if(folha) camadas.appendChild(folha);
     const aviso = desenharAviso();
