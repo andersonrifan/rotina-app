@@ -1,11 +1,14 @@
 import { DIAS, CATEGORIAS, TITULOS_SUGERIDOS, MESES } from '../dados/modelo.js';
-import { Dados, Tela, agir, agirSemAviso, avisar, definirTela, salvarDados } from '../nucleo/estado.js';
+import { Dados, Tela, agir, avisar, definirTela } from '../nucleo/estado.js';
 import { redesenhar } from '../nucleo/render.js';
 import { hojeISO, deISO, diaDaSemana, semanaDe, dataCurta, ehHoje, ehPassado,
-         paraMinutos, paraHora, rotuloDuracao } from '../nucleo/tempo.js';
+         paraMinutos, paraHora, rotuloDuracao, agoraEmMinutos } from '../nucleo/tempo.js';
 import { blocosDoDia, blocoAtual, ordenarPorHora, materializar, statusDoBloco, proximoStatus,
-         ehSomenteLeitura, treinoDoDia, corDaCategoria } from '../nucleo/modelo.js';
-import { h, icone, cabecalhoTela, pilula, pilulaConcluir, estadoVazio,
+         ehSomenteLeitura, treinoDoDia, corDaCategoria, corSuaveDaCategoria } from '../nucleo/modelo.js';
+import { janelaDoDia, horasDaJanela, rotuloDaHora, lacunas, minutosLivres,
+         blocosNaJanela, blocosAntesDaJanela, colunasDaJanela, reencadear,
+         redimensionar, posicaoPara, noPasso, PASSO_MINUTOS } from '../nucleo/agenda.js';
+import { h, icone, cabecalhoTela, pilula, pilulaConcluir, estadoVazio, rotuloSecao,
          abrirFolha, fecharFolha, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 import { avisoDeAtraso } from './extras.js';
 
@@ -14,26 +17,37 @@ import { avisoDeAtraso } from './extras.js';
 
    Duas visões e dois modos, sobre a mesma lista de blocos.
 
-   VISÕES   AGENDA  a altura de cada bloco é proporcional à duração, então o
-                    dia tem a forma que ele realmente tem: 8 h de sono ocupam
-                    8 h de tela. É a visão para enxergar o dia.
+   VISÕES   AGENDA  uma régua com as horas à esquerda e cada bloco ocupando a
+                    altura da sua duração. O vazio entre dois blocos aparece
+                    como vazio — é a visão para enxergar onde sobra tempo.
             LISTA   tudo com a mesma altura, mais denso. É a visão para marcar.
 
    MODOS    LEITURA toque cicla a marcação (sem marca → feito → atrasei → pulei)
-            EDIÇÃO  arrastar move, a alça de baixo muda a duração, e tocar
-                    abre o editor com horário de início e fim.
+            EDIÇÃO  a alça da esquerda arrasta o cartão e o resto do dia se
+                    reorganiza junto; a borda de baixo estica a duração
+                    daquele bloco; tocar abre os horários exatos.
 
    Não há botão "Editar": segurar qualquer bloco entra no modo de edição, e só
    então aparece o "Concluir".
+
+   A REGRA QUE ORGANIZA O MODO DE EDIÇÃO: cada gesto tem UM trabalho, e cada
+   um mora numa área própria do cartão. O corpo do cartão não arrasta nada —
+   é o que devolve a rolagem, que antes era impossível porque qualquer toque
+   já era o começo de um arraste.
    =========================================================================== */
 
-const PX_POR_MINUTO_ARRASTE = 1.1;   // sensibilidade do arraste
-const PASSO_MINUTOS = 5;             // o arraste encaixa de 5 em 5
+/* Escala da régua. 0,95 px por minuto dá 57 px por hora: um bloco de meia
+   hora tem 28 px (lê-se o título e o horário) e um dia acordado de 17 h cabe
+   em pouco mais de duas telas de rolagem. */
+const PX_POR_MINUTO = 0.95;
 
-/* Escala da visão agenda. Um minuto vale menos de um pixel, senão um dia
-   inteiro daria 1440 px de rolagem só de sono. */
-const PX_POR_MINUTO_AGENDA = 0.42;
-const ALTURA_MINIMA_AGENDA = 46;
+/* Piso de altura, só para um bloco de 10 min não virar um risco. Blocos
+   assim curtos passam a se sobrepor de uns poucos pixels ao seguinte — o
+   contorno e o empilhamento fazem isso parecer o que é. */
+const ALTURA_MINIMA = 15;
+
+/* Abaixo disso só cabe o título. */
+const ALTURA_SO_TITULO = 38;
 
 export function telaDia(){
   const iso = Tela.data;
@@ -55,9 +69,10 @@ export function telaDia(){
     ehHoje(iso) && !editando ? avisoDeAtraso(iso) : null,
     seletorDeVisao(editando),
     editando
-      ? h('p', {class:'dica-edicao'}, 'Arraste para mover · a alça de baixo para durar · toque para os horários')
+      ? h('p', {class:'dica-edicao'},
+          'Arraste pela alça ≡ para reorganizar · puxe a borda de baixo para durar · toque para os horários')
       : null,
-    listaDeBlocos(iso, editando, soLeitura),
+    corpoDoDia(iso, editando, soLeitura),
     !editando ? botaoFlutuante(iso) : null
   );
 }
@@ -72,8 +87,8 @@ function entrarNaEdicao(soLeitura){
 }
 
 /* --- Alternador de visão --------------------------------------------------
-   Some no modo de edição: lá a altura já é o controle de duração, e ter duas
-   escalas ao mesmo tempo confundiria o gesto. */
+   Some no modo de edição: lá a régua é o próprio controle — a altura é a
+   duração e a posição é o horário —, então não há segunda escala possível. */
 function seletorDeVisao(editando){
   if(editando) return null;
   const opcoes = [['agenda', 'Agenda'], ['lista', 'Lista']];
@@ -146,65 +161,232 @@ function cabecalhoDoDia(iso){
   );
 }
 
-/* ===========================================================================
-   A LISTA
 
-   Uma função só desenha as duas visões e os dois modos. O que muda é a altura
-   do bloco e o que o toque faz — a estrutura é a mesma, e é por isso que os
-   dois modos parecem o mesmo lugar em vez de duas telas diferentes.
+/* ===========================================================================
+   O CORPO DO DIA
    =========================================================================== */
 
-function listaDeBlocos(iso, editando, soLeitura){
+function corpoDoDia(iso, editando, soLeitura){
   const blocos = blocosDoDia(iso);
-  const atual = blocoAtual(iso);
-  const agenda = Tela.visaoDia === 'agenda' || editando;
+  const ctx = {
+    atual: blocoAtual(iso),
+    editando: editando,
+    soLeitura: soLeitura
+  };
 
   if(!blocos.length){
+    registrarAgenda(null);
     return estadoVazio('Dia vazio',
       'Nenhum bloco previsto. Toque no + para começar a montar este dia.');
   }
 
-  const lista = h('div', {class:'lista-blocos' + (agenda ? ' visao-agenda' : '') +
-                                 (editando ? ' em-edicao' : '')},
-    blocos.map(bloco => desenharBloco(iso, bloco, {
-      atual: atual, editando: editando, soLeitura: soLeitura, agenda: agenda
-    })),
-    editando
-      ? h('button', {class:'adicionar-tracejado', type:'button', onTap: () => abrirFolhaNovoBloco(iso)},
-          icone('mais', 15), 'Adicionar bloco')
+  /* A régua vale para a visão agenda E para a edição: editar na mesma
+     representação em que se lê é o que faz os dois parecerem o mesmo lugar. */
+  if(editando || Tela.visaoDia === 'agenda') return regua(iso, blocos, ctx);
+
+  registrarAgenda(null);
+  return h('div', {class:'lista-blocos'},
+    blocos.map(b => linhaDeBloco(iso, b, ctx))
+  );
+}
+
+
+/* ===========================================================================
+   A RÉGUA
+
+   Horas fixas à esquerda, cartões posicionados pelo horário à direita. Nada
+   de lista: a distância entre dois cartões É o tempo entre eles.
+   =========================================================================== */
+
+/* O que o arraste precisa saber sobre o último desenho. Como a tela inteira é
+   redesenhada a cada mudança, isto é sempre o estado atual da régua. */
+let agendaAtual = null;
+function registrarAgenda(valor){ agendaAtual = valor; }
+
+function regua(iso, blocos, ctx){
+  const janela = janelaDoDia(blocos);
+  const antes = blocosAntesDaJanela(blocos, janela);
+  const dentro = blocosNaJanela(blocos, janela);
+  const altura = Math.max(160, (janela.fim - janela.inicio) * PX_POR_MINUTO);
+
+  const colunas = colunasDaJanela(blocos, janela);
+  const cartoes = {};
+  const pista = h('div', {class:'agenda-pista'});
+
+  lacunas(blocos, janela).forEach(l => pista.appendChild(vaoLivre(iso, l, janela, ctx)));
+
+  dentro.forEach((bloco, i) => {
+    const el = cartaoDoBloco(iso, bloco, janela, ctx, i, colunas[bloco.id]);
+    cartoes[bloco.id] = el;
+    pista.appendChild(el);
+  });
+
+  const agora = agoraEmMinutos();
+  if(ehHoje(iso) && agora >= janela.inicio && agora <= janela.fim && !ctx.editando){
+    pista.appendChild(h('div', {class:'agenda-agora',
+      style:'top:' + ((agora - janela.inicio) * PX_POR_MINUTO) + 'px'}));
+  }
+
+  registrarAgenda({
+    iso: iso, blocos: blocos, janela: janela, cartoes: cartoes,
+    primeiraPosicao: antes.length, soLeitura: ctx.soLeitura
+  });
+
+  return h('div', {class:'agenda' + (ctx.editando ? ' em-edicao' : '')},
+    antes.length ? faixaAntesDeAcordar(iso, antes, ctx) : null,
+    h('div', {class:'agenda-regua', style:'height:' + Math.round(altura) + 'px'},
+      horasDaJanela(janela).map(m => h('div', {
+          class:'agenda-hora',
+          style:'top:' + ((m - janela.inicio) * PX_POR_MINUTO) + 'px'
+        },
+        h('span', {class:'agenda-hora-rotulo'}, rotuloDaHora(m)),
+        h('span', {class:'agenda-hora-linha'})
+      )),
+      pista
+    ),
+    rodapeDaRegua(blocos, janela, ctx),
+    ctx.editando
+      ? h('button', {class:'adicionar-tracejado', type:'button',
+          onTap: () => abrirFolhaNovoBloco(iso)}, icone('mais', 15), 'Adicionar bloco')
       : null
   );
-  return lista;
 }
 
-function alturaDoBloco(bloco, agenda){
-  if(!agenda) return null;
-  return Math.max(ALTURA_MINIMA_AGENDA, Math.round(bloco.dur * PX_POR_MINUTO_AGENDA));
+/* O sono da madrugada não ocupa um terço da rolagem: sai da régua e vira uma
+   linha, que continua marcável e editável como qualquer outra. */
+function faixaAntesDeAcordar(iso, blocos, ctx){
+  return h('div', {class:'antes-de-acordar'},
+    rotuloSecao('Antes de acordar'),
+    h('div', {class:'lista-blocos'}, blocos.map(b => linhaDeBloco(iso, b, ctx)))
+  );
 }
 
-function desenharBloco(iso, bloco, ctx){
+/* O total de tempo livre, dito em números embaixo do que a régua já mostra
+   em espaço vazio. */
+function rodapeDaRegua(blocos, janela, ctx){
+  if(ctx.editando) return null;
+  const livres = minutosLivres(blocos, janela);
+  if(livres < 15) return null;
+  return h('p', {class:'agenda-resumo'},
+    rotuloDuracao(livres) + ' sem nada marcado, das ' +
+    paraHora(janela.inicio) + ' às ' + paraHora(janela.fim) + '.');
+}
+
+function faixaHoraria(bloco, comDuracao){
+  const fim = paraHora(paraMinutos(bloco.hora) + bloco.dur);
+  return bloco.hora + '–' + fim + (comDuracao ? ' · ' + rotuloDuracao(bloco.dur) : '');
+}
+
+/* Onde o cartão fica na largura da pista: sozinho ocupa tudo, disputando o
+   horário com outro divide o espaço com ele. */
+function estiloDaColuna(coluna){
+  const c = coluna || {coluna: 0, colunas: 1};
+  if(c.colunas <= 1) return 'left:0;width:100%';
+  const largura = 100 / c.colunas;
+  return 'left:' + (c.coluna * largura).toFixed(3) + '%' +
+         ';width:calc(' + largura.toFixed(3) + '% - 3px)';
+}
+
+function cartaoDoBloco(iso, bloco, janela, ctx, indice, coluna){
   const status = statusDoBloco(iso, bloco);
   const emAndamento = ctx.atual && ctx.atual.id === bloco.id;
-  const fim = paraHora(paraMinutos(bloco.hora) + bloco.dur);
-  const altura = alturaDoBloco(bloco, ctx.agenda);
+  const topo = (paraMinutos(bloco.hora) - janela.inicio) * PX_POR_MINUTO;
+  const altura = Math.max(ALTURA_MINIMA, bloco.dur * PX_POR_MINUTO);
+
+  const el = h('div', {
+      class: 'cartao-agenda' +
+        (emAndamento ? ' em-andamento' : '') +
+        (status ? ' marcado' : '') +
+        (status === 'pulei' ? ' pulado' : '') +
+        (altura < ALTURA_SO_TITULO ? ' curto' : ''),
+      style: 'top:' + Math.round(topo) + 'px' +
+             ';height:' + Math.round(altura) + 'px' +
+             ';z-index:' + (indice + 1) +
+             ';' + estiloDaColuna(coluna) +
+             ';--cor-cat:' + corDaCategoria(bloco.cat) +
+             ';--cor-cat-suave:' + corSuaveDaCategoria(bloco.cat),
+      'data-id': bloco.id,
+      'aria-label': bloco.titulo + ', ' + faixaHoraria(bloco, true),
+      onTap: ev => tocarNoBloco(ev, iso, bloco, status, ctx)
+    },
+    h('div', {class:'cartao-agenda-texto'},
+      h('div', {class:'cartao-agenda-titulo'}, bloco.titulo),
+      h('div', {class:'cartao-agenda-hora'}, faixaHoraria(bloco, ctx.editando)),
+      bloco.sub ? h('div', {class:'cartao-agenda-sub'}, bloco.sub) : null
+    ),
+    status && !ctx.editando
+      ? h('span', {class:'etiqueta etiqueta-' + status}, status.toUpperCase())
+      : null,
+    ctx.editando ? pegaDeMover(bloco) : null,
+    ctx.editando
+      ? h('button', {class:'btn-remover', type:'button', 'aria-label':'Remover ' + bloco.titulo,
+          onTap: () => removerBloco(iso, bloco, ctx.soLeitura)}, icone('fechar', 15))
+      : null,
+    ctx.editando ? pegaDeDuracao(bloco) : null
+  );
+
+  if(!ctx.editando && !ctx.soLeitura) ligarToqueLongo(el, () => entrarNaEdicao(ctx.soLeitura));
+  return el;
+}
+
+function tocarNoBloco(ev, iso, bloco, status, ctx){
+  /* Se o gesto virou "arrastar" ou "segurar", o clique que vem junto não vale.
+     O arraste é consumido ANTES de qualquer outra saída: com mouse o clique
+     nasce na alça, e se a saída pela alça viesse primeiro a marca ficaria
+     pendurada e engoliria o próximo toque de verdade. */
+  if(consumirArraste()) return;
+  if(consumirToqueLongo()) return;
+  /* As alças têm dono. Um clique que nasceu nelas não é um toque no cartão. */
+  if(ev && ev.target && ev.target.closest &&
+     ev.target.closest('.pega-mover, .pega-duracao, .btn-remover')) return;
+
+  if(ctx.editando){ abrirEditorDeBloco(iso, bloco, ctx.soLeitura); return; }
+  if(ctx.soLeitura){ avisar('Dia encerrado — toque em Reabrir'); return; }
+
+  const novo = proximoStatus(status);
+  agir(bloco.titulo + ' · ' + (novo || 'sem marca'), d => {
+    d.status[iso + ':' + bloco.id] = novo;
+  });
+}
+
+/* --- Vão livre -------------------------------------------------------------
+   O buraco entre dois blocos, com o tamanho que ele tem. Quando é grande o
+   bastante para ser um alvo de toque honesto, também é o atalho para
+   preencher exatamente aquela janela. */
+function vaoLivre(iso, vao, janela, ctx){
+  const altura = vao.dur * PX_POR_MINUTO;
+  const estilo = 'top:' + Math.round((vao.inicio - janela.inicio) * PX_POR_MINUTO) + 'px' +
+                 ';height:' + Math.round(altura) + 'px';
+  const rotulo = h('span', {class:'vao-rotulo'}, rotuloDuracao(vao.dur) + ' livre');
+
+  if(altura < 44 || ctx.soLeitura){
+    return h('div', {class:'agenda-vao', style:estilo}, altura >= 22 ? rotulo : null);
+  }
+  return h('button', {
+    class:'agenda-vao acionavel', type:'button', style:estilo,
+    'aria-label':'Preencher ' + rotuloDuracao(vao.dur) + ' livres a partir das ' + paraHora(vao.inicio),
+    onTap: () => abrirFolhaNovoBloco(iso, paraHora(vao.inicio), paraHora(vao.inicio + vao.dur))
+  }, rotulo);
+}
+
+
+/* ===========================================================================
+   A LISTA
+
+   A visão densa, e também a forma dos blocos que ficaram fora da régua.
+   =========================================================================== */
+
+function linhaDeBloco(iso, bloco, ctx){
+  const status = statusDoBloco(iso, bloco);
+  const emAndamento = ctx.atual && ctx.atual.id === bloco.id;
 
   const el = h('div', {
       class: 'bloco' +
         (emAndamento ? ' em-andamento' : '') +
         (status ? ' marcado' : '') +
         (status === 'pulei' ? ' pulado' : ''),
-      style: altura ? 'min-height:' + altura + 'px' : null,
       'data-id': bloco.id,
-      onTap: () => {
-        /* Se o gesto virou "segurar", o clique que vem junto não vale. */
-        if(consumirToqueLongo()) return;
-        if(ctx.editando){ abrirEditorDeBloco(iso, bloco, ctx.soLeitura); return; }
-        if(ctx.soLeitura){ avisar('Dia encerrado — toque em Reabrir'); return; }
-        const novo = proximoStatus(status);
-        agir(bloco.titulo + ' · ' + (novo || 'sem marca'), d => {
-          d.status[iso + ':' + bloco.id] = novo;
-        });
-      }
+      onTap: ev => tocarNoBloco(ev, iso, bloco, status, ctx)
     },
     h('span', {class:'bloco-barra', style:'background:' + corDaCategoria(bloco.cat)}),
     h('div', {class:'bloco-texto'},
@@ -215,41 +397,178 @@ function desenharBloco(iso, bloco, ctx){
       ? h('span', {class:'etiqueta etiqueta-' + status}, status.toUpperCase())
       : null,
     h('div', {class:'bloco-horario'},
-      h('div', {class:'bloco-hora'}, ctx.editando ? bloco.hora + '–' + fim : bloco.hora),
+      h('div', {class:'bloco-hora'}, ctx.editando ? faixaHoraria(bloco, false) : bloco.hora),
       h('div', {class:'bloco-dur'}, rotuloDuracao(bloco.dur))
     ),
     ctx.editando
       ? h('button', {class:'btn-remover', type:'button', 'aria-label':'Remover ' + bloco.titulo,
           onTap: () => removerBloco(iso, bloco, ctx.soLeitura)}, icone('fechar', 15))
-      : null,
-    /* A alça de duração só existe em edição, e vive na base do cartão. */
-    ctx.editando
-      ? h('div', {class:'alca-duracao', 'aria-label':'Mudar a duração de ' + bloco.titulo,
-          onPointerDown: ev => iniciarArraste(ev, iso, bloco, 'duracao', ctx.soLeitura, el)},
-          h('span', {class:'pega'}))
       : null
   );
 
-  if(ctx.editando){
-    /* Em edição o cartão inteiro arrasta — não há alça separada de mover,
-       que era um alvo pequeno demais para o polegar. */
-    el.addEventListener('pointerdown', ev => {
-      if(ev.target.closest('.alca-duracao, .btn-remover')) return;
-      iniciarArraste(ev, iso, bloco, 'mover', ctx.soLeitura, el);
-    });
-  } else if(!ctx.soLeitura){
-    ligarToqueLongo(el, () => entrarNaEdicao(ctx.soLeitura));
-  }
-
+  if(!ctx.editando && !ctx.soLeitura) ligarToqueLongo(el, () => entrarNaEdicao(ctx.soLeitura));
   return el;
 }
+
+
+/* ===========================================================================
+   OS DOIS ARRASTES
+
+   Reordenar e mudar a duração são gestos diferentes, com áreas diferentes do
+   cartão, e nenhum dos dois começa no corpo do cartão — é isso que devolve a
+   rolagem da lista. Só as duas alças declaram `touch-action:none`; em
+   qualquer outro ponto o dedo rola a tela como esperado.
+
+   Durante o gesto NADA é redesenhado. A prévia mexe direto no `top`, no
+   `height` e no rótulo de cada cartão, e os dados só são tocados ao soltar.
+   Redesenhar a cada quadro era o que fazia o cartão saltar embaixo do dedo.
+   =========================================================================== */
+
+let arrasto = null;
+let arrastouAgora = false;
+
+function consumirArraste(){
+  if(!arrastouAgora) return false;
+  arrastouAgora = false;
+  return true;
+}
+
+function pegaDeMover(bloco){
+  const el = h('div', {
+      class:'pega-mover',
+      'aria-label':'Arraste para mudar ' + bloco.titulo + ' de lugar no dia',
+      onPointerDown: ev => iniciarArraste(ev, bloco, 'ordem')
+    }, icone('alca', 15));
+  return el;
+}
+
+function pegaDeDuracao(bloco){
+  return h('div', {
+      class:'pega-duracao',
+      'aria-label':'Arraste para mudar a duração de ' + bloco.titulo,
+      onPointerDown: ev => iniciarArraste(ev, bloco, 'duracao')
+    }, h('span', {class:'pega'}));
+}
+
+/* Nada é gravado ao começar o gesto — nem materializar o dia. Um arraste que
+   volta ao ponto de partida não deve deixar rastro, e quem grava é o soltar,
+   que já escreve a lista inteira. */
+function iniciarArraste(ev, bloco, tipo){
+  const ctx = agendaAtual;
+  if(!ctx) return;
+  if(ctx.soLeitura){ avisar('Reabra o dia para editar'); return; }
+  if(ev.button !== undefined && ev.button !== 0) return;
+
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  const el = ctx.cartoes[bloco.id];
+  if(!el) return;
+
+  arrasto = {
+    tipo: tipo, ctx: ctx, id: bloco.id, el: el, titulo: bloco.titulo,
+    yInicial: ev.clientY,
+    topoInicial: (paraMinutos(bloco.hora) - ctx.janela.inicio) * PX_POR_MINUTO,
+    duracaoInicial: bloco.dur,
+    ordem: ctx.blocos.map(b => b.id),
+    lista: null,
+    moveu: false
+  };
+
+  el.classList.add('arrastando');
+  /* Os vãos desenhados param de valer no instante em que os blocos começam a
+     se mexer. Somem durante o gesto em vez de mostrar buracos no lugar errado. */
+  const agenda = el.closest('.agenda');
+  if(agenda) agenda.classList.add('em-arraste');
+  arrasto.agenda = agenda;
+
+  document.addEventListener('pointermove', durante);
+  document.addEventListener('pointerup', terminar);
+  document.addEventListener('pointercancel', terminar);
+}
+
+function durante(ev){
+  if(!arrasto) return;
+  const dy = ev.clientY - arrasto.yInicial;
+  if(!arrasto.moveu && Math.abs(dy) < 3) return;
+  arrasto.moveu = true;
+
+  if(arrasto.tipo === 'ordem'){
+    /* O cartão segue o dedo pixel a pixel; quem se reorganiza são os outros. */
+    arrasto.el.style.transform = 'translateY(' + Math.round(dy) + 'px)';
+    const ordem = posicaoPara(arrasto.ctx.blocos, arrasto.id, arrasto.topoInicial + dy,
+                              arrasto.ctx.janela, PX_POR_MINUTO, arrasto.ctx.primeiraPosicao);
+    if(ordem.join('|') !== arrasto.ordem.join('|')){
+      arrasto.ordem = ordem;
+      arrasto.lista = reencadear(arrasto.ctx.blocos, ordem);
+      aplicarPrevia(arrasto.lista, arrasto.id);
+    }
+  } else {
+    /* Um pixel de dedo é um pixel de cartão: a mesma escala do desenho, senão
+       a borda descola do dedo e o gesto parece emperrado. */
+    const nova = noPasso(arrasto.duracaoInicial + dy / PX_POR_MINUTO);
+    arrasto.lista = redimensionar(arrasto.ctx.blocos, arrasto.id, Math.max(PASSO_MINUTOS, nova));
+    aplicarPrevia(arrasto.lista, null);
+  }
+}
+
+/** Move e redimensiona os cartões da prévia, sem tocar nos dados. */
+function aplicarPrevia(lista, idSolto){
+  const ctx = arrasto.ctx;
+  const colunas = colunasDaJanela(lista, ctx.janela);
+  lista.forEach(b => {
+    const el = ctx.cartoes[b.id];
+    if(!el) return;
+    const altura = Math.max(ALTURA_MINIMA, b.dur * PX_POR_MINUTO);
+    /* O cartão na mão é posicionado pelo dedo, não pela prévia. */
+    if(b.id !== idSolto){
+      el.style.top = Math.round((paraMinutos(b.hora) - ctx.janela.inicio) * PX_POR_MINUTO) + 'px';
+    }
+    el.style.height = Math.round(altura) + 'px';
+    /* Sair de cima de outro bloco devolve a largura inteira aos dois. */
+    const c = colunas[b.id] || {coluna: 0, colunas: 1};
+    el.style.left = c.colunas <= 1 ? '0px' : (c.coluna * 100 / c.colunas).toFixed(3) + '%';
+    el.style.width = c.colunas <= 1
+      ? '100%'
+      : 'calc(' + (100 / c.colunas).toFixed(3) + '% - 3px)';
+    el.classList.toggle('curto', altura < ALTURA_SO_TITULO);
+    const rotulo = el.querySelector('.cartao-agenda-hora');
+    if(rotulo) rotulo.textContent = faixaHoraria(b, true);
+  });
+}
+
+function terminar(){
+  document.removeEventListener('pointermove', durante);
+  document.removeEventListener('pointerup', terminar);
+  document.removeEventListener('pointercancel', terminar);
+  if(!arrasto) return;
+
+  const g = arrasto;
+  arrasto = null;
+  g.el.classList.remove('arrastando');
+  g.el.style.transform = '';
+  if(g.agenda) g.agenda.classList.remove('em-arraste');
+
+  if(!g.moveu || !g.lista){ redesenhar(); return; }
+  arrastouAgora = true;
+
+  const nova = ordenarPorHora(g.lista);
+  const alvo = nova.filter(b => b.id === g.id)[0];
+  const mensagem = g.tipo === 'ordem'
+    ? g.titulo + ' às ' + (alvo ? alvo.hora : '')
+    : g.titulo + ' · ' + rotuloDuracao(alvo ? alvo.dur : g.duracaoInicial);
+
+  agir(mensagem, d => { d.blocos[g.ctx.iso] = nova; });
+}
+
 
 /* ===========================================================================
    EDITOR DE BLOCO
 
-   Aberto ao tocar um bloco em modo de edição. Usa <input type="time">, que
-   abre o seletor de horário nativo do aparelho — o handoff pedia exatamente
-   isso, e resolve de uma vez a limitação dos steppers de 15 em 15 minutos.
+   Aberto ao tocar um bloco em modo de edição, e é o único caminho que muda um
+   horário sem mexer em mais ninguém: horário digitado é intenção explícita,
+   e não faz sentido o app "consertar" o resto do dia por conta própria. O
+   arraste é que reorganiza; aqui se acerta um horário e pronto.
    =========================================================================== */
 
 let rascunhoBloco = null;
@@ -340,101 +659,6 @@ function removerBloco(iso, bloco, soLeitura){
   });
 }
 
-/* ===========================================================================
-   ARRASTE
-
-   O cartão segue o dedo pelo `transform`, e só o rótulo do horário é
-   reescrito durante o movimento. A versão anterior redesenhava a lista
-   inteira a cada quadro, o que engasgava e fazia o cartão "pular" embaixo
-   do dedo. A lista só é reordenada ao soltar.
-   =========================================================================== */
-
-let arrasto = null;
-
-function iniciarArraste(ev, iso, bloco, modo, soLeitura, elemento){
-  if(soLeitura){ avisar('Reabra o dia para editar'); return; }
-  if(ev.button !== undefined && ev.button !== 0) return;
-  ev.preventDefault();
-  if(modo === 'duracao') ev.stopPropagation();
-
-  agirSemAviso(d => { materializar(d, iso); });
-  const atual = blocosDoDia(iso).filter(b => b.id === bloco.id)[0];
-  if(!atual) return;
-
-  arrasto = {
-    iso, id: bloco.id, modo, elemento,
-    yInicial: ev.clientY,
-    minutoInicial: paraMinutos(atual.hora),
-    duracaoInicial: atual.dur,
-    titulo: atual.titulo,
-    moveu: false,
-    delta: 0
-  };
-
-  document.addEventListener('pointermove', durante);
-  document.addEventListener('pointerup', terminar);
-  document.addEventListener('pointercancel', terminar);
-}
-
-function durante(ev){
-  if(!arrasto) return;
-  const dy = ev.clientY - arrasto.yInicial;
-  if(Math.abs(dy) > 4) arrasto.moveu = true;
-  if(!arrasto.moveu) return;
-
-  arrasto.elemento.classList.add('arrastando');
-  const minutos = arredondarNoPasso(dy / PX_POR_MINUTO_ARRASTE);
-  arrasto.delta = minutos;
-
-  const rotulo = arrasto.elemento.querySelector('.bloco-hora');
-  const duracao = arrasto.elemento.querySelector('.bloco-dur');
-
-  if(arrasto.modo === 'mover'){
-    /* O cartão acompanha o dedo, encaixado nos passos de 5 min. */
-    arrasto.elemento.style.transform = 'translateY(' + (minutos * PX_POR_MINUTO_ARRASTE) + 'px)';
-    const ini = arrasto.minutoInicial + minutos;
-    if(rotulo) rotulo.textContent = paraHora(ini) + '–' + paraHora(ini + arrasto.duracaoInicial);
-  } else {
-    const nova = Math.max(PASSO_MINUTOS, arrasto.duracaoInicial + minutos);
-    arrasto.elemento.style.minHeight =
-      Math.max(ALTURA_MINIMA_AGENDA, Math.round(nova * PX_POR_MINUTO_AGENDA)) + 'px';
-    if(rotulo) rotulo.textContent =
-      paraHora(arrasto.minutoInicial) + '–' + paraHora(arrasto.minutoInicial + nova);
-    if(duracao) duracao.textContent = rotuloDuracao(nova);
-  }
-}
-
-function arredondarNoPasso(minutos){
-  return Math.round(minutos / PASSO_MINUTOS) * PASSO_MINUTOS;
-}
-
-function terminar(){
-  document.removeEventListener('pointermove', durante);
-  document.removeEventListener('pointerup', terminar);
-  document.removeEventListener('pointercancel', terminar);
-  if(!arrasto) return;
-
-  const g = arrasto;
-  arrasto = null;
-  g.elemento.classList.remove('arrastando');
-  g.elemento.style.transform = '';
-
-  if(!g.moveu){ redesenhar(); return; }
-
-  const alvo = (Dados.blocos[g.iso] || []).filter(b => b.id === g.id)[0];
-  if(alvo){
-    if(g.modo === 'mover'){
-      alvo.hora = paraHora(g.minutoInicial + g.delta);
-    } else {
-      alvo.dur = Math.max(PASSO_MINUTOS, g.duracaoInicial + g.delta);
-    }
-  }
-  /* A lista só reordena agora: reordenar durante o gesto faria o cartão
-     saltar de posição embaixo do dedo. */
-  Dados.blocos[g.iso] = ordenarPorHora(Dados.blocos[g.iso] || []);
-  salvarDados();
-  avisar(g.titulo + (g.modo === 'mover' ? ' movido' : ' com nova duração'));
-}
 
 /* ===========================================================================
    BOTÃO FLUTUANTE E FOLHA DE NOVO BLOCO
@@ -447,10 +671,13 @@ function botaoFlutuante(iso){
 
 let rascunhoNovo = null;
 
-export function abrirFolhaNovoBloco(iso){
+/** `inicio` e `fim` chegam preenchidos quando o toque veio de um vão livre. */
+export function abrirFolhaNovoBloco(iso, inicio, fim){
   if(ehSomenteLeitura(iso)){ avisar('Reabra o dia para editar'); return; }
   rascunhoNovo = {
-    titulo: '', cat: 'hobby', inicio: '21:30', fim: '22:15', repetir: false
+    titulo: '', cat: 'hobby',
+    inicio: inicio || '21:30', fim: fim || '22:15',
+    repetir: false
   };
   abrirFolha({
     titulo: 'Novo bloco',

@@ -48,6 +48,7 @@ src/
   nucleo/             sem DOM, testável fora do navegador
     tempo.js          datas e horários
     modelo.js         regras derivadas do domínio
+    agenda.js         a régua do dia: janela, vãos, colunas, arraste
     sessoes.js        o treino que foi FEITO, separado do planejado
     estatisticas.js   as contas que os gráficos mostram
     estado.js         os dados e a gravação
@@ -59,7 +60,7 @@ src/
   telas/              uma por aba, mais boas-vindas, perfil,
                       estatisticas, primeiro-uso e replanejar
 
-testes/               143 testes sobre o núcleo
+testes/               180 testes sobre o núcleo
 docs/                 publicação e privacidade
 ```
 
@@ -88,11 +89,40 @@ aparece a cada toque, e quase tudo aqui é um toque. As ações destrutivas de
 verdade (restaurar backup, recomeçar, excluir treino) confirmam antes, que é
 onde a proteção pertence.
 
-**3. A tela é redesenhada por inteiro.**
+**3. O dia é uma régua, não uma lista.**
+A aba Dia desenha as horas numa coluna à esquerda e posiciona cada bloco pelo
+horário, com a altura da sua duração. O vazio entre dois blocos vira vazio na
+tela — que é a única forma de *ver* onde sobra tempo. Três regras vêm junto,
+todas em [`src/nucleo/agenda.js`](src/nucleo/agenda.js):
+
+- **A régua começa quando você acorda.** O sono da madrugada gastaria um terço
+  da rolagem; ele sai da régua e vira uma linha compacta acima dela, ainda
+  marcável e editável.
+- **Blocos no mesmo horário aparecem lado a lado**, como num calendário. O
+  lanche das 09:30 dentro do estudo das 08:30 é a rotina real, não um erro —
+  empilhados, um esconderia o outro.
+- **Arrastar reorganiza; a borda de baixo só estica.** Ao arrastar um cartão,
+  o dia mantém a forma (mesmo horário de início, mesmos intervalos nos mesmos
+  lugares) e o conteúdo troca de casa: o que estava embaixo sobe e os horários
+  acompanham, ao vivo. A duração muda um bloco e só ele — num dia com
+  sobreposições legítimas, qualquer regra de empurrão mexeria em coisa que
+  você não tocou.
+
+No modo de edição cada gesto tem **uma área própria** do cartão: a alça da
+esquerda arrasta, a borda de baixo estica, o corpo abre os horários exatos.
+Só as duas alças bloqueiam o toque do navegador — é por isso que a lista volta
+a rolar normalmente, o que não acontecia quando o cartão inteiro arrastava.
+
+**4. A tela é redesenhada por inteiro.**
 Não há atualização parcial de DOM. Num app de celular isso é barato e elimina
 uma classe inteira de bug: a interface nunca fica dessincronizada dos dados.
 As duas concessões — preservar rolagem e foco do teclado — estão em
 `desenharTudo()`.
+
+A terceira exceção é o arraste: enquanto o dedo está na tela, nada é
+redesenhado. A prévia mexe direto no `top`, no `height` e no rótulo de cada
+cartão, e os dados só são tocados ao soltar. Redesenhar a cada quadro era o
+que fazia o cartão saltar embaixo do dedo.
 
 ---
 

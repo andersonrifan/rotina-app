@@ -10,7 +10,7 @@ import { sessaoDe, garantirSessao, seriesDe, ultimaSerieAnterior,
 import { evolucaoDeVolume } from '../nucleo/estatisticas.js';
 import { h, icone, cabecalhoTela, barraProgresso, estadoVazio, stepper,
          rotuloSecao, abrirFolha, fecharFolha, abrirFolhaTexto,
-         pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
+         pilula, pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 import { figura, linha, figuraVazia } from '../ui/graficos.js';
 
 /* ===========================================================================
@@ -44,14 +44,22 @@ export function telaTreino(){
       'Treino',
       null,
       editando
-        ? [pilulaConcluir(() => definirTela({editando: Object.assign({}, Tela.editando, {treino: false})}))]
-        : null
+        ? [pilulaConcluir(() => definirEdicao(false))]
+        /* A pílula é a única porta VISÍVEL para montar o treino. Segurar um
+           exercício também entra na edição, mas isso não ajuda quem tem um
+           treino sem exercício nenhum — não há o que segurar — nem quem
+           simplesmente não descobriu o gesto. */
+        : (treino ? [pilula('Editar', () => definirEdicao(true))] : null)
     ),
     chipsDosTreinos(iso),
     treino
       ? (editando ? treinoEmEdicao(iso, treino) : treinoEmLeitura(iso, treino))
       : diaDeDescanso(iso, dia)
   );
+}
+
+function definirEdicao(ligado){
+  definirTela({editando: Object.assign({}, Tela.editando, {treino: ligado})});
 }
 
 /* --- Chips dos treinos da semana ------------------------------------------ */
@@ -101,9 +109,13 @@ function treinoEmLeitura(iso, treino){
       treino.circuito ? seletorDeVolta(voltas) : null
     ),
 
-    h('div', {class:'lista-exercicios'},
-      treino.exercicios.map((ex, i) => linhaDeExercicio(iso, treino, i, ex))
-    ),
+    treino.exercicios.length
+      ? h('div', {class:'lista-exercicios'},
+          treino.exercicios.map((ex, i) => linhaDeExercicio(iso, treino, i, ex)))
+      : estadoVazio('Treino sem exercícios',
+          'Este treino ainda não tem nenhum exercício. Monte a lista para poder marcar e registrar séries.',
+          [h('button', {class:'btn btn-salvia', type:'button',
+             onTap: () => definirEdicao(true)}, 'Montar o treino')]),
 
     cartaoDaSessao(iso, treino, sessao),
     cartaoDeEvolucao(treino)
@@ -158,9 +170,7 @@ function linhaDeExercicio(iso, treino, indice, ex){
     h('span', {class:'exercicio-seta'}, icone('seta', 15))
   );
 
-  ligarToqueLongo(linhaEl, () => definirTela({
-    editando: Object.assign({}, Tela.editando, {treino: true})
-  }));
+  ligarToqueLongo(linhaEl, () => definirEdicao(true));
   return linhaEl;
 }
 
@@ -351,7 +361,7 @@ function novoTreino(iso){
       exercicios: []
     });
   });
-  definirTela({editando: Object.assign({}, Tela.editando, {treino: true})});
+  definirEdicao(true);
 }
 
 /* ===========================================================================
@@ -517,7 +527,7 @@ function excluirTreino(treino){
         d.treinos = d.treinos.filter(t => t.id !== treino.id);
       });
       fecharFolha();
-      definirTela({editando: Object.assign({}, Tela.editando, {treino: false})});
+      definirEdicao(false);
     }
   });
 }

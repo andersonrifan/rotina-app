@@ -62,10 +62,19 @@ que não vale.
 
 ### Não testado — precisa de celular de verdade
 
-Nada disso pôde ser verificado aqui; só com dedo e aparelho.
+Nada disso pôde ser verificado aqui; só com dedo e aparelho. Os gestos da
+régua foram exercitados com eventos de ponteiro sintéticos (o arraste move os
+vizinhos ao vivo, a borda segue o dedo 1 px por 1 px, a rolagem do container
+continua livre), mas isso não substitui um polegar.
 
-- [ ] Toque e segure 480 ms entra em edição sem disparar ao rolar a lista
-- [ ] Arrastar bloco e alça de duração funciona com o dedo
+- [ ] Toque e segure 500 ms entra em edição sem disparar ao rolar a régua
+- [ ] Rolar o dia em modo de edição encostando nos cartões — o corpo do cartão
+      deve rolar, só as duas alças é que seguram o dedo
+- [ ] Arrastar pela alça ≡ e ver os vizinhos deslizarem
+- [ ] Puxar a borda de baixo — deve acompanhar o dedo sem saltos
+- [ ] Alvos pequenos: a alça de mover tem 28 px de largura e a de duração
+      13 px de altura. São exceções conscientes aos 44 px, porque a altura do
+      cartão É a duração do bloco — mas só o dedo diz se ficou confortável
 - [ ] Botão Voltar do Android com folha aberta (deve fechar a folha, não o app)
 - [ ] Barra de abas não fica embaixo da barra de gestos
 - [ ] Teclado virtual no campo de nome — o `<form>` deve mostrar "Ir"/"OK"
@@ -89,6 +98,26 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 ## Já resolvido
 
 Fica registrado para não voltar à discussão.
+
+**Da rodada da régua:**
+
+- ~~A visão do dia não mostrava os buracos~~ — a aba Dia virou uma régua com
+  as horas à esquerda e cada bloco na altura da sua duração, como a versão
+  antiga. O tempo livre aparece desenhado, com o total logo abaixo
+- ~~O dia começava com "Dormindo"~~ — a régua começa na primeira coisa depois
+  de acordar; o sono da madrugada vira uma linha compacta acima dela
+- ~~Editar não parecia kanban~~ — arrastar um cartão reorganiza o dia ao vivo:
+  o que está embaixo sobe e os horários se alteram enquanto o dedo está na tela
+- ~~A alça de duração dava saltos e ficava fora do cartão~~ — ela vive na
+  borda de baixo do cartão e o gesto usa a mesma escala do desenho, então a
+  borda segue o dedo pixel a pixel
+- ~~Rolar o dia em modo de edição era quase impossível~~ — o corpo do cartão
+  não arrasta mais nada; só a alça da esquerda e a borda de baixo seguram o
+  dedo, e cada gesto passou a ter uma área própria
+- ~~Não dava para editar treinos nem mexer nos exercícios~~ — a pílula
+  "Editar" ficou visível no cabeçalho do Treino, e um treino sem exercício
+  nenhum agora oferece "Montar o treino" em vez de virar beco sem saída
+- ~~Blocos no mesmo horário se escondiam~~ — aparecem lado a lado, em colunas
 
 **Da segunda rodada:**
 

@@ -26,6 +26,19 @@ export function corDaCategoria(cat){
 }
 
 /**
+ * A mesma cor, fraca o bastante para servir de FUNDO de cartão.
+ *
+ * A régua do dia precisa que a categoria se leia de relance, sem etiqueta —
+ * mas as cores cheias do design system são fortes demais atrás de texto (o
+ * sono é quase preto). 13 % sobre o creme dá o tom lavado do desenho e mantém
+ * o texto escuro bem acima dos 4,5:1 exigidos.
+ */
+export function corSuaveDaCategoria(cat){
+  const n = parseInt(corDaCategoria(cat).slice(1), 16);
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',.13)';
+}
+
+/**
  * Um dia passado é só leitura até ser reaberto.
  *
  * Fica aqui, e não em tempo.js, porque não é uma pergunta sobre o calendário
