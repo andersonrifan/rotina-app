@@ -95,23 +95,31 @@ horário, com a altura da sua duração. O vazio entre dois blocos vira vazio na
 tela — que é a única forma de *ver* onde sobra tempo. Três regras vêm junto,
 todas em [`src/nucleo/agenda.js`](src/nucleo/agenda.js):
 
-- **A régua começa quando você acorda.** O sono da madrugada gastaria um terço
-  da rolagem; ele sai da régua e vira uma linha compacta acima dela, ainda
-  marcável e editável.
+- **A régua começa quando você acorda**, e abre já na altura de agora. O sono
+  da madrugada gastaria um terço da rolagem; ele sai da régua e vira uma linha
+  compacta acima dela, ainda marcável e editável.
 - **Blocos no mesmo horário aparecem lado a lado**, como num calendário. O
   lanche das 09:30 dentro do estudo das 08:30 é a rotina real, não um erro —
   empilhados, um esconderia o outro.
-- **Arrastar reorganiza; a borda de baixo só estica.** Ao arrastar um cartão,
-  o dia mantém a forma (mesmo horário de início, mesmos intervalos nos mesmos
-  lugares) e o conteúdo troca de casa: o que estava embaixo sobe e os horários
-  acompanham, ao vivo. A duração muda um bloco e só ele — num dia com
-  sobreposições legítimas, qualquer regra de empurrão mexeria em coisa que
-  você não tocou.
+- **Arrastar é livre no tempo; trocar só ao ultrapassar.** O cartão vai para o
+  horário onde o dedo está, de 5 em 5 minutos — inclusive para dentro de um
+  buraco no meio do dia, sem que nada mais se mexa. O vizinho só entra na
+  história quando o centro do cartão passa do centro dele: aí os dois trocam,
+  e o ultrapassado assume a casa que ficou vazia. A duração muda um bloco e só
+  ele — num dia com sobreposições legítimas, qualquer regra de empurrão
+  mexeria em coisa que você não tocou.
 
 No modo de edição cada gesto tem **uma área própria** do cartão: a alça da
 esquerda arrasta, a borda de baixo estica, o corpo abre os horários exatos.
 Só as duas alças bloqueiam o toque do navegador — é por isso que a lista volta
 a rolar normalmente, o que não acontecia quando o cartão inteiro arrastava.
+Perto das bordas da tela a régua rola sozinha, senão levar um bloco das 07:00
+para as 20:00 não caberia num gesto só.
+
+Duas saídas fecham o modo: **Concluir**, e **Voltar ao padrão da semana**, que
+descarta as edições daquele dia e o devolve à semana-modelo. É o inverso exato
+da materialização, e é o que substitui o desfazer — em vez de confirmar cada
+remoção, existe uma volta atrás do tamanho do dia.
 
 **4. A tela é redesenhada por inteiro.**
 Não há atualização parcial de DOM. Num app de celular isso é barato e elimina

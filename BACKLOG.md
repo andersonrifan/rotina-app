@@ -68,9 +68,13 @@ vizinhos ao vivo, a borda segue o dedo 1 px por 1 px, a rolagem do container
 continua livre), mas isso não substitui um polegar.
 
 - [ ] Toque e segure 500 ms entra em edição sem disparar ao rolar a régua
+- [ ] Segurar não abre mais a barra de Copiar/Compartilhar do navegador
 - [ ] Rolar o dia em modo de edição encostando nos cartões — o corpo do cartão
       deve rolar, só as duas alças é que seguram o dedo
-- [ ] Arrastar pela alça ≡ e ver os vizinhos deslizarem
+- [ ] Arrastar pela alça ≡ para um espaço livre e ver que nada mais se mexe
+- [ ] Arrastar até ultrapassar o vizinho e sentir a vibração da troca
+- [ ] Rolagem automática ao levar um bloco até a borda de cima ou de baixo
+      (usa `requestAnimationFrame`, que só roda com o app em primeiro plano)
 - [ ] Puxar a borda de baixo — deve acompanhar o dedo sem saltos
 - [ ] Alvos pequenos: a alça de mover tem 28 px de largura e a de duração
       13 px de altura. São exceções conscientes aos 44 px, porque a altura do
@@ -98,6 +102,27 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 ## Já resolvido
 
 Fica registrado para não voltar à discussão.
+
+**Da segunda rodada da régua:**
+
+- ~~O arraste só sabia trocar cartões de lugar~~ — agora o cartão vai para o
+  horário que o dedo indicar, inclusive para um buraco no meio do dia sem
+  mexer em mais nada. A troca com o vizinho acontece só quando ele é de fato
+  ultrapassado (centro passa do centro)
+- ~~Segurar abria a barra de Copiar/Compartilhar do navegador~~ — o app
+  desliga seleção de texto e callout fora dos campos de entrada
+- ~~Abrir o Dia caía no café da manhã às 20h~~ — a régua abre na altura de
+  agora quando o dia é hoje
+- ~~Levar um bloco para longe exigia soltar no meio~~ — a régua rola sozinha
+  perto das bordas durante o arraste
+- ~~A edição do Dia só era alcançável segurando um bloco~~ — pílula "Editar"
+  no cabeçalho, como no Treino. A dica do gesto só aparecia no cabeçalho de
+  hoje, justamente não nos dias futuros que a tela convida a ajustar
+- ~~Não havia volta atrás depois de editar um dia~~ — "Voltar ao padrão da
+  semana" descarta as edições daquele dia e o devolve à semana-modelo,
+  preservando as marcações
+- ~~Alças espremidas em blocos de 10 min~~ — em edição o cartão tem 40 px no
+  mínimo, o que também mantém o horário visível enquanto se edita
 
 **Da rodada da régua:**
 

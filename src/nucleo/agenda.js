@@ -186,48 +186,56 @@ function indiceDe(blocos, id){
 }
 
 /**
- * Os intervalos entre blocos consecutivos, por POSIÇÃO na lista.
+ * Leva um bloco para um horário qualquer.
  *
- * O sinal é mantido: um intervalo negativo é uma sobreposição que já existia,
- * e zerá-la aqui faria o primeiro arraste do dia "consertar" em silêncio todos
- * os choques de horário — empurrando blocos que a pessoa nem tocou.
+ * O cartão vai para onde o dedo está — inclusive para um buraco no meio do
+ * dia, sem que nada mais se mexa. O dia tem tempo livre de verdade, e uma
+ * régua que só sabe trocar cartões de lugar não deixa usá-lo: para mover a
+ * leitura das 21:40 para as 19:00 seria preciso reordenar o dia inteiro.
+ *
+ * O vizinho só entra na história quando é ULTRAPASSADO — quando o centro do
+ * cartão arrastado passa do centro dele. Aí os dois trocam: o ultrapassado
+ * assume a casa que o arrastado deixou vazia. Passar por vários faz a cadeia
+ * andar, cada um herdando a casa de quem estava à frente.
+ *
+ * O critério é o centro, e não a borda, porque encostar não é ultrapassar:
+ * com a borda, dois cartões colados ficariam trocando de lugar a cada pixel.
  */
-function intervalos(blocos){
-  const vaos = [];
-  for(let i = 0; i < blocos.length - 1; i++){
-    vaos.push(paraMinutos(blocos[i + 1].hora) -
-              (paraMinutos(blocos[i].hora) + blocos[i].dur));
+export function arrastarPara(blocos, id, novoInicio){
+  const i = indiceDe(blocos, id);
+  if(i < 0) return blocos.slice();
+
+  const inicios = blocos.map(b => paraMinutos(b.hora));
+  const centro = k => inicios[k] + blocos[k].dur / 2;
+  const centroArrastado = novoInicio + blocos[i].dur / 2;
+  const descendo = centroArrastado > centro(i);
+
+  let passados = 0;
+  if(descendo){
+    for(let j = i + 1; j < blocos.length && centroArrastado >= centro(j); j++) passados++;
+  } else {
+    for(let j = i - 1; j >= 0 && centroArrastado <= centro(j); j--) passados++;
   }
-  return vaos;
+
+  return blocos.map((b, k) => {
+    if(k === i) return Object.assign({}, b, {hora: paraHora(novoInicio)});
+    if(descendo && k > i && k <= i + passados){
+      return Object.assign({}, b, {hora: paraHora(inicios[k - 1])});
+    }
+    if(!descendo && k < i && k >= i - passados){
+      return Object.assign({}, b, {hora: paraHora(inicios[k + 1])});
+    }
+    return b;
+  });
 }
 
 /**
- * Recalcula os horários de uma sequência reordenada.
- *
- * O primeiro horário e os intervalos ficam presos à POSIÇÃO, não ao bloco:
- * o dia continua começando na mesma hora, com os mesmos buracos nos mesmos
- * lugares, e os blocos passam a ocupar outras casas. Como a soma de durações
- * e intervalos não muda, o dia termina exatamente onde terminava.
+ * Onde o cartão pode parar: dentro da régua, e sem escorregar para fora dela
+ * pela borda de baixo.
  */
-export function reencadear(blocos, ordem){
-  if(!blocos.length) return [];
-  const vaos = intervalos(blocos);
-  const porId = {};
-  blocos.forEach(b => { porId[b.id] = b; });
-
-  let t = paraMinutos(blocos[0].hora);
-  const saida = [];
-  ordem.forEach((id, i) => {
-    const b = porId[id];
-    if(!b) return;
-    saida.push(Object.assign({}, b, {hora: paraHora(t)}));
-    /* Nunca andar para trás: com sobreposições herdadas, um bloco curto numa
-       casa de intervalo bem negativo jogaria o seguinte para antes dele, e a
-       lista deixaria de estar em ordem de horário — que é o contrato de que
-       todo o resto depende. */
-    t = Math.max(t, t + b.dur + (vaos[i] || 0));
-  });
-  return saida;
+export function limitarInicio(janela, dur, minutos){
+  const maximo = Math.max(janela.inicio, janela.fim - dur);
+  return Math.max(janela.inicio, Math.min(minutos, maximo));
 }
 
 /**
@@ -263,38 +271,6 @@ export function redimensionar(blocos, id, novaDur){
   return blocos.map((b, k) => k === i ? Object.assign({}, b, {dur: dur}) : b);
 }
 
-
-/* ===========================================================================
-   O ARRASTE
-
-   Onde um bloco solto a tantos pixels do topo deve cair. Em vez de adivinhar
-   por regra, prova cada posição possível e escolhe a que deixaria o bloco
-   mais perto de onde o dedo está. São no máximo umas dezenas de contas por
-   quadro, e o resultado é sempre consistente com o que o reencadeamento vai
-   fazer de verdade ao soltar — que é o que impede o cartão de "pular" para um
-   lugar diferente do que a prévia mostrava.
-   =========================================================================== */
-
-/**
- * @param primeiraPosicao índice da primeira casa disputável. Serve para o
- *        sono da madrugada, que está fora da régua e não pode ser
- *        ultrapassado por um bloco que a pessoa arrasta.
- */
-export function posicaoPara(blocos, id, topoPx, janela, pxPorMinuto, primeiraPosicao){
-  const base = blocos.map(b => b.id).filter(x => x !== id);
-  const min = Math.max(0, Math.min(primeiraPosicao || 0, base.length));
-
-  let melhor = null;
-  for(let k = min; k <= base.length; k++){
-    const ordem = base.slice(0, k).concat([id], base.slice(k));
-    const alvo = reencadear(blocos, ordem).filter(b => b.id === id)[0];
-    if(!alvo) continue;
-    const topo = (paraMinutos(alvo.hora) - janela.inicio) * pxPorMinuto;
-    const dist = Math.abs(topo - topoPx);
-    if(!melhor || dist < melhor.dist) melhor = {ordem: ordem, dist: dist};
-  }
-  return melhor ? melhor.ordem : blocos.map(b => b.id);
-}
 
 /** Arredonda minutos no passo do arraste. */
 export function noPasso(minutos){

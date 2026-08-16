@@ -190,6 +190,25 @@ body{
 
 .tela{ display:flex; flex-direction:column; gap:var(--gap-cartoes); padding-bottom:8px; }
 
+/* --- Isto aqui é um app, não uma página ------------------------------------
+   Segurar um bloco é o gesto que entra na edição — mas para o navegador
+   segurar um texto é "selecionar palavra", e ele abre por cima a barra de
+   Copiar / Compartilhar / ⋮ e as alças de seleção. O gesto do app ficava
+   disputando o dedo com um menu que não faz sentido nenhum aqui.
+
+   A seleção volta a existir onde ela É o que se quer: dentro dos campos de
+   texto, para dar Copiar num nome digitado. */
+#aparelho, #camadas{
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  user-select:none;
+}
+input, textarea, .campo-entrada{
+  -webkit-touch-callout:default;
+  -webkit-user-select:text;
+  user-select:text;
+}
+
 button{ font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
 input{ font:inherit; color:inherit; }
 

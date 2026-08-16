@@ -8,8 +8,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   janelaDoDia, blocosNaJanela, blocosAntesDaJanela, horasDaJanela, rotuloDaHora,
-  lacunas, minutosLivres, colunasDaJanela, reencadear, redimensionar,
-  limitarDuracao, posicaoPara, noPasso, LACUNA_MINIMA
+  lacunas, minutosLivres, colunasDaJanela, arrastarPara, limitarInicio,
+  redimensionar, limitarDuracao, noPasso, LACUNA_MINIMA
 } from '../src/nucleo/agenda.js';
 
 function b(id, hora, dur, cat){
@@ -103,56 +103,87 @@ describe('os buracos do dia', () => {
   });
 });
 
-describe('reordenar mantém a forma do dia', () => {
-  const dia = () => [b('a', '08:00', 60), b('b', '09:30', 30), b('c', '11:00', 90)];
+describe('arrastar: livre no tempo, troca só ao ultrapassar', () => {
+  /* 09:00–12:00 é buraco: é ali que o arraste livre precisa poder parar. */
+  const dia = () => [b('a', '08:00', 60), b('b', '12:00', 60), b('c', '14:00', 60)];
 
-  it('sem mudar a ordem, nada muda', () => {
-    const antes = dia();
-    const depois = reencadear(antes, ['a', 'b', 'c']);
-    expect(depois.map(x => x.hora)).toEqual(['08:00', '09:30', '11:00']);
+  it('o bloco vai exatamente para o horário pedido', () => {
+    expect(arrastarPara(dia(), 'a', paraMin('10:00'))[0].hora).toBe('10:00');
   });
 
-  it('o dia continua começando na mesma hora', () => {
-    const depois = reencadear(dia(), ['c', 'a', 'b']);
-    expect(depois[0].hora).toBe('08:00');
+  it('parar num espaço livre não mexe em mais ninguém', () => {
+    const depois = arrastarPara(dia(), 'a', paraMin('10:00'));
+    expect(depois.map(x => x.hora)).toEqual(['10:00', '12:00', '14:00']);
   });
 
-  it('o que estava embaixo sobe, e o horário sobe junto', () => {
-    // 'c' (90 min) vai para a frente: 'a' passa a começar depois dele.
-    const depois = reencadear(dia(), ['c', 'a', 'b']);
+  it('encostar no vizinho ainda não é ultrapassá-lo', () => {
+    // 'a' vai para 11:00–12:00, colado em 'b', mas sem passar do centro dele.
+    const depois = arrastarPara(dia(), 'a', paraMin('11:00'));
+    expect(depois.map(x => x.hora)).toEqual(['11:00', '12:00', '14:00']);
+  });
+
+  it('passar do centro do vizinho troca os dois de lugar', () => {
+    // 'a' vai para 13:00; 'b' assume a casa que 'a' deixou vazia.
+    const depois = arrastarPara(dia(), 'a', paraMin('13:00'));
     expect(depois.map(x => [x.id, x.hora])).toEqual([
-      ['c', '08:00'],   // 08:00 + 90 = 09:30, mais o vão de 30 min da 1ª casa
-      ['a', '10:00'],   // 10:00 + 60 = 11:00, mais o vão de 60 min da 2ª casa
-      ['b', '12:00']
+      ['a', '13:00'], ['b', '08:00'], ['c', '14:00']
     ]);
   });
 
-  it('os intervalos ficam presos à posição, não ao bloco', () => {
-    const antes = dia();
-    const depois = reencadear(antes, ['b', 'c', 'a']);
-    const vao = (lista, i) => paraMin(lista[i + 1].hora) - (paraMin(lista[i].hora) + lista[i].dur);
-    expect(vao(depois, 0)).toBe(vao(antes, 0));
-    expect(vao(depois, 1)).toBe(vao(antes, 1));
+  it('passar por vários faz a cadeia andar uma casa', () => {
+    const depois = arrastarPara(dia(), 'a', paraMin('15:00'));
+    expect(depois.map(x => [x.id, x.hora])).toEqual([
+      ['a', '15:00'], ['b', '08:00'], ['c', '12:00']
+    ]);
   });
 
-  it('o dia termina exatamente onde terminava', () => {
-    const antes = dia();
-    const depois = reencadear(antes, ['b', 'c', 'a']);
-    const fim = l => paraMin(l[l.length - 1].hora) + l[l.length - 1].dur;
-    expect(fim(depois)).toBe(fim(antes));
+  it('vale igual subindo', () => {
+    const depois = arrastarPara(dia(), 'c', paraMin('09:00'));
+    expect(depois.map(x => [x.id, x.hora])).toEqual([
+      ['a', '08:00'], ['b', '14:00'], ['c', '09:00']
+    ]);
+  });
+
+  it('ficar onde está não move nada', () => {
+    const depois = arrastarPara(dia(), 'b', paraMin('12:00'));
+    expect(depois.map(x => x.hora)).toEqual(['08:00', '12:00', '14:00']);
   });
 
   it('não altera a lista recebida', () => {
     const antes = dia();
-    reencadear(antes, ['c', 'b', 'a']);
-    expect(antes.map(x => x.hora)).toEqual(['08:00', '09:30', '11:00']);
+    arrastarPara(antes, 'a', paraMin('15:00'));
+    expect(antes.map(x => x.hora)).toEqual(['08:00', '12:00', '14:00']);
   });
 
-  it('o sono da madrugada continua na frente e no horário', () => {
+  it('o sono da madrugada está fora do alcance do arraste', () => {
     const antes = diaComum();
-    const depois = reencadear(antes, ['sono1', 'trab', 'cafe', 'almoco', 'sono2']);
+    const j = janelaDoDia(antes);
+    // O limite não deixa o cartão subir além do começo da régua, então o
+    // bloco de sono das 00:00 nunca é ultrapassado.
+    const alvo = limitarInicio(j, 60, paraMin('02:00'));
+    const depois = arrastarPara(antes, 'almoco', alvo);
     expect(depois[0].id).toBe('sono1');
     expect(depois[0].hora).toBe('00:00');
+  });
+});
+
+describe('até onde o cartão pode ir', () => {
+  const janela = {inicio: paraMin('08:00'), fim: paraMin('15:00')};
+
+  it('não sobe acima do começo da régua', () => {
+    expect(limitarInicio(janela, 60, paraMin('06:00'))).toBe(paraMin('08:00'));
+  });
+
+  it('não escorrega para fora pela borda de baixo', () => {
+    expect(limitarInicio(janela, 60, paraMin('16:00'))).toBe(paraMin('14:00'));
+  });
+
+  it('no meio, passa direto', () => {
+    expect(limitarInicio(janela, 60, paraMin('10:35'))).toBe(paraMin('10:35'));
+  });
+
+  it('um bloco maior que a régua encosta no começo dela', () => {
+    expect(limitarInicio(janela, 900, paraMin('12:00'))).toBe(paraMin('08:00'));
   });
 });
 
@@ -236,33 +267,6 @@ describe('colunas: dois blocos no mesmo horário aparecem lado a lado', () => {
     expect(c.b.coluna).toBe(1);
     expect(c.c.coluna).toBe(1);       // 'b' já acabou: 'c' herda a faixa
     expect(c.a.colunas).toBe(2);
-  });
-});
-
-describe('onde o bloco arrastado cai', () => {
-  const dia = () => [b('a', '08:00', 60), b('b', '09:30', 30), b('c', '11:00', 90)];
-  const janela = {inicio: 8 * 60, fim: 13 * 60};
-  const PX = 1;   // 1 px por minuto deixa a conta legível no teste
-
-  it('solto onde estava, a ordem não muda', () => {
-    expect(posicaoPara(dia(), 'b', 90, janela, PX, 0)).toEqual(['a', 'b', 'c']);
-  });
-
-  it('arrastado para o topo, assume a primeira casa', () => {
-    expect(posicaoPara(dia(), 'c', -40, janela, PX, 0)).toEqual(['c', 'a', 'b']);
-  });
-
-  it('arrastado para o fim, assume a última', () => {
-    expect(posicaoPara(dia(), 'a', 400, janela, PX, 0)).toEqual(['b', 'c', 'a']);
-  });
-
-  it('não ultrapassa as casas travadas antes da janela', () => {
-    const antes = diaComum();
-    const j = janelaDoDia(antes);
-    // 'almoco' puxado para muito acima não pode passar na frente do sono.
-    const ordem = posicaoPara(antes, 'almoco', -900, j, PX, 1);
-    expect(ordem[0]).toBe('sono1');
-    expect(ordem[1]).toBe('almoco');
   });
 });
 

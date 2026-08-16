@@ -6,8 +6,8 @@ import { hojeISO, deISO, diaDaSemana, semanaDe, dataCurta, ehHoje, ehPassado,
 import { blocosDoDia, blocoAtual, ordenarPorHora, materializar, statusDoBloco, proximoStatus,
          ehSomenteLeitura, treinoDoDia, corDaCategoria, corSuaveDaCategoria } from '../nucleo/modelo.js';
 import { janelaDoDia, horasDaJanela, rotuloDaHora, lacunas, minutosLivres,
-         blocosNaJanela, blocosAntesDaJanela, colunasDaJanela, reencadear,
-         redimensionar, posicaoPara, noPasso, PASSO_MINUTOS } from '../nucleo/agenda.js';
+         blocosNaJanela, blocosAntesDaJanela, colunasDaJanela, arrastarPara,
+         redimensionar, limitarInicio, noPasso, PASSO_MINUTOS } from '../nucleo/agenda.js';
 import { h, icone, cabecalhoTela, pilula, pilulaConcluir, estadoVazio, rotuloSecao,
          abrirFolha, fecharFolha, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 import { avisoDeAtraso } from './extras.js';
@@ -46,8 +46,20 @@ const PX_POR_MINUTO = 0.95;
    contorno e o empilhamento fazem isso parecer o que é. */
 const ALTURA_MINIMA = 15;
 
+/* Em edição o piso sobe: as duas alças e o × precisam caber, e um alvo de
+   15 px não se acerta com o polegar. Fica acima do limiar do cartão "curto"
+   de propósito — editando, o horário é a informação que mais importa, e é
+   justamente ela que some quando o cartão encolhe. A leitura perde um pouco
+   de fidelidade nos blocos de 10 min, mas em edição a régua é ferramenta,
+   não retrato. */
+const ALTURA_MINIMA_EDICAO = 40;
+
 /* Abaixo disso só cabe o título. */
 const ALTURA_SO_TITULO = 38;
+
+function alturaMinima(editando){
+  return editando ? ALTURA_MINIMA_EDICAO : ALTURA_MINIMA;
+}
 
 export function telaDia(){
   const iso = Tela.data;
@@ -61,7 +73,13 @@ export function telaDia(){
       null,
       [
         !ehHoje(iso) ? pilula('Hoje', () => definirTela({data: hojeISO()})) : null,
-        editando ? pilulaConcluir(() => sairDaEdicao()) : null
+        editando
+          ? pilulaConcluir(() => sairDaEdicao())
+          /* A pílula é a porta VISÍVEL para a edição. Segurar um bloco também
+             entra, mas o gesto só era anunciado no cabeçalho de hoje — logo
+             não nos dias futuros, que são justamente os que a tela convida a
+             ajustar ("Previsto. Ajuste agora e o dia chega pronto"). */
+          : (!soLeitura ? pilula('Editar', () => entrarNaEdicao(soLeitura)) : null)
       ]
     ),
     faixaDaSemana(iso),
@@ -70,7 +88,7 @@ export function telaDia(){
     seletorDeVisao(editando),
     editando
       ? h('p', {class:'dica-edicao'},
-          'Arraste pela alça ≡ para reorganizar · puxe a borda de baixo para durar · toque para os horários')
+          'Arraste pela alça ≡ para o horário que quiser · puxe a borda de baixo para durar · toque para os horários exatos')
       : null,
     corpoDoDia(iso, editando, soLeitura),
     !editando ? botaoFlutuante(iso) : null
@@ -229,8 +247,9 @@ function regua(iso, blocos, ctx){
 
   registrarAgenda({
     iso: iso, blocos: blocos, janela: janela, cartoes: cartoes,
-    primeiraPosicao: antes.length, soLeitura: ctx.soLeitura
+    editando: ctx.editando, soLeitura: ctx.soLeitura
   });
+  if(!ctx.editando) talvezMostrarAgora(iso, janela);
 
   return h('div', {class:'agenda' + (ctx.editando ? ' em-edicao' : '')},
     antes.length ? faixaAntesDeAcordar(iso, antes, ctx) : null,
@@ -248,8 +267,69 @@ function regua(iso, blocos, ctx){
     ctx.editando
       ? h('button', {class:'adicionar-tracejado', type:'button',
           onTap: () => abrirFolhaNovoBloco(iso)}, icone('mais', 15), 'Adicionar bloco')
-      : null
+      : null,
+    ctx.editando ? botaoDeRestaurar(iso) : null
   );
+}
+
+/* --- A volta atrás ---------------------------------------------------------
+   Não há desfazer no app, e as remoções e arrastes deste dia não pedem
+   confirmação — pedir a cada toque num app em que quase tudo é um toque foi
+   justamente o que se decidiu não fazer. A saída é do tamanho certo: um dia
+   editado pode voltar inteiro ao padrão da semana. É o inverso exato da
+   materialização, e cobre qualquer estrago feito aqui sem encher a tela de
+   "tem certeza?". */
+function botaoDeRestaurar(iso){
+  if(!Dados.blocos[iso]) return null;
+  return h('button', {class:'btn btn-suave largura-cheia', type:'button',
+    onTap: () => confirmarRestauracao(iso)}, 'Voltar ao padrão da semana');
+}
+
+function confirmarRestauracao(iso){
+  const dia = diaDaSemana(iso);
+  abrirFolha({
+    titulo: 'Voltar ao padrão da semana?',
+    rotuloConfirmar: 'Voltar ao padrão',
+    corpo: () => h('div', {class:'folha-corpo'},
+      h('p', {class:'nota destaque'},
+        'Este dia foi editado. Voltar descarta as mudanças feitas nele — ' +
+        'horários, durações e blocos removidos — e ele passa a seguir de novo ' +
+        'a ' + dia.full + ' da sua semana.'),
+      h('p', {class:'nota'}, 'As marcações do dia (feito, atrasei, pulei) não se perdem.')
+    ),
+    confirmar: () => {
+      agir('Dia de volta ao padrão da semana', d => { delete d.blocos[iso]; });
+      fecharFolha();
+    }
+  });
+}
+
+/* --- Abrir o dia já onde a pessoa está ------------------------------------
+   A régua de um dia acordado tem quase três telas. Abrir às 20:00 e cair no
+   café da manhã obriga a rolar até "agora" toda vez — e "agora" é o motivo
+   de abrir o app. Só acontece ao TROCAR de dia: se você rolou e saiu da aba,
+   o ciclo de desenho devolve a rolagem onde estava, que é o certo. */
+let diaJaCentralizado = null;
+
+function talvezMostrarAgora(iso, janela){
+  if(diaJaCentralizado === iso) return;
+  diaJaCentralizado = iso;
+  if(!ehHoje(iso)) return;
+  const agora = agoraEmMinutos();
+  if(agora < janela.inicio || agora > janela.fim) return;
+
+  /* setTimeout, e não requestAnimationFrame: o desenho ainda não terminou de
+     ser anexado quando esta função roda, e rAF não dispara em página que o
+     navegador não está compondo (app em segundo plano, aba oculta). O ajuste
+     precisa acontecer mesmo assim, senão a pessoa volta ao app e encontra o
+     dia rolado no café da manhã. */
+  setTimeout(() => {
+    const container = containerDeRolagem();
+    const linha = document.querySelector('.agenda-agora');
+    if(!container || !linha) return;
+    const alvo = linha.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    container.scrollTop += alvo - container.clientHeight / 3;
+  }, 0);
 }
 
 /* O sono da madrugada não ocupa um terço da rolagem: sai da régua e vira uma
@@ -291,7 +371,7 @@ function cartaoDoBloco(iso, bloco, janela, ctx, indice, coluna){
   const status = statusDoBloco(iso, bloco);
   const emAndamento = ctx.atual && ctx.atual.id === bloco.id;
   const topo = (paraMinutos(bloco.hora) - janela.inicio) * PX_POR_MINUTO;
-  const altura = Math.max(ALTURA_MINIMA, bloco.dur * PX_POR_MINUTO);
+  const altura = Math.max(alturaMinima(ctx.editando), bloco.dur * PX_POR_MINUTO);
 
   const el = h('div', {
       class: 'cartao-agenda' +
@@ -414,10 +494,16 @@ function linhaDeBloco(iso, bloco, ctx){
 /* ===========================================================================
    OS DOIS ARRASTES
 
-   Reordenar e mudar a duração são gestos diferentes, com áreas diferentes do
+   Mover e mudar a duração são gestos diferentes, com áreas diferentes do
    cartão, e nenhum dos dois começa no corpo do cartão — é isso que devolve a
    rolagem da lista. Só as duas alças declaram `touch-action:none`; em
    qualquer outro ponto o dedo rola a tela como esperado.
+
+   MOVER É LIVRE. O cartão vai para o horário onde o dedo está, encaixado de 5
+   em 5 minutos, inclusive para dentro de um buraco no meio do dia sem que
+   nada mais se mexa. Trocar de lugar com o vizinho só acontece quando ele é
+   de fato ultrapassado. A primeira versão só sabia reordenar, e num dia com
+   duas horas livres às 19:00 isso significava não conseguir usá-las.
 
    Durante o gesto NADA é redesenhado. A prévia mexe direto no `top`, no
    `height` e no rótulo de cada cartão, e os dados só são tocados ao soltar.
@@ -434,21 +520,20 @@ function consumirArraste(){
 }
 
 function pegaDeMover(bloco){
-  const el = h('div', {
-      class:'pega-mover',
-      'aria-label':'Arraste para mudar ' + bloco.titulo + ' de lugar no dia',
-      onPointerDown: ev => iniciarArraste(ev, bloco, 'ordem')
+  return h('div', {
+      class:'pega-mover', 'aria-hidden':'true',
+      onPointerDown: ev => iniciarArraste(ev, bloco, 'mover')
     }, icone('alca', 15));
-  return el;
 }
 
 function pegaDeDuracao(bloco){
   return h('div', {
-      class:'pega-duracao',
-      'aria-label':'Arraste para mudar a duração de ' + bloco.titulo,
+      class:'pega-duracao', 'aria-hidden':'true',
       onPointerDown: ev => iniciarArraste(ev, bloco, 'duracao')
     }, h('span', {class:'pega'}));
 }
+
+function containerDeRolagem(){ return document.getElementById('conteudo'); }
 
 /* Nada é gravado ao começar o gesto — nem materializar o dia. Um arraste que
    volta ao ponto de partida não deve deixar rastro, e quem grava é o soltar,
@@ -464,13 +549,17 @@ function iniciarArraste(ev, bloco, tipo){
 
   const el = ctx.cartoes[bloco.id];
   if(!el) return;
+  const container = containerDeRolagem();
 
   arrasto = {
     tipo: tipo, ctx: ctx, id: bloco.id, el: el, titulo: bloco.titulo,
     yInicial: ev.clientY,
-    topoInicial: (paraMinutos(bloco.hora) - ctx.janela.inicio) * PX_POR_MINUTO,
+    ultimoY: ev.clientY,
+    rolagemInicial: container ? container.scrollTop : 0,
+    inicioInicial: paraMinutos(bloco.hora),
     duracaoInicial: bloco.dur,
-    ordem: ctx.blocos.map(b => b.id),
+    assinatura: assinaturaDosOutros(ctx.blocos, bloco.id),
+    velocidade: 0,
     lista: null,
     moveu: false
   };
@@ -485,48 +574,96 @@ function iniciarArraste(ev, bloco, tipo){
   document.addEventListener('pointermove', durante);
   document.addEventListener('pointerup', terminar);
   document.addEventListener('pointercancel', terminar);
+  requestAnimationFrame(pulsarRolagem);
+}
+
+/* Só os OUTROS blocos: é a mudança deles que merece a vibração de "trocou". */
+function assinaturaDosOutros(lista, id){
+  return lista.filter(b => b.id !== id).map(b => b.id + '@' + b.hora).join('|');
 }
 
 function durante(ev){
   if(!arrasto) return;
-  const dy = ev.clientY - arrasto.yInicial;
-  if(!arrasto.moveu && Math.abs(dy) < 3) return;
-  arrasto.moveu = true;
+  arrasto.ultimoY = ev.clientY;
+  medirAutoRolagem(ev.clientY);
+  atualizarArraste();
+}
 
-  if(arrasto.tipo === 'ordem'){
-    /* O cartão segue o dedo pixel a pixel; quem se reorganiza são os outros. */
-    arrasto.el.style.transform = 'translateY(' + Math.round(dy) + 'px)';
-    const ordem = posicaoPara(arrasto.ctx.blocos, arrasto.id, arrasto.topoInicial + dy,
-                              arrasto.ctx.janela, PX_POR_MINUTO, arrasto.ctx.primeiraPosicao);
-    if(ordem.join('|') !== arrasto.ordem.join('|')){
-      arrasto.ordem = ordem;
-      arrasto.lista = reencadear(arrasto.ctx.blocos, ordem);
-      aplicarPrevia(arrasto.lista, arrasto.id);
+function atualizarArraste(){
+  const g = arrasto;
+  if(!g) return;
+  const container = containerDeRolagem();
+  const rolou = container ? container.scrollTop - g.rolagemInicial : 0;
+  /* A rolagem entra na conta: sem isso, rolar durante o arraste faria o
+     cartão descolar do dedo na mesma medida. */
+  const dy = (g.ultimoY - g.yInicial) + rolou;
+  if(!g.moveu && Math.abs(dy) < 3) return;
+  g.moveu = true;
+
+  if(g.tipo === 'mover'){
+    const bruto = g.inicioInicial + dy / PX_POR_MINUTO;
+    const alvo = limitarInicio(g.ctx.janela, g.duracaoInicial, noPasso(bruto));
+    g.lista = arrastarPara(g.ctx.blocos, g.id, alvo);
+    const nova = assinaturaDosOutros(g.lista, g.id);
+    if(nova !== g.assinatura){
+      g.assinatura = nova;
+      /* Trocou de lugar com alguém: confirma sem precisar olhar. */
+      if(navigator.vibrate) navigator.vibrate(8);
     }
   } else {
     /* Um pixel de dedo é um pixel de cartão: a mesma escala do desenho, senão
        a borda descola do dedo e o gesto parece emperrado. */
-    const nova = noPasso(arrasto.duracaoInicial + dy / PX_POR_MINUTO);
-    arrasto.lista = redimensionar(arrasto.ctx.blocos, arrasto.id, Math.max(PASSO_MINUTOS, nova));
-    aplicarPrevia(arrasto.lista, null);
+    const nova = noPasso(g.duracaoInicial + dy / PX_POR_MINUTO);
+    g.lista = redimensionar(g.ctx.blocos, g.id, Math.max(PASSO_MINUTOS, nova));
   }
+  aplicarPrevia(g.lista);
+}
+
+/* --- Rolagem automática nas bordas ------------------------------------------
+   A régua de um dia acordado tem quase três telas de altura. Sem isto, levar
+   um bloco das 07:00 para as 20:00 seria impossível num gesto só — e soltar
+   no meio do caminho para rolar significa recomeçar. */
+const MARGEM_AUTO = 72;
+const VELOCIDADE_MAXIMA = 16;
+
+function medirAutoRolagem(clientY){
+  const container = containerDeRolagem();
+  if(!container){ arrasto.velocidade = 0; return; }
+  const r = container.getBoundingClientRect();
+  let v = 0;
+  if(clientY < r.top + MARGEM_AUTO) v = -(MARGEM_AUTO - (clientY - r.top));
+  else if(clientY > r.bottom - MARGEM_AUTO) v = MARGEM_AUTO - (r.bottom - clientY);
+  arrasto.velocidade = Math.max(-VELOCIDADE_MAXIMA,
+                                Math.min(VELOCIDADE_MAXIMA, v * 0.3));
+}
+
+function pulsarRolagem(){
+  if(!arrasto) return;
+  if(arrasto.velocidade){
+    const container = containerDeRolagem();
+    const antes = container.scrollTop;
+    container.scrollTop = antes + arrasto.velocidade;
+    if(container.scrollTop !== antes) atualizarArraste();
+  }
+  requestAnimationFrame(pulsarRolagem);
 }
 
 /** Move e redimensiona os cartões da prévia, sem tocar nos dados. */
-function aplicarPrevia(lista, idSolto){
+function aplicarPrevia(lista){
   const ctx = arrasto.ctx;
-  const colunas = colunasDaJanela(lista, ctx.janela);
+  /* O cartão na mão fica de fora do cálculo de colunas: ele flutua por cima,
+     inteiro, e os outros se organizam entre si. Recalcular com ele dentro
+     faria o cartão arrastado afinar e engordar a cada passagem. */
+  const colunas = colunasDaJanela(lista.filter(b => b.id !== arrasto.id), ctx.janela);
   lista.forEach(b => {
     const el = ctx.cartoes[b.id];
     if(!el) return;
-    const altura = Math.max(ALTURA_MINIMA, b.dur * PX_POR_MINUTO);
-    /* O cartão na mão é posicionado pelo dedo, não pela prévia. */
-    if(b.id !== idSolto){
-      el.style.top = Math.round((paraMinutos(b.hora) - ctx.janela.inicio) * PX_POR_MINUTO) + 'px';
-    }
+    const altura = Math.max(alturaMinima(ctx.editando), b.dur * PX_POR_MINUTO);
+    el.style.top = Math.round((paraMinutos(b.hora) - ctx.janela.inicio) * PX_POR_MINUTO) + 'px';
     el.style.height = Math.round(altura) + 'px';
-    /* Sair de cima de outro bloco devolve a largura inteira aos dois. */
-    const c = colunas[b.id] || {coluna: 0, colunas: 1};
+    const c = b.id === arrasto.id
+      ? {coluna: 0, colunas: 1}
+      : (colunas[b.id] || {coluna: 0, colunas: 1});
     el.style.left = c.colunas <= 1 ? '0px' : (c.coluna * 100 / c.colunas).toFixed(3) + '%';
     el.style.width = c.colunas <= 1
       ? '100%'
@@ -554,7 +691,7 @@ function terminar(){
 
   const nova = ordenarPorHora(g.lista);
   const alvo = nova.filter(b => b.id === g.id)[0];
-  const mensagem = g.tipo === 'ordem'
+  const mensagem = g.tipo === 'mover'
     ? g.titulo + ' às ' + (alvo ? alvo.hora : '')
     : g.titulo + ' · ' + rotuloDuracao(alvo ? alvo.dur : g.duracaoInicial);
 
