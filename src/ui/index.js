@@ -234,6 +234,34 @@ function ligarVigiaDeRolagem(){
   }, {passive: true});
 }
 
+/**
+ * Confirmação de algo que apaga.
+ *
+ * Não há desfazer no app — foi decisão consciente, porque o aviso com botão
+ * ficava no caminho a cada toque. O preço disso é que as poucas ações
+ * REALMENTE destrutivas precisam perguntar antes, e a pergunta tem que dizer
+ * o que se perde. "Tem certeza?" não é uma pergunta: é um obstáculo.
+ *
+ *   confirmarRemocao({
+ *     titulo: 'Remover Ômega 3?',
+ *     texto:  'Ele sai da caixa e das compras.',
+ *     detalhe:'As marcações dos dias já vividos continuam.',   // opcional
+ *     rotulo: 'Remover',
+ *     aoConfirmar: () => { ... }
+ *   })
+ */
+export function confirmarRemocao(config){
+  abrirFolha({
+    titulo: config.titulo,
+    rotuloConfirmar: config.rotulo || 'Remover',
+    corpo: () => h('div', {class:'folha-corpo'},
+      h('p', {class:'nota destaque'}, config.texto),
+      config.detalhe ? h('p', {class:'nota'}, config.detalhe) : null
+    ),
+    confirmar: () => { config.aoConfirmar(); fecharFolha(); }
+  });
+}
+
 /** Estado vazio centralizado. */
 export function estadoVazio(titulo, explicacao, acoes){
   return h('div', {class:'vazio'},

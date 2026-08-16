@@ -10,7 +10,8 @@ import { sessaoDe, garantirSessao, seriesDe, ultimaSerieAnterior,
 import { evolucaoDeVolume } from '../nucleo/estatisticas.js';
 import { h, icone, cabecalhoTela, barraProgresso, estadoVazio, stepper,
          rotuloSecao, abrirFolha, fecharFolha, abrirFolhaTexto, botaoFlutuante,
-         pilula, pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
+         confirmarRemocao, pilula, pilulaConcluir, ligarToqueLongo,
+         consumirToqueLongo } from '../ui/index.js';
 import { figura, linha, figuraVazia } from '../ui/graficos.js';
 
 /* ===========================================================================
@@ -554,8 +555,14 @@ function moverExercicio(treino, indice, direcao){
 }
 
 function removerExercicio(treino, indice, ex){
-  agir(ex.n + ' removido', d => {
-    acharTreino(d, treino.id).exercicios.splice(indice, 1);
+  confirmarRemocao({
+    titulo: 'Remover ' + ex.n + '?',
+    texto: 'Ele sai de ' + treino.nome + ' em todas as semanas.',
+    detalhe: 'As séries que você já registrou continuam no histórico das ' +
+             'Estatísticas — só não vão mais aparecer para marcar.',
+    aoConfirmar: () => agir(ex.n + ' removido', d => {
+      acharTreino(d, treino.id).exercicios.splice(indice, 1);
+    })
   });
 }
 

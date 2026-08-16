@@ -5,7 +5,7 @@ import { pratoDe, nutriDaReceita, totaisDoDia, refeicaoFeita, gerarCompras,
          comprasAtuais, SECOES_COMPRA, horaDaRefeicaoNoDia } from '../nucleo/modelo.js';
 import { RECEITAS } from '../dados/receitas.js';
 import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, estadoVazio,
-         stepper, ajustarHora, numeroBR, abrirFolha, fecharFolha, abrirFolhaTexto,
+         numeroBR, abrirFolha, fecharFolha, abrirFolhaTexto, confirmarRemocao,
          pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 
 /* ===========================================================================
@@ -327,13 +327,25 @@ export function edicaoDasRefeicoes(){
               onTap: () => removerSlot(slot)}, icone('fechar', 14))
           )
         ),
-        h('div', {class:'linha-slot-controles'},
+        /* Seletor nativo do aparelho, como no bloco do Dia e no remédio. O
+           stepper que estava aqui andava de 15 em 15 minutos, então um café
+           das 06:45 simplesmente não existia — e era o último lugar do app
+           preso a esse passo. */
+        h('label', {class:'linha-slot-controles'},
           h('span', {class:'campo-rotulo'}, 'Horário'),
-          stepper(slot.hora, passos => agirSemAviso(d => {
-            const s = d.slots.filter(x => x.id === slot.id)[0];
-            s.hora = ajustarHora(s.hora, passos, 15);
-            d.slots.sort((a, b) => paraMinutos(a.hora) - paraMinutos(b.hora));
-          }))
+          h('input', {
+            class:'campo-entrada campo-hora campo-hora-slot', type:'time', step:'300',
+            value: slot.hora,
+            'aria-label': 'Horário de ' + slot.nome,
+            onChange: ev => {
+              const valor = ev.target.value;
+              if(!valor) return;
+              agirSemAviso(d => {
+                d.slots.filter(x => x.id === slot.id)[0].hora = valor;
+                d.slots.sort((a, b) => paraMinutos(a.hora) - paraMinutos(b.hora));
+              });
+            }
+          })
         )
       ))
     ),
@@ -365,11 +377,20 @@ export function moverSlot(indice, direcao){
 }
 
 export function removerSlot(slot){
-  agir(slot.nome + ' removido', d => {
-    d.slots = d.slots.filter(x => x.id !== slot.id);
-    /* Tira também o prato do cardápio: sem a refeição, ele não tem onde
-       aparecer e viraria dado órfão na lista de compras. */
-    DIAS.forEach(dia => { if(d.cardapio[dia.k]) delete d.cardapio[dia.k][slot.id]; });
+  const comPrato = DIAS.filter(dia => (Dados.cardapio[dia.k] || {})[slot.id]).length;
+  confirmarRemocao({
+    titulo: 'Remover ' + slot.nome + '?',
+    texto: 'A refeição sai da semana inteira e some do calendário todos os dias.',
+    detalhe: comPrato
+      ? 'Os pratos escolhidos para ela em ' + comPrato +
+        (comPrato > 1 ? ' dias' : ' dia') + ' saem junto, e com eles o que pediam na lista de compras.'
+      : 'Nenhum prato está escolhido para ela.',
+    aoConfirmar: () => agir(slot.nome + ' removido', d => {
+      d.slots = d.slots.filter(x => x.id !== slot.id);
+      /* Tira também o prato do cardápio: sem a refeição, ele não tem onde
+         aparecer e viraria dado órfão na lista de compras. */
+      DIAS.forEach(dia => { if(d.cardapio[dia.k]) delete d.cardapio[dia.k][slot.id]; });
+    })
   });
 }
 

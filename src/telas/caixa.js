@@ -5,7 +5,7 @@ import { hojeISO, diaDaSemana, semanaDe, ehFuturo } from '../nucleo/tempo.js';
 import { compartimentosEmUso, remediosDoCompartimento, estadoDaCelula, DIAS_PARA_REPOR } from '../nucleo/modelo.js';
 import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, estadoVazio,
          stepper, pilulaConcluir, ligarToqueLongo, consumirToqueLongo,
-         abrirFolha, fecharFolha } from '../ui/index.js';
+         confirmarRemocao, abrirFolha, fecharFolha } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 5 — CAIXA DE REMÉDIOS
@@ -293,10 +293,15 @@ function salvarRemedio(){
 }
 
 function removerRemedio(med){
-  agir(med.nome + ' removido', d => {
-    d.remedios = d.remedios.filter(m => m.id !== med.id);
+  confirmarRemocao({
+    titulo: 'Remover ' + med.nome + '?',
+    texto: 'Ele sai da caixa e da lista de compras. Se era o único do ' +
+           'compartimento ' + med.compartimento + ', a coluna some da grade.',
+    detalhe: 'As marcações dos dias que já passaram continuam onde estão.',
+    aoConfirmar: () => agir(med.nome + ' removido', d => {
+      d.remedios = d.remedios.filter(m => m.id !== med.id);
+    })
   });
-  fecharFolha();
 }
 
 function adicionarRemedio(){
