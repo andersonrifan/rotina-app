@@ -25,7 +25,11 @@
      1. Alvo de toque ≥ 44 × 44 px  → `.tocavel` e `button` na seção 11.
      2. Texto < 18,66 px com 4,5:1  → a paleta da seção 01 já foi auditada;
         nunca use --neutro-tracejado nem --linha como cor de TEXTO.
-     3. Branco só sobre --acao, --acao-cartao ou --salvia.
+     3. Branco só sobre --acao, --acao-cartao, --salvia ou --faixa-agora.
+
+   E uma regra que só apareceu quando o modo escuro chegou: um token é FUNDO
+   ou é TEXTO, nunca os dois. `--acao-escura` era usado nos dois papéis, e
+   inverter o tema quebrava um deles — daí `--faixa-agora` existir separado.
    =========================================================================== */
 
 
@@ -101,6 +105,8 @@
   --acao-tenue:   #fff2eb;       /* fundo de item pendente */
   --acao-contorno:#f6a06b;       /* borda de item pendente */
   --acao-viva:    #c67139;       /* realce quente de cartão */
+  --faixa-agora:  #7d3a12;       /* FUNDO da faixa "a seguir", texto branco */
+  --acao-texto:   #8c491a;       /* terracota usada COMO TEXTO sobre a tela */
 
   /* --- Sálvia --- */
   --salvia:       #56633f;       /* concluído, chip ativo, barras */
@@ -137,6 +143,76 @@
 
   /* --- Alvo de toque --- */
   --toque:44px;
+}
+
+
+/* ===========================================================================
+   01b. NOITE
+
+   A própria rotina que o app carrega tem "Leitura + oração" às 21:40 e
+   "Dormindo" às 22:30 — o uso noturno está escrito nos dados, e uma tela
+   creme a 200 nits às onze da noite é uma lanterna na cara.
+
+   O que muda são SÓ os tokens. Nenhuma regra abaixo desta seção sabe que
+   existe modo escuro, e é isso que torna a mudança segura: se um componente
+   está certo de dia, está certo de noite.
+
+   Duas armadilhas, e as duas estão respeitadas aqui:
+
+   1. Alguns tokens são FUNDO e outros são TEXTO, e o par tem que inverter
+      junto. `--acao-clara` é fundo (fica escura), `--acao-escura` é texto
+      (fica clara). Trocar só um dos dois some com o texto.
+
+   2. Preto puro cansa mais que um marrom escuro. O fundo mantém o calor da
+      identidade em vez de virar cinza de sistema.
+
+   Contraste: os pares foram medidos sobre o fundo em que aparecem, mesmo
+   critério da paleta de dia (4,5:1 para texto pequeno).
+   =========================================================================== */
+@media (prefers-color-scheme: dark){
+  :root{
+    /* --- Superfícies --- */
+    --fundo:            #1b1916;
+    --superficie:       #262320;
+    --superficie-clara: #322e29;
+    --superficie-marcada:#211e1b;
+
+    /* --- Texto --- */
+    --texto:      #f4efe6;
+    --texto-2:    #e2dace;
+    --texto-3:    #cec5b7;
+    --texto-4:    #bcb2a3;
+    --texto-fraco:#a89e90;   /* o mais claro permitido em texto ≥ 11 px */
+
+    /* --- Terracota --- */
+    --acao:         #a4531c;   /* fundo de controle, com texto branco */
+    --acao-cartao:  #8f4718;
+    --acao-escura:  #f3ab77;   /* TEXTO sobre fundo escuro — clareia */
+    --acao-clara:   #3f2718;   /* FUNDO de destaque — escurece */
+    --acao-tenue:   #2c2018;
+    --acao-contorno:#8b5730;
+    --acao-viva:    #c96f3c;
+    --faixa-agora:  #5c3315;   /* fundo, com texto branco — não acompanha o texto */
+    --acao-texto:   #f0a878;   /* terracota como TEXTO: clareia, ao contrário do fundo */
+
+    /* --- Sálvia --- */
+    --salvia:       #5d6b45;
+    --salvia-clara: #2b3421;   /* fundo de item concluído */
+    --salvia-tenue: #232b1a;
+    --salvia-texto: #cfe0b2;   /* texto sobre --salvia-clara */
+
+    /* --- Neutros de contorno --- */
+    --neutro-tracejado:#6d6559;
+    --tracejado-forte: #877e70;
+    --linha:           #4b453c;
+    --sono:            #b7b0a3;
+
+    /* Sombra preta some no escuro; o que separa as camadas é o contorno. */
+    --sombra-aparelho: 0 20px 50px rgba(0,0,0,.55);
+    --sombra-flutuante:0 8px 20px rgba(0,0,0,.5);
+    --sombra-arraste:  0 10px 24px rgba(0,0,0,.55);
+    --sombra-aviso:    0 10px 26px rgba(0,0,0,.6);
+  }
 }
 
 
@@ -300,7 +376,7 @@ input{ font:inherit; color:inherit; }
 .btn-suave{ background:var(--superficie); color:var(--texto-3); font-weight:600; }
 .btn-transparente{ background:transparent; color:var(--texto-3); font-weight:600; }
 .btn-contorno-perigo{
-  background:transparent; color:var(--acao);
+  background:transparent; color:var(--acao-texto);
   border:1.5px solid var(--acao-contorno);
 }
 .btn.alto{ min-height:54px; }
@@ -400,7 +476,7 @@ input{ font:inherit; color:inherit; }
   border-radius:var(--r-pilula);
   background:var(--superficie-clara); color:var(--texto-3);
 }
-.btn-mini.perigo{ background:var(--acao-tenue); color:var(--acao); }
+.btn-mini.perigo{ background:var(--acao-tenue); color:var(--acao-texto); }
 .btn-renomear{
   display:inline-flex; align-items:center; gap:5px;
   min-height:var(--toque); padding:0 12px;
@@ -468,7 +544,7 @@ input{ font:inherit; color:inherit; }
 .agora-faltam{ font-size:11.5px; font-weight:700; white-space:nowrap; }
 .agora-faixa{
   display:flex; align-items:center; gap:8px;
-  background:var(--acao-escura);
+  background:var(--faixa-agora);
   border-radius:16px;
   padding:10px 13px;
   margin-top:2px;
@@ -509,7 +585,7 @@ input{ font:inherit; color:inherit; }
 .remedio-info{ background:var(--superficie-clara); padding-left:14px; }
 .remedio-comp{
   font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em;
-  color:var(--acao); min-width:52px; flex-shrink:0;
+  color:var(--acao-texto); min-width:52px; flex-shrink:0;
 }
 
 .cartao-atalho{ text-align:left; align-items:stretch; }
@@ -583,7 +659,11 @@ input{ font:inherit; color:inherit; }
 .bloco.marcado{ background:var(--superficie-marcada); }
 .bloco.em-andamento{ background:var(--acao-clara); }
 .bloco.segurando{ transform:scale(0.97); }
-.bloco-barra{ width:4px; align-self:stretch; min-height:26px; border-radius:var(--r-pilula); flex-shrink:0; }
+.bloco-barra{
+  width:4px; align-self:stretch; min-height:26px;
+  border-radius:var(--r-pilula); flex-shrink:0;
+  background:var(--cor-cat);
+}
 .bloco-texto{ min-width:0; flex:1; }
 .bloco-titulo{
   font-size:13px; font-weight:600; color:var(--texto);
@@ -617,7 +697,7 @@ input{ font:inherit; color:inherit; }
   width:var(--toque); height:var(--toque);
   display:flex; align-items:center; justify-content:center;
   border-radius:var(--r-pilula);
-  background:var(--acao-tenue); color:var(--acao);
+  background:var(--acao-tenue); color:var(--acao-texto);
   flex-shrink:0;
 }
 
@@ -1572,4 +1652,50 @@ button, .tocavel{
   margin:0; font-size:11.5px; font-weight:500; color:var(--texto-3);
   background:var(--superficie-clara);
   border-radius:var(--r-linha-menor); padding:9px 13px;
+}
+
+
+/* ===========================================================================
+   14. AJUSTES DE NOITE
+
+   Tudo o que os tokens sozinhos não resolvem. São poucos casos, e todos pelo
+   mesmo motivo: cor que vem do DADO (a categoria do bloco), e não da folha de
+   estilo, não muda quando o tema muda.
+
+   `color-mix` clareia a cor da categoria o bastante para ela existir sobre o
+   escuro — o sono é quase preto e sumiria na borda do cartão. Onde o
+   navegador não conhecer a função, a declaração é ignorada e vale a cor cheia
+   de cima: mais escura do que o ideal, nunca invisível.
+   =========================================================================== */
+@media (prefers-color-scheme: dark){
+  .cartao-agenda,
+  .linha-modelo{
+    border-left-color:color-mix(in srgb, var(--cor-cat) 68%, #ffffff);
+  }
+  .bloco-barra{
+    background:color-mix(in srgb, var(--cor-cat) 68%, #ffffff);
+  }
+  .chip-cat.ativo{
+    border-color:color-mix(in srgb, var(--cor-cat) 68%, #ffffff);
+  }
+
+  /* O fundo lavado do cartão vem de um rgba calculado no JS sobre o creme.
+     Sobre o escuro ele fica quase invisível, então aqui a mistura é refeita
+     com a cor clara. */
+  .cartao-agenda{
+    background:color-mix(in srgb, var(--cor-cat) 30%, var(--superficie));
+  }
+  .linha-modelo{
+    background:color-mix(in srgb, var(--cor-cat) 26%, var(--superficie));
+  }
+
+  /* A alça de duração usava um creme fixo. */
+  .pega-duracao .pega{ background:var(--texto-fraco); }
+
+  /* O contorno que separa cartões colados é a cor do fundo — no escuro
+     também. Fica aqui só para deixar explícito que foi conferido. */
+  .cartao-agenda{ box-shadow:0 0 0 1.5px var(--fundo); }
+  .agenda.em-edicao .cartao-agenda{
+    box-shadow:0 0 0 1.5px var(--fundo), 0 1px 2px rgba(0,0,0,.35);
+  }
 }

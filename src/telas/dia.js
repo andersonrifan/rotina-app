@@ -470,7 +470,9 @@ function linhaDeBloco(iso, bloco, ctx){
       'data-id': bloco.id,
       onTap: ev => tocarNoBloco(ev, iso, bloco, status, ctx)
     },
-    h('span', {class:'bloco-barra', style:'background:' + corDaCategoria(bloco.cat)}),
+    /* A cor vai como variável, não como `background` inline: no escuro o CSS
+       precisa poder clarear a barra, e estilo inline ganharia dele. */
+    h('span', {class:'bloco-barra', style:'--cor-cat:' + corDaCategoria(bloco.cat)}),
     h('div', {class:'bloco-texto'},
       h('div', {class:'bloco-titulo'}, bloco.titulo),
       bloco.sub ? h('div', {class:'bloco-sub'}, bloco.sub) : null
