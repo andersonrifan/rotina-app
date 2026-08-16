@@ -14,7 +14,7 @@ import { MODELO } from './dados/modelo.js';
 import { Tela, Dados, carregar, definirTela, dadosIniciais, substituirDados } from './nucleo/estado.js';
 import { registrarDesenho } from './nucleo/render.js';
 import { hojeISO } from './nucleo/tempo.js';
-import { h, icone, desenharFolha, desenharAviso } from './ui/index.js';
+import { h, icone, desenharFolha, desenharAviso, fecharFolha } from './ui/index.js';
 import { telaInicio } from './telas/inicio.js';
 import { telaDia } from './telas/dia.js';
 import { telaTreino } from './telas/treino.js';
@@ -60,23 +60,33 @@ function desenharTudo(){
 
     camadas.textContent = '';
     /* Ordem importa: a última anexada fica por cima. */
-    if(Tela.perfil) camadas.appendChild(telaPerfil());
-    if(Tela.semana) camadas.appendChild(telaSemana());
-    if(Tela.estatisticas) camadas.appendChild(telaEstatisticas());
+    let temModal = false;
+    if(Tela.perfil){ camadas.appendChild(telaPerfil()); temModal = true; }
+    if(Tela.semana){ camadas.appendChild(telaSemana()); temModal = true; }
+    if(Tela.estatisticas){ camadas.appendChild(telaEstatisticas()); temModal = true; }
     /* A abertura tem uma ORDEM: primeiro o nome, depois a rotina.
        O `else if` importa — empilhar as duas deixaria a de baixo invisível
        mas ainda alcançável por Tab e lida por leitor de tela. */
     if(precisaDeNome()){
       camadas.appendChild(telaBoasVindas());
+      temModal = true;
     } else if(!Dados.aceitouModelo || Tela.primeiroUso){
       camadas.appendChild(telaPrimeiroUso());
+      temModal = true;
     }
     const folha = desenharFolha();
-    if(folha) camadas.appendChild(folha);
+    if(folha){ camadas.appendChild(folha); temModal = true; }
+    /* O aviso NÃO conta como modal: ele é passageiro e não cobre nada. */
     const aviso = desenharAviso();
     if(aviso) camadas.appendChild(aviso);
 
     desenharAbas();
+
+    /* O que está coberto para de existir para o teclado e para o leitor de
+       tela. É o que faz `aria-modal` deixar de ser uma promessa vazia: sem
+       isto o Tab continuava passeando pela tela de trás. */
+    conteudo.inert = temModal;
+    document.getElementById('abas').inert = temModal;
   }catch(err){
     console.error('Falha ao desenhar a tela:', err);
     mostrarErroDeInicio('Não consegui desenhar a tela "' + Tela.aba + '".');
@@ -134,29 +144,46 @@ function mostrarErroDeInicio(mensagem){
    O plugin do Capacitor não existe no navegador comum: lá o evento nunca
    dispara e o `catch` cobre o import ausente. Nada disso muda o build web.
    =========================================================================== */
+/**
+ * Sobe uma camada. Devolve false quando não havia de onde voltar — e aí só
+ * sobra sair do app.
+ */
+function voltarUmaCamada(){
+  if(Tela.folha){ fecharFolha(); return true; }
+  if(Tela.estatisticas){ definirTela({estatisticas: false}); return true; }
+  if(Tela.semana){ definirTela({semana: false}); return true; }
+  if(Tela.perfil){ definirTela({perfil: false}); return true; }
+  if(Tela.primeiroUso){ definirTela({primeiroUso: false}); return true; }
+
+  const emEdicao = Object.keys(Tela.editando).filter(k => Tela.editando[k])[0];
+  if(emEdicao){
+    definirTela({editando: Object.assign({}, Tela.editando, {[emEdicao]: false})});
+    return true;
+  }
+  /* Fora do Início, Voltar leva ao Início — a raiz do app. */
+  if(Tela.aba !== 'inicio'){ definirTela({aba: 'inicio'}); return true; }
+  return false;
+}
+
 async function ligarBotaoVoltar(){
   try{
     const { App } = await import('@capacitor/app');
     App.addListener('backButton', () => {
-      if(Tela.folha){ definirTela({folha: null}); return; }
-      if(Tela.estatisticas){ definirTela({estatisticas: false}); return; }
-      if(Tela.semana){ definirTela({semana: false}); return; }
-      if(Tela.perfil){ definirTela({perfil: false}); return; }
-      if(Tela.primeiroUso){ definirTela({primeiroUso: false}); return; }
-
-      const emEdicao = Object.keys(Tela.editando).filter(k => Tela.editando[k])[0];
-      if(emEdicao){
-        definirTela({editando: Object.assign({}, Tela.editando, {[emEdicao]: false})});
-        return;
-      }
-      /* Fora do Início, Voltar leva ao Início — a raiz do app. */
-      if(Tela.aba !== 'inicio'){ definirTela({aba: 'inicio'}); return; }
-      App.exitApp();
+      if(!voltarUmaCamada()) App.exitApp();
     });
   }catch(_err){
     /* Navegador comum: não existe botão Voltar de sistema para ouvir, e isso
        não é uma falha — é o caso normal fora do app empacotado. */
   }
+}
+
+/* Esc é o Voltar de quem está no teclado. Mesma pilha, mesma ordem — só não
+   fecha o app, porque nenhuma tecla deveria fazer isso. */
+function ligarEscape(){
+  document.addEventListener('keydown', ev => {
+    if(ev.key !== 'Escape') return;
+    if(voltarUmaCamada()) ev.preventDefault();
+  });
 }
 
 /**
@@ -179,6 +206,7 @@ function pedirArmazenamentoPersistente(){
 export function iniciar(){
   registrarDesenho(desenharTudo);
   ligarBotaoVoltar();
+  ligarEscape();
   pedirArmazenamentoPersistente();
 
   try{

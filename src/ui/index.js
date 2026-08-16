@@ -351,8 +351,51 @@ export function dicaDeEdicao(texto){
 
    Sobe de baixo, escurece o fundo. Fechar tocando fora ou no Cancelar.
    =========================================================================== */
+/* ===========================================================================
+   O FOCO DENTRO DA FOLHA
+
+   A folha se declarava `aria-modal="true"` e não cumpria nada do que isso
+   promete: não levava o foco para dentro, não prendia o Tab, não fechava no
+   Esc e não devolvia o foco ao sair. Para quem usa teclado ou leitor de tela,
+   abrir a folha era ficar preso do lado de fora dela — o Tab continuava
+   passeando pela tela atrás, que a essa altura já estava coberta.
+
+   Três peças, e nenhuma delas depende de a folha existir antes:
+     - `focoAnterior` guarda quem tinha o foco, para devolver ao fechar;
+     - o Tab circula entre os focáveis da folha, sem sair;
+     - `#conteudo` e `#abas` ficam `inert` enquanto há folha (ver app.js), o
+       que resolve o resto do problema pela raiz.
+   =========================================================================== */
+
+let focoAnterior = null;
+let folhaDesenhada = null;
+
+/** Tudo que dá para focar dentro da folha, na ordem visual. */
+function focaveis(painel){
+  const seletor = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  return Array.prototype.filter.call(painel.querySelectorAll(seletor),
+    el => !el.disabled && el.offsetParent !== null);
+}
+
+function prenderTab(painel, ev){
+  if(ev.key !== 'Tab') return;
+  const lista = focaveis(painel);
+  if(!lista.length) return;
+  const primeiro = lista[0];
+  const ultimo = lista[lista.length - 1];
+  const atual = document.activeElement;
+
+  if(ev.shiftKey && (atual === primeiro || !painel.contains(atual))){
+    ev.preventDefault();
+    ultimo.focus();
+  } else if(!ev.shiftKey && (atual === ultimo || !painel.contains(atual))){
+    ev.preventDefault();
+    primeiro.focus();
+  }
+}
+
 export function desenharFolha(){
-  if(!Tela.folha) return null;
+  if(!Tela.folha){ folhaDesenhada = null; return null; }
   const folha = Tela.folha;
   const painel = h('div', {
       class:'folha',
@@ -370,6 +413,25 @@ export function desenharFolha(){
       h('button', {class:'btn btn-forte', type:'button', onTap: folha.confirmar}, folha.rotuloConfirmar)
     )
   );
+
+  painel.addEventListener('keydown', ev => prenderTab(painel, ev));
+
+  /* Só na PRIMEIRA vez que esta folha aparece. A tela é redesenhada a cada
+     toque, e roubar o foco a cada redesenho tiraria o cursor do campo em que
+     a pessoa está digitando. */
+  if(folhaDesenhada !== folha){
+    folhaDesenhada = folha;
+    setTimeout(() => {
+      if(Tela.folha !== folha || !painel.isConnected) return;
+      const lista = focaveis(painel);
+      /* O campo de texto ganha o foco quando existe; senão, a própria folha,
+         para o leitor de tela anunciar o título em vez de continuar lendo a
+         tela de trás. */
+      const campo = painel.querySelector('.campo-entrada');
+      (campo || lista[0] || painel).focus();
+    }, 0);
+  }
+
   return h('div', {class:'folha-fundo', onTap: fecharFolha}, painel);
 }
 
@@ -427,8 +489,44 @@ function alcaArrastavel(){
   return alca;
 }
 
-export function abrirFolha(config){ definirTela({folha: config}); }
-export function fecharFolha(){ definirTela({folha: null}); }
+/**
+ * Um retrato de quem tinha o foco.
+ *
+ * Guardar o ELEMENTO não serviria: fechar a folha redesenha a tela inteira e
+ * o botão de onde a pessoa veio deixa de existir — o de agora é outro objeto,
+ * igualzinho. O retrato é o que permite reencontrá-lo depois.
+ */
+function retratoDoFoco(el){
+  if(!el || el === document.body || !el.className) return null;
+  return {
+    classe: el.className,
+    rotulo: el.getAttribute('aria-label') || (el.textContent || '').trim().slice(0, 40)
+  };
+}
+
+function devolverFoco(retrato){
+  if(!retrato) return;
+  const candidatos = document.querySelectorAll('#conteudo button, #conteudo .tocavel');
+  for(let i = 0; i < candidatos.length; i++){
+    const el = candidatos[i];
+    const rotulo = el.getAttribute('aria-label') || (el.textContent || '').trim().slice(0, 40);
+    if(el.className === retrato.classe && rotulo === retrato.rotulo){ el.focus(); return; }
+  }
+  /* Não achou: a tela mudou de forma. Melhor deixar o foco onde está do que
+     jogá-lo num lugar arbitrário. */
+}
+
+export function abrirFolha(config){
+  focoAnterior = retratoDoFoco(document.activeElement);
+  definirTela({folha: config});
+}
+
+export function fecharFolha(){
+  const voltarPara = focoAnterior;
+  focoAnterior = null;
+  definirTela({folha: null});
+  devolverFoco(voltarPara);
+}
 
 /* ===========================================================================
    FOLHA DE TEXTO
