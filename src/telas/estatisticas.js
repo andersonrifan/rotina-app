@@ -20,7 +20,7 @@
 
 import { CATEGORIAS } from '../dados/modelo.js';
 import { Dados, Tela, definirTela } from '../nucleo/estado.js';
-import { hojeISO, dataCurta, rotuloDuracao, diaDaSemana, ehHoje } from '../nucleo/tempo.js';
+import { hojeISO, dataCurta, rotuloDuracao, ehHoje } from '../nucleo/tempo.js';
 import { corDaCategoria } from '../nucleo/modelo.js';
 import { sessoesRegistradas, volumeDaSessao, totalDeSeries,
          semanasSeguidasComTreino } from '../nucleo/sessoes.js';

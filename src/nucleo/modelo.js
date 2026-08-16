@@ -15,8 +15,7 @@ import { ALIMENTOS, RECEITAS } from '../dados/receitas.js';
 import { Dados } from './estado.js';
 import { clonar } from './armazem.js';
 import {
-  paraMinutos, paraHora, rotuloDuracao,
-  diaDaSemana, somarDias, semanaDe,
+  paraMinutos, diaDaSemana,
   agoraEmMinutos, ehHoje, ehPassado, ehFuturo
 } from './tempo.js';
 
@@ -30,12 +29,16 @@ export function corDaCategoria(cat){
  *
  * A régua do dia precisa que a categoria se leia de relance, sem etiqueta —
  * mas as cores cheias do design system são fortes demais atrás de texto (o
- * sono é quase preto). 13 % sobre o creme dá o tom lavado do desenho e mantém
- * o texto escuro bem acima dos 4,5:1 exigidos.
+ * sono é quase preto).
+ *
+ * 22 % é o ponto em que as dez categorias ainda se distinguem entre si sobre
+ * o creme. A 13 %, que era o valor anterior, metade delas virava o mesmo
+ * bege. Mesmo na mais escura o texto fica em torno de 9:1, bem acima dos
+ * 4,5:1 exigidos.
  */
 export function corSuaveDaCategoria(cat){
   const n = parseInt(corDaCategoria(cat).slice(1), 16);
-  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',.13)';
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',.22)';
 }
 
 /**
@@ -105,7 +108,43 @@ export function ordenarPorHora(blocos){
 
 /** Os blocos de um dia: a versão editada, se existir; senão, a gerada. */
 export function blocosDoDia(iso){
-  return Dados.blocos[iso] ? ordenarPorHora(Dados.blocos[iso]) : gerarDia(iso);
+  if(!Dados.blocos[iso]) return gerarDia(iso);
+  return ordenarPorHora(Dados.blocos[iso].map(b => comTextoAtual(iso, b)));
+}
+
+/**
+ * Devolve o bloco com o TEXTO que ele tem hoje.
+ *
+ * Materializar um dia congela a lista inteira, e isso estava congelando
+ * demais: um bloco de refeição guarda o nome do prato, e trocar o prato na
+ * aba Comida não aparecia mais no dia — as duas telas passavam a discordar
+ * sobre o mesmo almoço. O mesmo valia para renomear uma refeição ou um
+ * treino.
+ *
+ * A divisão é esta: HORÁRIO e DURAÇÃO pertencem ao dia (foi você que
+ * arrastou), TÍTULO e PRATO pertencem ao modelo (vêm da aba que os define).
+ * A exceção é o título que a pessoa escreveu à mão no editor do dia — ele
+ * ganha `tituloProprio` e nada o sobrescreve.
+ */
+function comTextoAtual(iso, bloco){
+  const diaK = diaDaSemana(iso).k;
+
+  if(bloco.id.indexOf('slot:') === 0){
+    const slot = Dados.slots.filter(s => 'slot:' + s.id === bloco.id)[0];
+    if(!slot) return bloco;
+    const prato = pratoDe(diaK, slot.id);
+    return Object.assign({}, bloco, {
+      titulo: bloco.tituloProprio ? bloco.titulo : slot.nome,
+      sub: prato ? prato.nome : ''
+    });
+  }
+
+  if(bloco.id.indexOf('treino:') === 0 && !bloco.tituloProprio){
+    const treino = Dados.treinos.filter(t => 'treino:' + t.id === bloco.id)[0];
+    if(treino) return Object.assign({}, bloco, {titulo: treino.nome});
+  }
+
+  return bloco;
 }
 
 /**
@@ -390,117 +429,4 @@ export function estadoDaCelula(iso, comp){
 
 export function remediosPendentesHoje(iso){
   return Dados.remedios.filter(m => !remedioTomado(iso, m));
-}
-
-
-/* ===========================================================================
-   REPLANEJAR
-
-   Quando um bloco de hoje estoura o horário previsto, o resto do dia deixa de
-   caber. Em vez de empurrar tudo em silêncio, o app monta uma proposta: o que
-   encurtar, o que tirar do dia e o que deixar intacto.
-
-   Regras da proposta, do mais barato pro mais caro:
-     - sono, trabalho e faculdade são intocáveis (mover sono é a pior troca
-       possível, e a aula não depende de você);
-     - blocos flexíveis (livre, hobby) saem do dia;
-     - blocos encurtáveis (pessoal, estudo) perdem tempo, até o mínimo;
-     - o que sobrar de atraso continua sobrando, e a tela diz isso em vez de
-       fingir que resolveu.
-   =========================================================================== */
-
-export const CATEGORIAS_INTOCAVEIS = ['sono', 'trabalho', 'faculdade'];
-export const CATEGORIAS_MOVIVEIS = ['livre', 'hobby'];
-export const MINUTOS_MINIMOS = 10;
-export const ATRASO_MINIMO_PARA_REPLANEJAR = 15;
-
-/**
- * Procura o bloco de um dia que mais estourou o horário previsto.
- * Compara o dia materializado (o real) com o gerado (o previsto).
- */
-export function detectarAtraso(iso){
-  if(!Dados.blocos[iso]) return null;              // dia nunca editado: nada a comparar
-  const previsto = gerarDia(iso);
-  const real = blocosDoDia(iso);
-  const porId = {};
-  previsto.forEach(b => { porId[b.id] = b; });
-
-  let pior = null;
-  real.forEach(b => {
-    const p = porId[b.id];
-    if(!p) return;
-    const fimReal = paraMinutos(b.hora) + b.dur;
-    const fimPrevisto = paraMinutos(p.hora) + p.dur;
-    const atraso = fimReal - fimPrevisto;
-    if(atraso > 0 && (!pior || atraso > pior.atraso)){
-      pior = {bloco: b, previsto: p, atraso: atraso, fimReal: fimReal};
-    }
-  });
-  /* Menos de 15 min não vale uma tela inteira. */
-  return pior && pior.atraso >= ATRASO_MINIMO_PARA_REPLANEJAR ? pior : null;
-}
-
-/** Monta o plano de reencaixe a partir de um atraso detectado. */
-export function proporPlano(iso, atraso){
-  const blocos = blocosDoDia(iso);
-  const depois = blocos.filter(b => paraMinutos(b.hora) >= atraso.fimReal - atraso.atraso &&
-                                    b.id !== atraso.bloco.id);
-  let restante = atraso.atraso;
-  const ajustes = [];
-
-  depois.forEach(b => {
-    const intacto = () => ajustes.push({
-      bloco: b, acao: 'intacto',
-      detalhe: b.hora + ' mantido · ' + rotuloDuracao(b.dur)
-    });
-
-    if(CATEGORIAS_INTOCAVEIS.indexOf(b.cat) >= 0 || restante <= 0){ intacto(); return; }
-
-    if(CATEGORIAS_MOVIVEIS.indexOf(b.cat) >= 0){
-      restante -= b.dur;
-      ajustes.push({
-        bloco: b, acao: 'mover',
-        detalhe: 'movido para ' + diaDaSemana(somarDias(iso, 1)).full
-      });
-      return;
-    }
-
-    const cortavel = Math.max(0, b.dur - MINUTOS_MINIMOS);
-    const corte = Math.min(cortavel, restante);
-    if(corte <= 0){ intacto(); return; }
-
-    restante -= corte;
-    const novaDur = b.dur - corte;
-    ajustes.push({
-      bloco: b, acao: 'encurtar', novaDur: novaDur,
-      detalhe: b.hora + ' → ' + paraHora(paraMinutos(b.hora) + novaDur) + ' · ' + rotuloDuracao(novaDur)
-    });
-  });
-
-  return {iso: iso, atraso: atraso, ajustes: ajustes, sobra: Math.max(0, restante)};
-}
-
-/** Aplica o plano: encurta o que tem que encurtar, tira o que foi movido. */
-export function aplicarPlano(dados, plano){
-  const lista = materializar(dados, plano.iso);
-  const movidos = {};
-  plano.ajustes.forEach(aj => {
-    const alvo = lista.filter(b => b.id === aj.bloco.id)[0];
-    if(!alvo) return;
-    if(aj.acao === 'encurtar') alvo.dur = aj.novaDur;
-    if(aj.acao === 'mover') movidos[aj.bloco.id] = true;
-  });
-  dados.blocos[plano.iso] = lista.filter(b => !movidos[b.id]);
-}
-
-/** Total semanal por categoria — alimenta o cartão "Impacto na semana". */
-export function totaisDaSemana(iso, categorias){
-  const saida = {};
-  categorias.forEach(c => { saida[c] = 0; });
-  semanaDe(iso).forEach(d => {
-    blocosDoDia(d).forEach(b => {
-      if(saida[b.cat] !== undefined) saida[b.cat] += b.dur;
-    });
-  });
-  return saida;
 }

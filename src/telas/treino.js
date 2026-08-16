@@ -5,11 +5,11 @@ import { redesenhar } from '../nucleo/render.js';
 import { diaDaSemana, semanaDe, dataCurta, rotuloDuracao } from '../nucleo/tempo.js';
 import { treinoDoDia, voltasDoTreino, progressoDoTreino, exercicioFeito } from '../nucleo/modelo.js';
 import { sessaoDe, garantirSessao, seriesDe, ultimaSerieAnterior,
-         resumirSeries, volumeDaSessao, totalDeSeries,
-         sessoesDoTreino } from '../nucleo/sessoes.js';
+         resumirSeries, volumeDaSessao, totalDeSeries, sessoesDoTreino,
+         tipoDoExercicio, ehPorTempo } from '../nucleo/sessoes.js';
 import { evolucaoDeVolume } from '../nucleo/estatisticas.js';
 import { h, icone, cabecalhoTela, barraProgresso, estadoVazio, stepper,
-         rotuloSecao, abrirFolha, fecharFolha, abrirFolhaTexto,
+         rotuloSecao, abrirFolha, fecharFolha, abrirFolhaTexto, botaoFlutuante,
          pilula, pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 import { figura, linha, figuraVazia } from '../ui/graficos.js';
 
@@ -54,7 +54,17 @@ export function telaTreino(){
     chipsDosTreinos(iso),
     treino
       ? (editando ? treinoEmEdicao(iso, treino) : treinoEmLeitura(iso, treino))
-      : diaDeDescanso(iso, dia)
+      : diaDeDescanso(iso, dia),
+    /* O mesmo + da Rotina, em sálvia: aqui ele acrescenta ao TREINO, e a cor
+       separa "montar o treino" de "montar o dia". O que ele adiciona depende
+       do que falta — um treino, se o dia é de descanso; um exercício, se já
+       existe treino. */
+    editando
+      ? null
+      : botaoFlutuante(
+          treino ? 'Adicionar exercício' : 'Novo treino',
+          () => treino ? abrirEditorDeExercicio(treino, null, null) : novoTreino(iso),
+          {classe: 'salvia'})
   );
 }
 
@@ -161,9 +171,10 @@ function linhaDeExercicio(iso, treino, indice, ex){
       h('span', {class:'exercicio-nome'}, ex.n),
       h('span', {class:'exercicio-alvo'}, ex.a),
       series.length
-        ? h('span', {class:'exercicio-registro'}, resumirSeries(series))
+        ? h('span', {class:'exercicio-registro'}, resumirSeries(series, ex))
         : (anterior
-            ? h('span', {class:'exercicio-anterior'}, 'da última vez: ' + resumirSeries(anterior.series))
+            ? h('span', {class:'exercicio-anterior'},
+                'da última vez: ' + resumirSeries(anterior.series, ex))
             : null)
     ),
 
@@ -187,11 +198,12 @@ function abrirRegistroDeSerie(iso, treino, indice, ex){
   const existentes = seriesDe(iso, treino.id, indice);
   const anterior = ultimaSerieAnterior(iso, treino.id, indice);
 
+  const padrao = ehPorTempo(ex) ? {reps: 30, carga: 0} : {reps: 10, carga: 0};
   rascunhoSeries = existentes.length
     ? clonar(existentes)
     /* Começa espelhando a última vez: quase sempre é o ponto de partida, e
        corrigir um número é mais rápido que digitar do zero. */
-    : (anterior ? clonar(anterior.series) : [{reps: 10, carga: 0}]);
+    : (anterior ? clonar(anterior.series) : [padrao]);
 
   abrirFolha({
     titulo: ex.n,
@@ -202,20 +214,26 @@ function abrirRegistroDeSerie(iso, treino, indice, ex){
 }
 
 function corpoDoRegistro(ex, anterior){
+  const tempo = ehPorTempo(ex);
+  const padrao = tempo ? 30 : 10;
+
   return h('div', {class:'folha-corpo'},
     h('p', {class:'nota'},
       anterior
         ? 'Alvo: ' + ex.a + ' · da última vez (' + dataCurta(anterior.data) + '): ' +
-          resumirSeries(anterior.series)
+          resumirSeries(anterior.series, ex)
         : 'Alvo: ' + ex.a + ' · primeira vez que você registra este exercício.'),
 
     h('div', {class:'lista-series'},
       rascunhoSeries.map((s, i) => h('div', {class:'serie'},
         h('span', {class:'serie-numero'}, (i + 1) + 'ª'),
         h('label', {class:'serie-campo'},
-          h('span', {class:'campo-rotulo'}, 'Reps'),
+          /* Prancha não tem repetição: tem segundos. Perguntar "Reps" para um
+             exercício isométrico é pedir um número que não existe. */
+          h('span', {class:'campo-rotulo'}, tempo ? 'Segundos' : 'Reps'),
           h('input', {class:'campo-entrada campo-numero', type:'number',
-            inputmode:'numeric', min:'0', max:'999', value: String(s.reps),
+            inputmode:'numeric', min:'0', max: tempo ? '3600' : '999',
+            step: tempo ? '5' : '1', value: String(s.reps),
             onInput: ev => { s.reps = Math.max(0, parseInt(ev.target.value, 10) || 0); }})
         ),
         h('label', {class:'serie-campo'},
@@ -231,12 +249,16 @@ function corpoDoRegistro(ex, anterior){
 
     h('button', {class:'adicionar-tracejado', type:'button', onTap: () => {
         /* A série nova nasce igual à anterior — é o que quase sempre se quer. */
-        const ultima = rascunhoSeries[rascunhoSeries.length - 1] || {reps: 10, carga: 0};
+        const ultima = rascunhoSeries[rascunhoSeries.length - 1] || {reps: padrao, carga: 0};
         rascunhoSeries.push({reps: ultima.reps, carga: ultima.carga});
         redesenhar();
-      }}, icone('mais', 15), 'Mais uma série'),
+      }}, icone('mais', 15), tempo ? 'Mais uma repetição' : 'Mais uma série'),
 
-    h('p', {class:'nota'}, 'Deixe a carga em 0 se o exercício é com o peso do corpo.')
+    h('p', {class:'nota'},
+      tempo
+        ? 'Deixe a carga em 0 se é só o peso do corpo. Exercícios por tempo não ' +
+          'entram na conta de volume — segundos não se somam com repetições.'
+        : 'Deixe a carga em 0 se o exercício é com o peso do corpo.')
   );
 }
 
@@ -431,7 +453,11 @@ const ALVOS_SUGERIDOS = ['3 × 8–12', '3 × 10', '4 × 6', '5 × 5', '3 × 30s
 
 function abrirEditorDeExercicio(treino, indice, ex){
   const novo = indice === null;
-  rascunhoExercicio = {n: ex ? ex.n : '', a: ex ? ex.a : '3 × 10'};
+  rascunhoExercicio = {
+    n: ex ? ex.n : '',
+    a: ex ? ex.a : '3 × 10',
+    tipo: tipoDoExercicio(ex)
+  };
 
   abrirFolha({
     titulo: novo ? 'Novo exercício' : 'Editar exercício',
@@ -445,7 +471,25 @@ function abrirEditorDeExercicio(treino, indice, ex){
       ),
       h('div', {class:'sugestoes'},
         EXERCICIOS_SUGERIDOS.map(s => h('button', {class:'sugestao', type:'button',
-          onTap: () => { rascunhoExercicio.n = s.n; rascunhoExercicio.a = s.a; redesenhar(); }}, s.n))
+          onTap: () => {
+            rascunhoExercicio.n = s.n;
+            rascunhoExercicio.a = s.a;
+            rascunhoExercicio.tipo = tipoDoExercicio(s);
+            redesenhar();
+          }}, s.n))
+      ),
+      /* O que se conta neste exercício. Define o campo que o registro vai
+         pedir: repetições ou segundos. */
+      h('div', {class:'campo'},
+        h('span', {class:'campo-rotulo'}, 'Você conta'),
+        h('div', {class:'segmentado segmentado-visao'},
+          [['reps', 'Repetições'], ['tempo', 'Tempo']].map(([id, rotulo]) =>
+            h('button', {
+              class:'segmento' + (rascunhoExercicio.tipo === id ? ' ativo' : ''),
+              type:'button', 'aria-pressed': String(rascunhoExercicio.tipo === id),
+              onTap: () => { rascunhoExercicio.tipo = id; redesenhar(); }
+            }, rotulo))
+        )
       ),
       h('label', {class:'campo'},
         h('span', {class:'campo-rotulo'}, 'Alvo'),
@@ -455,17 +499,22 @@ function abrirEditorDeExercicio(treino, indice, ex){
       ),
       h('div', {class:'sugestoes'},
         ALVOS_SUGERIDOS.map(a => h('button', {class:'sugestao', type:'button',
-          onTap: () => { rascunhoExercicio.a = a; redesenhar(); }}, a))
+          onTap: () => {
+            rascunhoExercicio.a = a;
+            rascunhoExercicio.tipo = tipoDoExercicio({a: a});
+            redesenhar();
+          }}, a))
       )
     ),
     confirmar: () => {
       const nome = (rascunhoExercicio.n || '').trim();
       if(!nome){ avisar('Escreva o nome do exercício'); return; }
       const alvo = (rascunhoExercicio.a || '').trim() || '—';
+      const tipo = rascunhoExercicio.tipo;
       agir(novo ? nome + ' adicionado' : nome + ' salvo', d => {
         const t = acharTreino(d, treino.id);
-        if(novo) t.exercicios.push({n: nome, a: alvo});
-        else { t.exercicios[indice].n = nome; t.exercicios[indice].a = alvo; }
+        if(novo) t.exercicios.push({n: nome, a: alvo, tipo: tipo});
+        else Object.assign(t.exercicios[indice], {n: nome, a: alvo, tipo: tipo});
       });
       fecharFolha();
     }

@@ -63,25 +63,67 @@ export function ultimaSerieAnterior(iso, treinoId, indice){
     : null;
 }
 
-/** Resumo curto de uma lista de séries: "3 × 8 · 20 kg" ou "8, 7, 6". */
-export function resumirSeries(series){
-  if(!series || !series.length) return '';
-  const reps = series.map(s => s.reps);
-  const cargas = series.map(s => s.carga).filter(c => c > 0);
-  const mesmasReps = reps.every(r => r === reps[0]);
-  const mesmaCarga = cargas.length === series.length && cargas.every(c => c === cargas[0]);
+/* ===========================================================================
+   EXERCÍCIO POR TEMPO
 
-  const parteReps = mesmasReps ? series.length + ' × ' + reps[0] : reps.join(', ');
-  if(!cargas.length) return parteReps;
-  if(mesmaCarga) return parteReps + ' · ' + cargas[0] + ' kg';
-  return parteReps + ' · até ' + Math.max(...cargas) + ' kg';
+   Prancha, isometria e alongamento não têm repetição: têm segundos. O
+   registro só oferecia "Reps", e anotar "30" numa prancha de 30 segundos era
+   escrever um número que queria dizer outra coisa.
+
+   O tipo mora no exercício (estrutura), não na série (fato), porque prancha é
+   por tempo em toda quarta-feira — não só naquela.
+
+   Para os exercícios que já existem, o ALVO responde sozinho: "3 × 30s" e
+   "45s/lado" dizem segundos com todas as letras. Assim ninguém precisa voltar
+   e reclassificar o que já montou.
+   =========================================================================== */
+
+const ALVO_EM_SEGUNDOS = /\d+\s*s(eg)?\b/i;
+
+export function tipoDoExercicio(ex){
+  if(!ex) return 'reps';
+  if(ex.tipo) return ex.tipo;
+  return ALVO_EM_SEGUNDOS.test(ex.a || '') ? 'tempo' : 'reps';
 }
 
-/** Volume da sessão: soma de repetições × carga. É o número que cresce. */
+export function ehPorTempo(ex){ return tipoDoExercicio(ex) === 'tempo'; }
+
+/** O exercício de índice `i` do treino de uma sessão, se ainda existir. */
+function exercicioDaSessao(sessao, indice){
+  const treino = Dados.treinos.filter(t => t.id === sessao.treinoId)[0];
+  return treino ? treino.exercicios[indice] : null;
+}
+
+/** Resumo curto: "3 × 8 · 20 kg", "8, 7, 6" ou "3 × 30s". */
+export function resumirSeries(series, ex){
+  if(!series || !series.length) return '';
+  const tempo = ehPorTempo(ex);
+  const unidade = tempo ? 's' : '';
+  const valores = series.map(s => s.reps);
+  const cargas = series.map(s => s.carga).filter(c => c > 0);
+  const iguais = valores.every(r => r === valores[0]);
+  const mesmaCarga = cargas.length === series.length && cargas.every(c => c === cargas[0]);
+
+  const parte = iguais
+    ? series.length + ' × ' + valores[0] + unidade
+    : valores.map(v => v + unidade).join(', ');
+  if(!cargas.length) return parte;
+  if(mesmaCarga) return parte + ' · ' + cargas[0] + ' kg';
+  return parte + ' · até ' + Math.max(...cargas) + ' kg';
+}
+
+/**
+ * Volume da sessão: soma de repetições × carga. É o número que cresce.
+ *
+ * Séries por tempo ficam de fora: 30 segundos × 10 kg não é 300 de nada, e
+ * somar isso ao volume das repetições faria o gráfico subir por um exercício
+ * que nem ficou mais pesado.
+ */
 export function volumeDaSessao(sessao){
   if(!sessao) return 0;
   let total = 0;
   Object.keys(sessao.series).forEach(i => {
+    if(ehPorTempo(exercicioDaSessao(sessao, i))) return;
     sessao.series[i].forEach(s => { total += (s.reps || 0) * (s.carga || 0); });
   });
   return total;

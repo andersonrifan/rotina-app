@@ -58,9 +58,9 @@ src/
   ui/index.js         h(), ícones, peças reaproveitadas, folha, aviso
   ui/graficos.js      SVG à mão: colunas, barras, linha, medidor
   telas/              uma por aba, mais boas-vindas, perfil,
-                      estatisticas, primeiro-uso e replanejar
+                      estatisticas e primeiro-uso
 
-testes/               180 testes sobre o núcleo
+testes/               190 testes sobre o núcleo
 docs/                 publicação e privacidade
 ```
 
@@ -75,6 +75,28 @@ bloco de exercício — sem nenhuma tela conhecer a outra.
 Quando você edita um dia específico, ele é **materializado**: vira uma lista
 própria que passa a ignorar a geração. É o que permite "hoje a aula atrasou"
 sem reescrever todas as quintas.
+
+Materializar congela os HORÁRIOS daquele dia, não o texto: o nome da refeição
+e o prato continuam vindo da aba Comida, e o nome do treino, da aba Treino.
+Sem isso as telas passavam a discordar sobre o mesmo almoço. A única exceção é
+um título que você escreveu à mão no editor do dia — esse ninguém sobrescreve.
+
+### O que acontece quando a semana vira
+
+Nada reseta, e nada acumula. A estrutura é indexada por **dia da semana**, não
+por data: toda segunda nasce da mesma `fixos.Seg`, com as mesmas refeições e o
+mesmo treino. É por isso que a aba se chama Rotina.
+
+O que é por data são as **marcações** — feito, atrasei, pulei, remédio tomado,
+refeição consumida — e elas não atravessam: a segunda que vem chega em branco,
+para ser vivida de novo. As **sessões de treino** também são por data, e é
+justamente isso que dá histórico às estatísticas.
+
+No meio dos dois está o dia materializado: ele vale só para aquela data. Mover
+o almoço numa segunda não mexe nas outras segundas — e se você quis mudar a
+rotina, e não só aquele dia, o caminho é a semana-modelo (o interruptor
+"Repetir toda segunda-feira" ao criar um bloco, ou as abas Comida e Treino).
+`testes/rotina-semanal.test.js` existe para que isso continue verdadeiro.
 
 **2. O que foi feito é separado do que foi planejado.**
 O treino é estrutura: "Força A tem 8 exercícios" vale para todas as quartas. A

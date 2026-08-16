@@ -4,7 +4,7 @@ import { diaDaSemana, semanaDe, dataCurta, paraMinutos } from '../nucleo/tempo.j
 import { pratoDe, nutriDaReceita, totaisDoDia, refeicaoFeita, gerarCompras,
          comprasAtuais, SECOES_COMPRA, horaDaRefeicaoNoDia } from '../nucleo/modelo.js';
 import { RECEITAS } from '../dados/receitas.js';
-import { h, icone, cabecalhoTela, pilula, rotuloSecao, barraProgresso, estadoVazio,
+import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, estadoVazio,
          stepper, ajustarHora, numeroBR, abrirFolha, fecharFolha, abrirFolhaTexto,
          pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
 
@@ -195,8 +195,6 @@ export function nomeCompletoDoDia(k){
 }
 
 export function corpoEscolhaDePrato(diaK, slot){
-  const termo = buscaDePrato.trim().toLowerCase();
-  const lista = RECEITAS.filter(r => !termo || r.nome.toLowerCase().indexOf(termo) >= 0);
   const atual = (Dados.cardapio[diaK] || {})[slot.id];
 
   return h('div', {class:'folha-corpo'},

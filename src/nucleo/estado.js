@@ -119,7 +119,6 @@ export const Tela = {
   folha: null,         // folha aberta (null quando não há)
   segurando: null,     // id do bloco sob toque longo
   arrastando: null,    // {id, modo} durante o arraste
-  replanejar: null,    // proposta de replanejamento aberta
   /* Tela de escolha reaberta de propósito. Fica só aqui, e não nos dados,
      porque reabrir não pode ser algo que sobrevive a fechar o app: enquanto
      a pessoa não escolhe, nada aconteceu. */

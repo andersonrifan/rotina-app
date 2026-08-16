@@ -33,18 +33,30 @@ export const MESES = ['janeiro','fevereiro','março','abril','maio','junho',
 /* --- Categorias de bloco --------------------------------------------------
    Fonte única das cores do calendário. Criar uma categoria nova é acrescentar
    uma linha: o calendário, a folha de novo bloco e a legenda passam a
-   conhecê-la sozinhos. As cores vêm do design system do handoff. */
+   conhecê-la sozinhos.
+
+   A paleta do handoff tinha duas famílias (terracota e sálvia) e dez
+   categorias — o que dava empates: `estudo` e `pessoal` eram a MESMA cor, e
+   `livre`, `transicao` e `refeicao` viviam claras demais para a barra de 4 px
+   aparecer. Numa régua em que a cor é o único rótulo de categoria, cor
+   repetida é informação perdida.
+
+   Estas dez são pigmentos terrosos de matizes separados — terracota, ocre,
+   mata, sálvia, petróleo, ameixa, pedra, areia, grafite, tijolo. Ficam na
+   mesma família orgânica do desenho, e todas são médias ou escuras o
+   bastante para funcionar como barra e como fundo lavado (ver
+   `corSuaveDaCategoria`). */
 export const CATEGORIAS = {
-  trabalho:  {cor:'#b2622d', rotulo:'Trabalho'},
-  refeicao:  {cor:'#f6a06b', rotulo:'Refeição'},
-  faculdade: {cor:'#56633f', rotulo:'Faculdade'},
-  exercicio: {cor:'#8fa073', rotulo:'Exercício'},
-  estudo:    {cor:'#ccdbb2', rotulo:'Estudo'},
-  pessoal:   {cor:'#ccdbb2', rotulo:'Pessoal'},
-  transicao: {cor:'#c0b6a5', rotulo:'Deslocamento'},
-  livre:     {cor:'#dcd3c4', rotulo:'Livre'},
+  trabalho:  {cor:'#a8551f', rotulo:'Trabalho'},
+  refeicao:  {cor:'#c2892a', rotulo:'Refeição'},
+  faculdade: {cor:'#46603a', rotulo:'Faculdade'},
+  exercicio: {cor:'#7d9163', rotulo:'Exercício'},
+  estudo:    {cor:'#3f6b70', rotulo:'Estudo'},
+  pessoal:   {cor:'#7a5273', rotulo:'Pessoal'},
+  transicao: {cor:'#8d8375', rotulo:'Deslocamento'},
+  livre:     {cor:'#b09a72', rotulo:'Livre'},
   sono:      {cor:'#474238', rotulo:'Sono'},
-  hobby:     {cor:'#c67139', rotulo:'Hobby'}
+  hobby:     {cor:'#c25f4e', rotulo:'Hobby'}
 };
 
 /* --- Vocabulários de edição ----------------------------------------------

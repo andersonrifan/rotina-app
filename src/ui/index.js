@@ -160,8 +160,7 @@ export function barraProgresso(fracao, classe){
  * Stepper de 44 px: menos, valor, mais.
  * Usado para horários (passos de 15 min) e quantidades.
  */
-export function stepper(valor, aoMudar, opcoes){
-  const o = opcoes || {};
+export function stepper(valor, aoMudar){
   return h('div', {class:'stepper'},
     h('button', {class:'stepper-btn', type:'button', 'aria-label':'Diminuir', onTap:()=> aoMudar(-1)}, icone('menos', 15)),
     h('span', {class:'stepper-valor'}, valor),
@@ -179,6 +178,60 @@ export function ajustarHora(hhmm, passos, minutosPorPasso){
 export function proximoDaLista(lista, atual){
   const i = lista.indexOf(atual);
   return lista[(i + 1) % lista.length];
+}
+
+/* ===========================================================================
+   BOTÃO FLUTUANTE
+
+   Ele mora sobre o canto inferior direito, que numa régua de dia é exatamente
+   onde ficam os últimos blocos — o + tapava o fim do dia justo quando a
+   pessoa rolava até lá para vê-lo.
+
+   A saída não é tirar o botão de lugar (qualquer canto tem conteúdo embaixo),
+   é ele sair da frente quando a pessoa está LENDO e voltar quando ela está
+   procurando. Rolar para baixo é ler adiante; rolar para cima é voltar, que é
+   o movimento de quem quer agir. É o mesmo comportamento das barras de
+   navegação que se escondem, e ninguém precisa aprender.
+
+   O estado mora no módulo, não no elemento: a tela é redesenhada inteira a
+   cada toque, e um botão que reaparecesse a cada redesenho piscaria sem parar.
+   =========================================================================== */
+
+let flutuanteOculto = false;
+let vigiaDeRolagemLigado = false;
+
+/** Um `+` fixo no canto. `classe` permite a variante de cor (ex.: salvia). */
+export function botaoFlutuante(rotulo, aoTocar, opcoes){
+  const o = opcoes || {};
+  ligarVigiaDeRolagem();
+  return h('button', {
+    class: 'flutuante' + (o.classe ? ' ' + o.classe : '') + (flutuanteOculto ? ' recolhido' : ''),
+    type: 'button',
+    'aria-label': rotulo,
+    onTap: aoTocar
+  }, icone('mais', 24));
+}
+
+function ligarVigiaDeRolagem(){
+  if(vigiaDeRolagemLigado) return;
+  const conteudo = document.getElementById('conteudo');
+  if(!conteudo) return;
+  vigiaDeRolagemLigado = true;
+
+  let anterior = conteudo.scrollTop;
+  conteudo.addEventListener('scroll', () => {
+    const atual = conteudo.scrollTop;
+    /* Uma margem de tolerância: sem ela, o repique do fim da rolagem e o
+       tremor do dedo parado já contariam como mudança de direção. */
+    if(Math.abs(atual - anterior) < 6) return;
+    /* Perto do topo o botão sempre volta — é onde a pessoa está começando. */
+    const oculto = atual > anterior && atual > 48;
+    anterior = atual;
+    if(oculto === flutuanteOculto) return;
+    flutuanteOculto = oculto;
+    const el = document.querySelector('.flutuante');
+    if(el) el.classList.toggle('recolhido', oculto);
+  }, {passive: true});
 }
 
 /** Estado vazio centralizado. */

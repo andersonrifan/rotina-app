@@ -16,7 +16,7 @@
    pessoa.
    =========================================================================== */
 
-import { Dados, Tela, agir, agirSemAviso, avisar, definirTela } from '../nucleo/estado.js';
+import { Dados, agir, agirSemAviso, avisar, definirTela } from '../nucleo/estado.js';
 import { baixarBackup, interpretarBackup, restaurar, resumirBackup } from '../nucleo/backup.js';
 import { h, icone, cabecalhoTela, pilula, rotuloSecao, stepper, abrirFolha,
          fecharFolha, abrirFolhaTexto } from '../ui/index.js';

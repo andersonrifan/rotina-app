@@ -33,7 +33,7 @@ export const armazem = {
   },
   apagar(chave){
     try{ localStorage.removeItem(chave); return true; }
-    catch(err){ return false; }
+    catch(_err){ return false; }
   }
 };
 

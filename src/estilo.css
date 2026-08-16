@@ -100,7 +100,7 @@
   --acao-clara:   #ffe1d0;       /* bloco atual, chip de aviso */
   --acao-tenue:   #fff2eb;       /* fundo de item pendente */
   --acao-contorno:#f6a06b;       /* borda de item pendente */
-  --acao-viva:    #c67139;       /* cartão do replanejar, categoria hobby */
+  --acao-viva:    #c67139;       /* realce quente de cartão */
 
   /* --- Sálvia --- */
   --salvia:       #56633f;       /* concluído, chip ativo, barras */
@@ -214,8 +214,8 @@ input{ font:inherit; color:inherit; }
 
 /* Números de horário e quantidade sempre alinhados em colunas. */
 .bloco-hora, .bloco-dur, .dia-numero, .kcal-numero, .estoque-dias, .refeicao-kcal,
-.refeicao-prot, .impacto-valor, .stepper-valor, .compra-qtd,
-.ajuste-detalhe, .cartao-edicao-faixa, .agora-ate, .agora-faixa-hora, .treino-contagem{
+.refeicao-prot, .stepper-valor, .compra-qtd,
+.agora-ate, .agora-faixa-hora, .treino-contagem{
   font-variant-numeric:tabular-nums;
 }
 
@@ -254,7 +254,7 @@ input{ font:inherit; color:inherit; }
 .cabecalho-acoes{ display:flex; gap:6px; flex-shrink:0; padding-bottom:2px; }
 
 /* Telas cujo título é curto usam um tamanho menor, como no handoff. */
-.tela-dia .titulo-tela, .tela-replanejar .titulo-tela{ font-size:26px; line-height:1.05; }
+.tela-dia .titulo-tela{ font-size:26px; line-height:1.05; }
 
 /* --- Rótulos --- */
 .rotulo-secao{
@@ -425,12 +425,20 @@ input{ font:inherit; color:inherit; }
 /* ===========================================================================
    04. BARRA DE ABAS
    =========================================================================== */
+/* A barra é irmã de #conteudo dentro de um flex de altura fixa (100dvh), e
+   não rola nunca: quem rola é só o conteúdo acima dela.
+
+   O respiro era desigual — 10 px acima dos ícones contra 22 px abaixo dos
+   rótulos —, o que empurrava o conjunto para cima e deixava uma faixa morta
+   embaixo. Igualando os dois, a barra "desce" e fica centrada na própria
+   altura. O `env()` continua somando a barra de gestos do aparelho, que é
+   espaço do sistema e não do app. */
 #abas{
   flex-shrink:0;
   display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;
   background:var(--superficie);
   border-radius:var(--r-grande) var(--r-grande) 0 0;
-  padding:10px 10px calc(22px + env(safe-area-inset-bottom));
+  padding:15px 10px calc(15px + env(safe-area-inset-bottom));
 }
 .aba{
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
@@ -562,17 +570,6 @@ input{ font:inherit; color:inherit; }
   padding:10px 14px;
 }
 
-.faixa-atraso{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  width:100%; text-align:left;
-  background:var(--acao-clara); color:var(--acao-escura);
-  border:1.5px solid var(--acao-contorno);
-  border-radius:var(--r-linha);
-  padding:11px 14px;
-}
-.faixa-atraso-titulo{ font-size:12px; font-weight:700; }
-.faixa-atraso-sub{ font-size:10.5px; font-weight:500; margin-top:1px; }
-
 /* --- Lista em leitura --- */
 .lista-blocos{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
 .bloco{
@@ -624,7 +621,10 @@ input{ font:inherit; color:inherit; }
   flex-shrink:0;
 }
 
-/* --- Botão flutuante --- */
+/* --- Botão flutuante -------------------------------------------------------
+   Sai da frente quando a pessoa rola para baixo (está lendo o dia) e volta
+   quando ela rola para cima (está procurando o que fazer). Ver
+   `botaoFlutuante` em ui/index.js. */
 .flutuante{
   position:absolute; right:22px; bottom:106px; z-index:20;
   width:58px; height:58px;
@@ -632,6 +632,14 @@ input{ font:inherit; color:inherit; }
   border-radius:var(--r-pilula);
   background:var(--acao); color:var(--branco);
   box-shadow:var(--sombra-flutuante);
+  transition:transform .2s ease, opacity .2s ease;
+}
+/* Sálvia: o + que acrescenta ao treino, não ao dia. */
+.flutuante.salvia{ background:var(--salvia); }
+.flutuante.recolhido{
+  transform:translateY(96px) scale(.85);
+  opacity:0;
+  pointer-events:none;
 }
 
 /* --- Chips de categoria da folha --- */
@@ -1041,52 +1049,6 @@ input{ font:inherit; color:inherit; }
 .passo-texto{ font-size:11.5px; font-weight:500; color:var(--texto-4); margin-top:2px; }
 .primeiro-uso-acoes{ display:flex; flex-direction:column; gap:7px; margin-top:6px; }
 .primeiro-uso-acoes .btn{ width:100%; }
-
-/* --- Replanejar --- */
-.tela-replanejar{
-  position:absolute; inset:0;
-  background:var(--fundo);
-  overflow-y:auto;
-  padding:0 var(--pad-tela) calc(24px + env(safe-area-inset-bottom));
-}
-.cartao-mudou{
-  background:var(--acao-viva); color:var(--acao-tenue);
-  border-radius:var(--r-medio);
-  padding:12px 18px;
-}
-.mudou-texto{ margin:5px 0 0; font-size:13.5px; font-weight:700; line-height:1.5; }
-.lista-ajustes{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
-.ajuste{
-  display:flex; align-items:center; gap:11px;
-  background:var(--superficie);
-  border-radius:var(--r-linha-menor);
-  padding:10px 14px;
-}
-.ajuste-mover{ opacity:.65; }
-.ajuste-mover .ajuste-titulo{ text-decoration:line-through; }
-.ajuste-texto{ min-width:0; flex:1; }
-.ajuste-titulo{ font-size:12.5px; font-weight:600; }
-.ajuste-detalhe{ font-size:10.5px; font-weight:500; color:var(--texto-fraco); margin-top:1px; }
-.ajuste-acao{ font-size:10px; font-weight:600; flex-shrink:0; color:var(--texto-fraco); }
-.ajuste-encurtar .ajuste-acao{ color:var(--acao); }
-.ajuste-intacto .ajuste-acao{ color:var(--salvia); }
-.chips-alternativa{ display:flex; flex-wrap:wrap; gap:6px; }
-.chip-alternativa{
-  min-height:var(--toque); padding:0 13px;
-  border-radius:var(--r-pilula);
-  background:var(--superficie); color:var(--sono);
-  font-size:11px; font-weight:500;
-}
-.grade-impacto{ display:flex; gap:16px; }
-.impacto{ flex:1; }
-.impacto-rotulo{ font-size:10.5px; font-weight:600; color:var(--sono); }
-.impacto-valor{ font-size:14px; font-weight:700; margin-top:2px; }
-.impacto-delta{ font-size:9.5px; font-weight:500; margin-top:1px; color:var(--salvia); }
-.impacto-delta.negativo{ color:var(--acao); }
-.acoes-replanejar{ display:flex; gap:9px; margin-top:4px; }
-.acoes-replanejar .btn{ flex:1; }
-
-
 /* ===========================================================================
    11. ACESSIBILIDADE
 
@@ -1239,7 +1201,9 @@ button, .tocavel{
   min-height:0;                      /* a altura é a duração, não os 44 px */
   overflow:hidden;
   display:flex; align-items:flex-start; gap:6px;
-  padding:5px 9px 5px 11px;
+  /* 4 px de barra + 8 px de recuo equilibram os 9 px da direita: com os 11 px
+     de antes o texto ficava visivelmente jogado para dentro. */
+  padding:5px 9px 5px 8px;
   border-radius:var(--r-min);
   border-left:4px solid var(--cor-cat);
   background:var(--cor-cat-suave);

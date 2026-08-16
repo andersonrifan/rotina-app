@@ -69,6 +69,9 @@ continua livre), mas isso não substitui um polegar.
 
 - [ ] Toque e segure 500 ms entra em edição sem disparar ao rolar a régua
 - [ ] Segurar não abre mais a barra de Copiar/Compartilhar do navegador
+- [ ] **Botão Voltar** com folha aberta fecha a folha; no Início, sai do app
+      (só dá para testar no APK — no navegador o evento não existe)
+- [ ] O `+` sumindo ao rolar não atrapalha quem rola devagar
 - [ ] Rolar o dia em modo de edição encostando nos cartões — o corpo do cartão
       deve rolar, só as duas alças é que seguram o dedo
 - [ ] Arrastar pela alça ≡ para um espaço livre e ver que nada mais se mexe
@@ -79,7 +82,6 @@ continua livre), mas isso não substitui um polegar.
 - [ ] Alvos pequenos: a alça de mover tem 28 px de largura e a de duração
       13 px de altura. São exceções conscientes aos 44 px, porque a altura do
       cartão É a duração do bloco — mas só o dedo diz se ficou confortável
-- [ ] Botão Voltar do Android com folha aberta (deve fechar a folha, não o app)
 - [ ] Barra de abas não fica embaixo da barra de gestos
 - [ ] Teclado virtual no campo de nome — o `<form>` deve mostrar "Ir"/"OK"
 - [ ] Dados sobrevivem a fechar/reabrir e a uma atualização do app
@@ -102,6 +104,30 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 ## Já resolvido
 
 Fica registrado para não voltar à discussão.
+
+**Da rodada da Rotina:**
+
+- ~~O botão Voltar do Android fechava o app~~ — agora ele fecha a camada de
+  cima (folha, perfil, estatísticas, modo de edição), depois volta ao Início,
+  e só então sai. `@capacitor/app` era dependência e nunca tinha sido usado
+- ~~Refeição trocada na aba Comida não aparecia na Rotina~~ — materializar um
+  dia congelava também o nome do prato; agora congela só os horários
+- ~~O `+` tapava o fim do dia~~ — ele se recolhe ao rolar para baixo e volta
+  ao rolar para cima
+- ~~Aba "Dia"~~ — virou "Rotina", que é o que ela mostra
+- ~~Replanejar o resto do dia~~ — removido, com a faixa de aviso junto
+- ~~Novo treino só existia como botão no estado vazio~~ — ganhou o `+`
+  flutuante, em sálvia, que também adiciona exercício quando já há treino
+- ~~Exercício por tempo só oferecia repetições~~ — o exercício declara se
+  conta reps ou segundos, o registro pergunta a coisa certa e os segundos
+  ficam fora da conta de volume. O que já estava montado é reconhecido pelo
+  alvo ("2 × 20–30s")
+- ~~`estudo` e `pessoal` tinham a MESMA cor~~ — dez categorias, dez matizes
+  terrosos distintos, e o fundo do cartão subiu de 13 % para 22 %
+- ~~Barra de abas com respiro desigual~~ — 15 px acima e abaixo, em vez de
+  10/22, o que a deixava empurrada para cima
+- ~~Texto do cartão da régua deslocado para dentro~~ — o recuo da esquerda
+  agora fecha com o da direita
 
 **Da segunda rodada da régua:**
 

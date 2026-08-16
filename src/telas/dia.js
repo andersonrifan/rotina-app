@@ -9,8 +9,8 @@ import { janelaDoDia, horasDaJanela, rotuloDaHora, lacunas, minutosLivres,
          blocosNaJanela, blocosAntesDaJanela, colunasDaJanela, arrastarPara,
          redimensionar, limitarInicio, noPasso, PASSO_MINUTOS } from '../nucleo/agenda.js';
 import { h, icone, cabecalhoTela, pilula, pilulaConcluir, estadoVazio, rotuloSecao,
-         abrirFolha, fecharFolha, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
-import { avisoDeAtraso } from './extras.js';
+         botaoFlutuante, abrirFolha, fecharFolha, ligarToqueLongo,
+         consumirToqueLongo } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 2 — DIA
@@ -84,14 +84,15 @@ export function telaDia(){
     ),
     faixaDaSemana(iso),
     cabecalhoDoDia(iso),
-    ehHoje(iso) && !editando ? avisoDeAtraso(iso) : null,
     seletorDeVisao(editando),
     editando
       ? h('p', {class:'dica-edicao'},
           'Arraste pela alça ≡ para o horário que quiser · puxe a borda de baixo para durar · toque para os horários exatos')
       : null,
     corpoDoDia(iso, editando, soLeitura),
-    !editando ? botaoFlutuante(iso) : null
+    !editando && !soLeitura
+      ? botaoFlutuante('Novo bloco', () => abrirFolhaNovoBloco(iso))
+      : null
   );
 }
 
@@ -800,11 +801,6 @@ function removerBloco(iso, bloco, soLeitura){
 /* ===========================================================================
    BOTÃO FLUTUANTE E FOLHA DE NOVO BLOCO
    =========================================================================== */
-
-function botaoFlutuante(iso){
-  return h('button', {class:'flutuante', type:'button', 'aria-label':'Novo bloco',
-    onTap: () => abrirFolhaNovoBloco(iso)}, icone('mais', 24));
-}
 
 let rascunhoNovo = null;
 

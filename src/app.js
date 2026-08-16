@@ -13,20 +13,24 @@
 import { MODELO } from './dados/modelo.js';
 import { Tela, Dados, carregar, definirTela, dadosIniciais, substituirDados } from './nucleo/estado.js';
 import { registrarDesenho } from './nucleo/render.js';
-import { hojeISO, ehPassado } from './nucleo/tempo.js';
+import { hojeISO } from './nucleo/tempo.js';
 import { h, icone, desenharFolha, desenharAviso } from './ui/index.js';
 import { telaInicio } from './telas/inicio.js';
 import { telaDia } from './telas/dia.js';
 import { telaTreino } from './telas/treino.js';
 import { telaComida } from './telas/comida.js';
 import { telaCaixa } from './telas/caixa.js';
-import { telaPrimeiroUso, telaReplanejar } from './telas/extras.js';
+import { telaPrimeiroUso } from './telas/extras.js';
 import { telaBoasVindas, telaPerfil, precisaDeNome } from './telas/perfil.js';
 import { telaEstatisticas } from './telas/estatisticas.js';
 
+/* O id da aba do calendário continua 'dia' — ele é chave de armazenamento e
+   de estado, e renomear id gravado só criaria migração para trocar uma
+   palavra na tela. O rótulo é "Rotina" porque é isso que a aba mostra: a
+   semana que se repete, não uma data solta. */
 const ABAS = [
   {id:'inicio', rotulo:'Início', icone:'casa',       desenhar: telaInicio},
-  {id:'dia',    rotulo:'Dia',    icone:'calendario', desenhar: telaDia},
+  {id:'dia',    rotulo:'Rotina', icone:'calendario', desenhar: telaDia},
   {id:'treino', rotulo:'Treino', icone:'halteres',   desenhar: telaTreino},
   {id:'comida', rotulo:'Comida', icone:'talheres',   desenhar: telaComida},
   {id:'caixa',  rotulo:'Caixa',  icone:'cartela',    desenhar: telaCaixa}
@@ -57,7 +61,6 @@ function desenharTudo(){
     /* Ordem importa: a última anexada fica por cima. */
     if(Tela.perfil) camadas.appendChild(telaPerfil());
     if(Tela.estatisticas) camadas.appendChild(telaEstatisticas());
-    if(Tela.replanejar) camadas.appendChild(telaReplanejar());
     /* A abertura tem uma ORDEM: primeiro o nome, depois a rotina.
        O `else if` importa — empilhar as duas deixaria a de baixo invisível
        mas ainda alcançável por Tab e lida por leitor de tela. */
@@ -85,7 +88,7 @@ function desenharTudo(){
       novo.focus();
       if(posicaoCursor !== null && novo.setSelectionRange){
         try{ novo.setSelectionRange(posicaoCursor, posicaoCursor); }
-        catch(e){ /* campo sem seleção posicionável (type=search em alguns navegadores) */ }
+        catch(_e){ /* campo sem seleção posicionável (type=search em alguns navegadores) */ }
       }
     }
   }
@@ -115,9 +118,48 @@ function mostrarErroDeInicio(mensagem){
   el.classList.add('visivel');
 }
 
+/* ===========================================================================
+   O BOTÃO VOLTAR DO ANDROID
+
+   Sem isto, Voltar com uma folha aberta fecha o app inteiro — e a folha é
+   onde a pessoa está digitando. Num app instalado, Voltar é o gesto de sair
+   de uma camada, não de sair de tudo.
+
+   A ordem é a da pilha visual: fecha primeiro o que está mais por cima, e o
+   app só termina quando não há mais nada de onde voltar. `exitApp` fica por
+   último e é a única saída que encerra de verdade.
+
+   O plugin do Capacitor não existe no navegador comum: lá o evento nunca
+   dispara e o `catch` cobre o import ausente. Nada disso muda o build web.
+   =========================================================================== */
+async function ligarBotaoVoltar(){
+  try{
+    const { App } = await import('@capacitor/app');
+    App.addListener('backButton', () => {
+      if(Tela.folha){ definirTela({folha: null}); return; }
+      if(Tela.estatisticas){ definirTela({estatisticas: false}); return; }
+      if(Tela.perfil){ definirTela({perfil: false}); return; }
+      if(Tela.primeiroUso){ definirTela({primeiroUso: false}); return; }
+
+      const emEdicao = Object.keys(Tela.editando).filter(k => Tela.editando[k])[0];
+      if(emEdicao){
+        definirTela({editando: Object.assign({}, Tela.editando, {[emEdicao]: false})});
+        return;
+      }
+      /* Fora do Início, Voltar leva ao Início — a raiz do app. */
+      if(Tela.aba !== 'inicio'){ definirTela({aba: 'inicio'}); return; }
+      App.exitApp();
+    });
+  }catch(_err){
+    /* Navegador comum: não existe botão Voltar de sistema para ouvir, e isso
+       não é uma falha — é o caso normal fora do app empacotado. */
+  }
+}
+
 /* --- Início --------------------------------------------------------------- */
 export function iniciar(){
   registrarDesenho(desenharTudo);
+  ligarBotaoVoltar();
 
   try{
     carregar(MODELO);

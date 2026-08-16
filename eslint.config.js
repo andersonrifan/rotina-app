@@ -27,7 +27,13 @@ export default [
     rules: {
       /* Erros de verdade */
       'no-undef': 'error',
-      'no-unused-vars': ['warn', {argsIgnorePattern: '^_', varsIgnorePattern: '^_'}],
+      /* `_` na frente marca "existe por exigência da linguagem, não é usado" —
+         vale também para o `catch (_err)` de um erro que é o caso esperado. */
+      'no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }],
 
       /* Higiene */
       'eqeqeq': ['warn', 'smart'],

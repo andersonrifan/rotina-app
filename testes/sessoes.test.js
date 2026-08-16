@@ -9,7 +9,7 @@ import { carregar, Dados } from '../src/nucleo/estado.js';
 import {
   sessaoDe, garantirSessao, seriesDe, ultimaSerieAnterior, resumirSeries,
   volumeDaSessao, totalDeSeries, sessoesRegistradas, sessoesDoTreino,
-  semanasSeguidasComTreino
+  semanasSeguidasComTreino, tipoDoExercicio, ehPorTempo
 } from '../src/nucleo/sessoes.js';
 import {
   aderenciaDoDia, aderenciaMediaDaSemana, tempoPorAreaResumido,
@@ -228,5 +228,64 @@ describe('outras medidas', () => {
     // a rotina de teste define almoço em Seg e Ter
     expect(c.definidas).toBe(2);
     expect(c.total).toBe(7 * Dados.slots.length);
+  });
+});
+
+/* ===========================================================================
+   EXERCÍCIO POR TEMPO
+
+   Prancha e alongamento não têm repetição — têm segundos. Anotar "30" num
+   campo chamado "Reps" era escrever um número que queria dizer outra coisa,
+   e somá-lo ao volume fazia o gráfico subir sem ninguém ter ficado mais forte.
+   =========================================================================== */
+
+describe('exercícios por tempo', () => {
+  it('o tipo declarado no exercício manda', () => {
+    expect(tipoDoExercicio({n:'Prancha', a:'3 × 10', tipo:'tempo'})).toBe('tempo');
+    expect(tipoDoExercicio({n:'Barra', a:'3 × 30s', tipo:'reps'})).toBe('reps');
+  });
+
+  it('sem declaração, o alvo em segundos responde sozinho', () => {
+    // Vale para tudo que já estava montado antes de o tipo existir.
+    expect(ehPorTempo({n:'Prancha frontal', a:'3 × 30s'})).toBe(true);
+    expect(ehPorTempo({n:'Alongamento',     a:'45s/lado'})).toBe(true);
+    expect(ehPorTempo({n:'Remada',          a:'3 × 8–12'})).toBe(false);
+    expect(ehPorTempo({n:'Afundo',          a:'3 × 10/perna'})).toBe(false);
+  });
+
+  it('exercício que não existe mais não quebra a conta', () => {
+    expect(tipoDoExercicio(null)).toBe('reps');
+  });
+
+  it('o resumo diz segundos, não repetições', () => {
+    const series = [{reps:30, carga:0}, {reps:30, carga:0}, {reps:30, carga:0}];
+    expect(resumirSeries(series, {a:'3 × 30s'})).toBe('3 × 30s');
+    expect(resumirSeries(series, {a:'3 × 10'})).toBe('3 × 30');
+  });
+
+  it('séries desiguais por tempo também levam a unidade', () => {
+    const series = [{reps:40, carga:0}, {reps:30, carga:0}];
+    expect(resumirSeries(series, {a:'30s'})).toBe('40s, 30s');
+  });
+
+  it('a carga continua aparecendo quando existe', () => {
+    const series = [{reps:30, carga:10}, {reps:30, carga:10}];
+    expect(resumirSeries(series, {a:'30s'})).toBe('2 × 30s · 10 kg');
+  });
+
+  it('segundos não entram no volume', () => {
+    // O treino de teste tem dois exercícios; o segundo passa a ser por tempo.
+    Dados.treinos[0].exercicios[1] = {n:'Prancha', a:'3 × 30s', tipo:'tempo'};
+    registrar(QUARTA_1, 't1', {
+      0: [{reps:10, carga:20}],          // 200 de volume
+      1: [{reps:60, carga:10}]           // por tempo: fora da conta
+    });
+    expect(volumeDaSessao(sessaoDe(QUARTA_1, 't1'))).toBe(200);
+  });
+
+  it('mas continuam contando como séries feitas', () => {
+    Dados.treinos[0].exercicios[1] = {n:'Prancha', a:'3 × 30s', tipo:'tempo'};
+    registrar(QUARTA_1, 't1', {0: [{reps:10, carga:20}], 1: [{reps:60, carga:0}]});
+    expect(totalDeSeries(sessaoDe(QUARTA_1, 't1'))).toBe(2);
   });
 });

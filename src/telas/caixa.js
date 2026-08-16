@@ -3,9 +3,9 @@ import { Dados, Tela, agir, agirSemAviso, avisar, definirTela } from '../nucleo/
 import { redesenhar } from '../nucleo/render.js';
 import { hojeISO, diaDaSemana, semanaDe, ehFuturo } from '../nucleo/tempo.js';
 import { compartimentosEmUso, remediosDoCompartimento, estadoDaCelula, DIAS_PARA_REPOR } from '../nucleo/modelo.js';
-import { h, icone, cabecalhoTela, pilula, rotuloSecao, barraProgresso, estadoVazio,
-         stepper, ajustarHora, proximoDaLista, abrirFolhaTexto,
-         pilulaConcluir, ligarToqueLongo, consumirToqueLongo, abrirFolha, fecharFolha } from '../ui/index.js';
+import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, estadoVazio,
+         stepper, pilulaConcluir, ligarToqueLongo, consumirToqueLongo,
+         abrirFolha, fecharFolha } from '../ui/index.js';
 
 /* ===========================================================================
    TELA 5 — CAIXA DE REMÉDIOS
