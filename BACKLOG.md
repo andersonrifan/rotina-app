@@ -45,14 +45,11 @@ que não vale.
 
 ### Limitações conhecidas do modelo atual
 
-- [ ] **Um prato por refeição.** O app antigo aceitava vários. Ao migrar seu
-      cardápio, os almoços de seg/ter/qua perderam o `arroz-lote` e ficaram só
-      com o prato principal. Consequência real: **a lista de compras pede menos
-      arroz do que você usa.** É decisão de produto vinda do handoff, não
-      restrição técnica.
-- [ ] **Horário da refeição ainda anda de 15 em 15 minutos.** O bloco do Dia e
-      o remédio já usam o seletor nativo do aparelho; falta trocar o stepper do
-      horário da refeição, em Comida → Editar.
+- [ ] **Recolocar o `arroz-lote` nos almoços.** A limitação de um prato por
+      refeição acabou (agora é uma lista), mas o cardápio não se corrige
+      sozinho: os almoços de seg/ter/qua continuam só com o prato principal
+      desde a migração. Reabrir cada um em Comida → Semana e marcar o arroz
+      junto faz a lista de compras voltar a pedir a quantidade certa.
 - [ ] **Célula do cardápio não é tocável.** Os 30 px de altura vêm do handoff e
       não chegam ao alvo mínimo, então a edição é pela lista abaixo da grade.
       Funciona, mas alguém pode tentar tocar a célula primeiro.
@@ -104,6 +101,22 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 ## Já resolvido
 
 Fica registrado para não voltar à discussão.
+
+**Da rodada de robustez:**
+
+- ~~O backup não saía do aparelho no app empacotado~~ — compartilhar pela
+  folha do sistema, baixar, ou copiar como texto; e o app lembra há quantos
+  dias foi o último
+- ~~O navegador podia despejar os dados sozinho~~ — `navigator.storage.persist()`
+- ~~`aria-modal` era promessa vazia~~ — foco entra na folha, Tab fica preso,
+  Esc fecha, o foco volta, e o fundo fica `inert`
+- ~~Remover remédio, refeição e exercício apagava sem perguntar~~ — os três
+  confirmam, dizendo o que se perde
+- ~~Horário da refeição andava de 15 em 15 minutos~~ — seletor nativo
+- ~~Sem modo escuro~~ — tema noturno completo, com auditoria de contraste
+  passando nas seis telas nos dois temas
+- ~~Um prato por refeição~~ — o cardápio guarda uma lista, e a lista de
+  compras soma os ingredientes de todos
 
 **Da rodada da semana-modelo:**
 

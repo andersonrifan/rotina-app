@@ -3,9 +3,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { carregar, Dados } from '../src/nucleo/estado.js';
 import {
-  pratoDe, nutriDaReceita, totaisDoDia, refeicaoFeita,
+  pratoDe, pratosDe, nutriDaReceita, totaisDoDia, refeicaoFeita,
   gerarCompras, formatarQuantidade, SECOES_COMPRA
 } from '../src/nucleo/modelo.js';
+import { migrar } from '../src/nucleo/armazem.js';
 import { RECEITAS } from '../src/dados/receitas.js';
 import { rotinaDeTeste } from './ajuda.js';
 
@@ -106,5 +107,107 @@ describe('formatação de quantidade', () => {
   it('usa vírgula decimal, como se escreve em português', () => {
     expect(formatarQuantidade(1250, {un:'g'})).toContain(',');
     expect(formatarQuantidade(1250, {un:'g'})).not.toContain('.');
+  });
+});
+
+/* ===========================================================================
+   VÁRIOS PRATOS NUMA REFEIÇÃO
+
+   O app aceitava um só, e isso não era limite de tela: era número errado. Um
+   almoço de frango com batata-doce MAIS arroz do lote só cabia como frango, e
+   a lista de compras passava a pedir menos arroz do que a semana consome.
+   Quem seguisse a lista chegava em casa sem arroz.
+   =========================================================================== */
+
+describe('mais de um prato por refeição', () => {
+  it('um id solto continua valendo — é como o modelo vem escrito', () => {
+    expect(pratosDe('Seg', 'almoco').map(r => r.id)).toEqual(['bolonhesa']);
+  });
+
+  it('a lista soma os dois pratos num conjunto só', () => {
+    Dados.cardapio.Seg.almoco = ['bolonhesa', 'cuscuz-ovo'];
+    const prato = pratoDe('Seg', 'almoco');
+    expect(prato.ids).toEqual(['bolonhesa', 'cuscuz-ovo']);
+    expect(prato.nome).toContain(' + ');
+  });
+
+  it('kcal e proteína são a soma, não o primeiro prato', () => {
+    const so = pratoDe('Seg', 'almoco');
+    Dados.cardapio.Seg.almoco = ['bolonhesa', 'cuscuz-ovo'];
+    const dois = pratoDe('Seg', 'almoco');
+    expect(dois.kcal).toBeGreaterThan(so.kcal);
+    expect(dois.prot).toBeGreaterThan(so.prot);
+  });
+
+  it('sem prato nenhum continua sendo null', () => {
+    Dados.cardapio.Seg.almoco = [];
+    expect(pratoDe('Seg', 'almoco')).toBe(null);
+    expect(pratosDe('Seg', 'almoco')).toEqual([]);
+  });
+
+  it('receita que não existe mais é ignorada, não quebra a tela', () => {
+    Dados.cardapio.Seg.almoco = ['bolonhesa', 'receita-que-sumiu'];
+    expect(pratosDe('Seg', 'almoco').map(r => r.id)).toEqual(['bolonhesa']);
+  });
+
+  it('A LISTA DE COMPRAS pede os ingredientes dos DOIS pratos', () => {
+    const soUm = gerarCompras().map(i => i.id);
+    Dados.cardapio.Seg.almoco = ['bolonhesa', 'cuscuz-ovo'];
+    const comDois = gerarCompras().map(i => i.id);
+    // Nada do primeiro prato se perdeu, e entrou coisa do segundo.
+    soUm.forEach(id => expect(comDois).toContain(id));
+    expect(comDois.length).toBeGreaterThan(soUm.length);
+  });
+
+  it('e a quantidade cresce quando o mesmo prato aparece duas vezes', () => {
+    /* Em gramas de verdade: a lista arredonda e troca de unidade (1200 g vira
+       "1,2 kg"), então comparar o numero cru diria que a quantidade caiu. */
+    const emGramas = () => {
+      const mapa = {};
+      gerarCompras().forEach(i => {
+        /* Fora: contagem em unidades, e os remédios da farmácia, cuja "qtd"
+           é uma frase ("acaba em 3 dias") e não um peso. */
+        if(/un\./.test(i.qtd) || !/^\d/.test(i.qtd)) return;
+        const n = parseFloat(String(i.qtd).replace(',', '.'));
+        mapa[i.nome] = /kg| L$/.test(i.qtd) ? n * 1000 : n;
+      });
+      return mapa;
+    };
+    const antes = emGramas();
+    Dados.cardapio.Qua.almoco = ['bolonhesa'];   // mais uma porção na semana
+    const depois = emGramas();
+
+    Object.keys(antes).forEach(nome => {
+      expect(depois[nome]).toBeGreaterThanOrEqual(antes[nome]);
+    });
+    expect(Object.keys(antes).filter(n => depois[n] > antes[n]).length).toBeGreaterThan(0);
+  });
+
+  it('os totais do dia contam o conjunto inteiro', () => {
+    Dados.refeicoesFeitas[SEGUNDA + ':almoco'] = true;
+    const so = totaisDoDia(SEGUNDA).kcal;
+    Dados.cardapio.Seg.almoco = ['bolonhesa', 'cuscuz-ovo'];
+    expect(totaisDoDia(SEGUNDA).kcal).toBeGreaterThan(so);
+  });
+});
+
+describe('migração v6 → v7: o cardápio vira lista', () => {
+  it('cada id solto vira uma lista de um', () => {
+    const antigo = {versao: 6, slots: [], cardapio: {Seg: {almoco: 'bolonhesa'}}};
+    expect(migrar(antigo).cardapio.Seg.almoco).toEqual(['bolonhesa']);
+  });
+
+  it('quem já era lista fica como está', () => {
+    const antigo = {versao: 6, slots: [], cardapio: {Seg: {almoco: ['a', 'b']}}};
+    expect(migrar(antigo).cardapio.Seg.almoco).toEqual(['a', 'b']);
+  });
+
+  it('escolha vazia é apagada em vez de virar lista de nada', () => {
+    const antigo = {versao: 6, slots: [], cardapio: {Seg: {almoco: null, jantar: ''}}};
+    expect(migrar(antigo).cardapio.Seg).toEqual({});
+  });
+
+  it('cardápio ausente não quebra a migração', () => {
+    expect(migrar({versao: 6, slots: []}).versao).toBe(7);
   });
 });

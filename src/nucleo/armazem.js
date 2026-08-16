@@ -15,7 +15,7 @@
 export const CHAVE = 'rotina_v4';
 
 /** A versão do esquema que ESTA build entende. Suba ao mudar o formato. */
-export const VERSAO_ESQUEMA = 6;
+export const VERSAO_ESQUEMA = 7;
 
 /** Cópia profunda. Usada ao semear dados e ao simular hipóteses. */
 export function clonar(valor){
@@ -61,6 +61,22 @@ const MIGRACOES = {
      sessões antigas para converter — o histórico começa agora. */
   5: (dados) => {
     if(!dados.sessoes) dados.sessoes = {};
+    return dados;
+  },
+
+  /* v6 → v7: uma refeição pode ter mais de um prato. O cardápio guardava um
+     id solto por refeição; passa a guardar uma lista. Um prato vira lista de
+     um, e nada se perde. */
+  6: (dados) => {
+    const cardapio = dados.cardapio || {};
+    Object.keys(cardapio).forEach(diaK => {
+      const dia = cardapio[diaK] || {};
+      Object.keys(dia).forEach(slotId => {
+        const escolha = dia[slotId];
+        if(!escolha) delete dia[slotId];
+        else if(!Array.isArray(escolha)) dia[slotId] = [escolha];
+      });
+    });
     return dados;
   }
 };

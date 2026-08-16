@@ -306,14 +306,49 @@ export function exercicioFeito(iso, treinoId, volta, indice){
    COMIDA
    =========================================================================== */
 
-/** O prato do cardápio para um dia da semana + refeição, com kcal e proteína. */
+/* ---------------------------------------------------------------------------
+   UMA REFEIÇÃO PODE TER MAIS DE UM PRATO
+
+   O app aceitava um só, e isso não era detalhe de tela: era um número errado.
+   Um almoço de "frango com batata-doce" mais "arroz do lote" só cabia como
+   frango — e a lista de compras passava a pedir menos arroz do que a semana
+   consome de verdade. Quem seguisse a lista chegava em casa sem arroz.
+
+   O cardápio guarda uma LISTA de receitas por refeição. `pratosDe` devolve a
+   lista; `pratoDe` continua existindo e devolve o conjunto somado, com os
+   nomes juntos — é o que as telas mostram numa linha só.
+   --------------------------------------------------------------------------- */
+
+/** As receitas escolhidas para um dia da semana + refeição. Sempre um array. */
+export function pratosDe(diaK, slotId){
+  const escolha = (Dados.cardapio[diaK] || {})[slotId];
+  if(!escolha) return [];
+  const ids = Array.isArray(escolha) ? escolha : [escolha];
+  return ids.map(id => RECEITAS.filter(r => r.id === id)[0]).filter(Boolean);
+}
+
+/**
+ * O conjunto da refeição, somado: nome composto, kcal e proteína do total.
+ * Devolve `null` quando não há prato nenhum — é o que as telas testam.
+ */
 export function pratoDe(diaK, slotId){
-  const id = (Dados.cardapio[diaK] || {})[slotId];
-  if(!id) return null;
-  const receita = RECEITAS.filter(r => r.id === id)[0];
-  if(!receita) return null;
-  const n = nutriDaReceita(receita);
-  return {id: receita.id, nome: receita.nome, kcal: Math.round(n.kcal), prot: Math.round(n.prot)};
+  const receitas = pratosDe(diaK, slotId);
+  if(!receitas.length) return null;
+
+  let kcal = 0, prot = 0;
+  receitas.forEach(r => {
+    const n = nutriDaReceita(r);
+    kcal += n.kcal;
+    prot += n.prot;
+  });
+
+  return {
+    id: receitas[0].id,
+    ids: receitas.map(r => r.id),
+    nome: receitas.map(r => r.nome).join(' + '),
+    kcal: Math.round(kcal),
+    prot: Math.round(prot)
+  };
 }
 
 /**
@@ -381,12 +416,15 @@ export const SECOES_COMPRA = ['Feira', 'Mercado', 'Farmácia'];
 export const DIAS_PARA_REPOR = 7;   // abaixo disso o remédio entra na lista
 
 export function gerarCompras(){
-  /* Quantas porções de cada receita a semana pede */
+  /* Quantas porções de cada receita a semana pede. Uma refeição pode ter mais
+     de um prato, e cada um conta a sua porção — é aqui que a lista deixava de
+     pedir o arroz que acompanha o frango. */
   const porcoes = {};
   DIAS.forEach(d => {
     Object.keys(Dados.cardapio[d.k] || {}).forEach(slotId => {
-      const id = Dados.cardapio[d.k][slotId];
-      if(id) porcoes[id] = (porcoes[id] || 0) + 1;
+      pratosDe(d.k, slotId).forEach(r => {
+        porcoes[r.id] = (porcoes[r.id] || 0) + 1;
+      });
     });
   });
 

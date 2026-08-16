@@ -1,7 +1,7 @@
 import { DIAS, NOMES_REFEICAO, REFEICOES_SUGERIDAS } from '../dados/modelo.js';
 import { Dados, Tela, agir, agirSemAviso, definirTela } from '../nucleo/estado.js';
 import { diaDaSemana, semanaDe, dataCurta, paraMinutos } from '../nucleo/tempo.js';
-import { pratoDe, nutriDaReceita, totaisDoDia, refeicaoFeita, gerarCompras,
+import { pratoDe, pratosDe, nutriDaReceita, totaisDoDia, refeicaoFeita, gerarCompras,
          comprasAtuais, SECOES_COMPRA, horaDaRefeicaoNoDia } from '../nucleo/modelo.js';
 import { RECEITAS } from '../dados/receitas.js';
 import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, estadoVazio,
@@ -194,9 +194,11 @@ export function nomeCompletoDoDia(k){
   return DIAS.filter(d => d.k === k)[0].full;
 }
 
+/* A escolha é MÚLTIPLA: um almoço é frango com batata-doce E arroz do lote.
+   Aceitar um prato só não era simplificação de tela — era a lista de compras
+   pedindo menos arroz do que a semana consome. A folha não fecha a cada
+   toque, porque montar um prato composto são vários toques seguidos. */
 export function corpoEscolhaDePrato(diaK, slot){
-  const atual = (Dados.cardapio[diaK] || {})[slot.id];
-
   return h('div', {class:'folha-corpo'},
     h('input', {
       class:'campo-entrada', type:'search', value: buscaDePrato,
@@ -205,18 +207,37 @@ export function corpoEscolhaDePrato(diaK, slot){
         buscaDePrato = ev.target.value;
         /* Redesenha só a lista pra não perder o foco do campo enquanto digita */
         const alvo = document.querySelector('.lista-pratos');
-        if(alvo) alvo.replaceWith(listaDePratos(diaK, slot, atual));
+        if(alvo) alvo.replaceWith(listaDePratos(diaK, slot));
       }
     }),
-    atual ? h('button', {class:'btn btn-suave largura-cheia', type:'button',
-      onTap: () => escolherPrato(diaK, slot, null)}, 'Deixar a definir') : null,
-    listaDePratos(diaK, slot, atual)
+    resumoDaEscolha(diaK, slot),
+    listaDePratos(diaK, slot),
+    /* A folha não fecha sozinha ao escolher, então precisa de uma saída
+       explícita — puxar a alça também fecha, mas nem todo mundo descobre. */
+    h('button', {class:'btn btn-forte largura-cheia', type:'button',
+      onTap: fecharFolha}, 'Pronto')
   );
 }
 
-export function listaDePratos(diaK, slot, atual){
+function resumoDaEscolha(diaK, slot){
+  const escolhidos = pratosDe(diaK, slot.id);
+  if(!escolhidos.length){
+    return h('p', {class:'nota'}, 'Nada escolhido ainda. Toque em quantos pratos a refeição tiver.');
+  }
+  const prato = pratoDe(diaK, slot.id);
+  return h('div', null,
+    h('p', {class:'nota destaque'},
+      escolhidos.map(r => r.nome).join(' + ') + ' · ' +
+      numeroBR(prato.kcal) + ' kcal · ' + prato.prot + ' g prot'),
+    h('button', {class:'btn btn-suave largura-cheia', type:'button',
+      onTap: () => limparPratos(diaK, slot)}, 'Deixar a definir')
+  );
+}
+
+export function listaDePratos(diaK, slot){
   const termo = buscaDePrato.trim().toLowerCase();
   const lista = RECEITAS.filter(r => !termo || r.nome.toLowerCase().indexOf(termo) >= 0);
+  const escolhidos = pratosDe(diaK, slot.id).map(r => r.id);
 
   if(!lista.length){
     return h('div', {class:'lista-pratos'}, h('p', {class:'nota'}, 'Nenhuma receita com esse nome.'));
@@ -225,26 +246,42 @@ export function listaDePratos(diaK, slot, atual){
   return h('div', {class:'lista-pratos'},
     lista.map(r => {
       const n = nutriDaReceita(r);
+      const dentro = escolhidos.indexOf(r.id) >= 0;
       return h('button', {
-          class:'item-prato' + (r.id === atual ? ' atual' : ''),
+          class:'item-prato' + (dentro ? ' atual' : ''),
           type:'button',
-          onTap: () => escolherPrato(diaK, slot, r.id)
+          'aria-pressed': String(dentro),
+          onTap: () => alternarPrato(diaK, slot, r.id)
         },
         h('span', {class:'item-prato-nome'}, r.nome),
         h('span', {class:'item-prato-meta'},
-          numeroBR(n.kcal) + ' kcal · ' + Math.round(n.prot) + ' g prot')
+          numeroBR(n.kcal) + ' kcal · ' + Math.round(n.prot) + ' g prot'),
+        dentro ? h('span', {class:'item-prato-marca'}, icone('check', 14)) : null
       );
     })
   );
 }
 
-export function escolherPrato(diaK, slot, receitaId){
-  agir(receitaId ? 'Cardápio atualizado' : 'Prato removido do cardápio', d => {
+/** Põe ou tira uma receita da refeição, sem fechar a folha. */
+export function alternarPrato(diaK, slot, receitaId){
+  const dentro = pratosDe(diaK, slot.id).some(r => r.id === receitaId);
+  agirSemAviso(d => {
     if(!d.cardapio[diaK]) d.cardapio[diaK] = {};
-    if(receitaId) d.cardapio[diaK][slot.id] = receitaId;
+    const atual = d.cardapio[diaK][slot.id];
+    const ids = Array.isArray(atual) ? atual.slice() : (atual ? [atual] : []);
+    const i = ids.indexOf(receitaId);
+    if(i >= 0) ids.splice(i, 1);
+    else ids.push(receitaId);
+    if(ids.length) d.cardapio[diaK][slot.id] = ids;
     else delete d.cardapio[diaK][slot.id];
   });
-  fecharFolha();
+  return dentro;
+}
+
+export function limparPratos(diaK, slot){
+  agirSemAviso(d => {
+    if(d.cardapio[diaK]) delete d.cardapio[diaK][slot.id];
+  });
 }
 
 /* ===========================================================================
