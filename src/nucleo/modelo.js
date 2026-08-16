@@ -15,7 +15,7 @@ import { ALIMENTOS, RECEITAS } from '../dados/receitas.js';
 import { Dados } from './estado.js';
 import { clonar } from './armazem.js';
 import {
-  paraMinutos, diaDaSemana,
+  paraMinutos, diaDaSemana, hojeISO,
   agoraEmMinutos, ehHoje, ehPassado, ehFuturo
 } from './tempo.js';
 
@@ -69,19 +69,30 @@ export function ehSomenteLeitura(iso){
    já estava marcado, ao contrário de usar a posição na lista.
    =========================================================================== */
 
-export function gerarDia(iso){
-  const dia = diaDaSemana(iso);
+/**
+ * O dia que um DIA DA SEMANA produz, sem data nenhuma.
+ *
+ * É a semana-modelo materializada em blocos — o molde de que toda segunda
+ * nasce. `gerarDia` é isto aplicado a uma data, e a tela de Semana modelo é
+ * isto mostrado direto, sem passar por um dia.
+ */
+export function gerarDaSemana(diaK){
   const blocos = [];
 
-  (Dados.fixos[dia.k] || []).forEach((f, i) => {
+  /* A POSIÇÃO no array é a identidade do bloco ('fixo:Seg:3'), e é ela que as
+     marcações usam como chave. Por isso remover da semana deixa um buraco
+     (`null`) em vez de encurtar a lista: encurtar renumeraria todos os blocos
+     seguintes, e cada marcação passaria a apontar para o bloco errado. */
+  (Dados.fixos[diaK] || []).forEach((f, i) => {
+    if(!f) return;
     blocos.push({
-      id: 'fixo:' + dia.k + ':' + i,
+      id: 'fixo:' + diaK + ':' + i,
       hora: f[0], dur: f[1], titulo: f[2], cat: f[3], sub: ''
     });
   });
 
   Dados.slots.forEach(slot => {
-    const prato = pratoDe(dia.k, slot.id);
+    const prato = pratoDe(diaK, slot.id);
     blocos.push({
       id: 'slot:' + slot.id,
       hora: slot.hora, dur: slot.dur,
@@ -90,7 +101,7 @@ export function gerarDia(iso){
     });
   });
 
-  const treino = treinoDoDia(dia.k);
+  const treino = treinoDoDia(diaK);
   if(treino){
     blocos.push({
       id: 'treino:' + treino.id,
@@ -100,6 +111,10 @@ export function gerarDia(iso){
   }
 
   return ordenarPorHora(blocos);
+}
+
+export function gerarDia(iso){
+  return gerarDaSemana(diaDaSemana(iso).k);
 }
 
 export function ordenarPorHora(blocos){
@@ -158,6 +173,73 @@ function comTextoAtual(iso, bloco){
 export function materializar(dados, iso){
   if(!dados.blocos[iso]) dados.blocos[iso] = clonar(gerarDia(iso));
   return dados.blocos[iso];
+}
+
+/* ===========================================================================
+   MUDAR A SEMANA-MODELO SEM DESFAZER O PASSADO
+
+   Mexer no molde é mexer em TODOS os dias que nascem dele — inclusive nos que
+   já foram vividos. Mudar o café da manhã de 06:30 para 08:00 reescreveria
+   silenciosamente meses de manhãs que aconteceram às 06:30, e com elas a
+   aderência que as estatísticas mostram.
+
+   A regra do app é: mudança no molde vale de HOJE EM DIANTE. E a forma de
+   garantir isso é simples — antes de tocar no molde, os dias já vividos são
+   materializados, isto é, ganham uma cópia própria do que eram. Depois disso
+   a geração pode mudar à vontade: eles não dependem mais dela.
+
+   Só os dias com REGISTRO são congelados. Um dia passado em que nada foi
+   marcado não é história de ninguém, e guardar 365 cópias por ano de dias que
+   ninguém viveu só engorda o backup.
+   =========================================================================== */
+
+/** As datas que têm alguma marcação ou sessão gravada. */
+export function diasComRegistro(dados){
+  const datas = {};
+  const juntar = mapa => Object.keys(mapa || {}).forEach(chave => {
+    const data = chave.slice(0, 10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(data)) datas[data] = true;
+  });
+  juntar(dados.status);
+  juntar(dados.tomados);
+  juntar(dados.refeicoesFeitas);
+  juntar(dados.exercFeitos);
+  juntar(dados.sessoes);
+  return Object.keys(datas).sort();
+}
+
+/**
+ * Congela os dias já vividos. Chame ANTES de qualquer mudança no molde.
+ * Devolve quantos dias foram congelados — a tela usa isso para contar o que
+ * aconteceu em vez de fazer em silêncio.
+ */
+export function congelarPassado(dados){
+  const hoje = hojeISO();
+  let quantos = 0;
+  diasComRegistro(dados).forEach(iso => {
+    if(iso >= hoje || dados.blocos[iso]) return;
+    materializar(dados, iso);
+    quantos++;
+  });
+  return quantos;
+}
+
+/**
+ * Leva uma mudança de bloco para os dias JÁ MATERIALIZADOS de hoje em diante.
+ *
+ * Sem isto, "valer em todas as segundas" não alcançaria as segundas futuras
+ * que a pessoa já tinha aberto e ajustado — elas têm cópia própria e não
+ * escutam mais o molde.
+ */
+export function propagarParaFuturo(dados, idDoBloco, diaK, mudanca){
+  const hoje = hojeISO();
+  Object.keys(dados.blocos).forEach(iso => {
+    if(iso < hoje) return;
+    /* `diaK` nulo = vale para todo dia da semana (é o caso das refeições). */
+    if(diaK && diaDaSemana(iso).k !== diaK) return;
+    const alvo = dados.blocos[iso].filter(b => b.id === idDoBloco)[0];
+    if(alvo) Object.assign(alvo, mudanca);
+  });
 }
 
 /** O bloco acontecendo agora (só faz sentido hoje). */

@@ -58,9 +58,9 @@ src/
   ui/index.js         h(), ícones, peças reaproveitadas, folha, aviso
   ui/graficos.js      SVG à mão: colunas, barras, linha, medidor
   telas/              uma por aba, mais boas-vindas, perfil,
-                      estatisticas e primeiro-uso
+                      estatisticas, semana e primeiro-uso
 
-testes/               190 testes sobre o núcleo
+testes/               205 testes sobre o núcleo
 docs/                 publicação e privacidade
 ```
 
@@ -93,10 +93,34 @@ para ser vivida de novo. As **sessões de treino** também são por data, e é
 justamente isso que dá histórico às estatísticas.
 
 No meio dos dois está o dia materializado: ele vale só para aquela data. Mover
-o almoço numa segunda não mexe nas outras segundas — e se você quis mudar a
-rotina, e não só aquele dia, o caminho é a semana-modelo (o interruptor
-"Repetir toda segunda-feira" ao criar um bloco, ou as abas Comida e Treino).
+o almoço numa segunda não mexe nas outras segundas.
 `testes/rotina-semanal.test.js` existe para que isso continue verdadeiro.
+
+### Mudar a rotina, e não só um dia
+
+Dois caminhos, e os dois obedecem à mesma regra:
+
+- **No editor de bloco da Rotina**, o interruptor *"Valer em toda
+  segunda-feira"* (ou *"em todos os dias"*, se for refeição). É o caminho de
+  quem já está olhando o bloco e percebeu que a mudança é permanente.
+- **Perfil → Semana modelo**, para redesenhar a semana inteira sentado: os
+  sete dias, o que cada um tem, adicionar e tirar. Refeições e treinos
+  aparecem lá para dar o dia completo, mas continuam sendo definidos nas abas
+  Comida e Treino — um terceiro lugar para mudar o mesmo horário é onde as
+  telas começam a discordar.
+
+**A regra:** mudança no molde vale **de hoje em diante**. Antes de tocar no
+molde, os dias já vividos são *congelados* — ganham uma cópia própria do que
+eram e param de depender da geração. Sem isso, mudar o café da manhã de 06:30
+para 08:00 reescreveria meses de manhãs que aconteceram às 06:30, e com elas a
+aderência que as estatísticas mostram. Só dias **com registro** são congelados:
+um dia passado em que nada foi marcado não é história de ninguém.
+
+Um detalhe que parece bobo e não é: tirar um bloco da semana deixa um **buraco**
+no lugar dele, em vez de encurtar a lista. A posição no array é a identidade do
+bloco (`fixo:Seg:3`), e é ela que as marcações usam como chave — encurtar
+renumeraria todos os seguintes e cada marcação passaria, em silêncio, a apontar
+para o bloco errado.
 
 **2. O que foi feito é separado do que foi planejado.**
 O treino é estrutura: "Força A tem 8 exercícios" vale para todas as quartas. A

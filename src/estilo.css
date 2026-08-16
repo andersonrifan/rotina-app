@@ -1467,6 +1467,57 @@ button, .tocavel{
   padding:0 var(--pad-tela) calc(24px + env(safe-area-inset-bottom));
 }
 
+/* ===========================================================================
+   SEMANA MODELO
+
+   Uma lista simples, de propósito: aqui não se olha a forma do dia (para isso
+   existe a régua da Rotina), se decide o que a semana tem. Altura igual em
+   todas as linhas deixa comparar sete dias sem rolar atrás de um bloco de
+   8 horas.
+   =========================================================================== */
+.tela-semana{
+  position:absolute; inset:0;
+  background:var(--fundo);
+  overflow-y:auto;
+  display:flex; flex-direction:column; gap:var(--gap-cartoes);
+  padding:0 var(--pad-tela) calc(24px + env(safe-area-inset-bottom));
+}
+/* O seletor de dia não tem números de calendário: aqui não há datas. */
+.faixa-modelo .dia-modelo-nome{
+  font-size:11px; font-weight:700; color:var(--texto-3);
+  text-transform:uppercase; letter-spacing:.03em;
+}
+.faixa-modelo .dia-faixa.selecionado .dia-modelo-nome{ color:var(--branco); }
+
+.lista-modelo{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.linha-modelo{
+  display:flex; align-items:center; gap:10px;
+  min-height:52px;
+  padding:8px 10px 8px 12px;
+  border-radius:var(--r-linha-menor);
+  border-left:4px solid var(--cor-cat);
+  background:var(--cor-cat-suave);
+}
+.linha-modelo-texto{ flex:1; min-width:0; }
+.linha-modelo-titulo{
+  font-size:13px; font-weight:600; color:var(--texto);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.linha-modelo-hora{
+  font-size:11px; font-weight:500; color:var(--texto-3); margin-top:1px;
+  font-variant-numeric:tabular-nums;
+}
+/* Refeição e treino aparecem para dar o dia inteiro, mas quem manda neles é
+   outra aba — o chip diz qual, e tocar leva até lá. */
+.linha-modelo.emprestada{ opacity:.82; }
+.chip-origem{
+  flex-shrink:0;
+  font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--texto-3); background:var(--superficie-clara);
+  border-radius:var(--r-pilula);
+  padding:5px 10px;
+}
+
 /* --- Resumo na tela Início --------------------------------------------------- */
 .cartao-resumo{ text-align:left; align-items:stretch; width:100%; }
 .resumo-pct{

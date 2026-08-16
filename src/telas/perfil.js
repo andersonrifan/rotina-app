@@ -22,6 +22,7 @@ import { h, icone, cabecalhoTela, pilula, rotuloSecao, stepper, abrirFolha,
          fecharFolha, abrirFolhaTexto } from '../ui/index.js';
 import { reabrirPrimeiroUso } from './extras.js';
 import { abrirEstatisticas } from './estatisticas.js';
+import { abrirSemana } from './semana.js';
 
 /* Injetada no build a partir do package.json. Fora do build (testes), cai
    em 'dev' — útil pra saber de qual versão veio um relato de erro. */
@@ -113,6 +114,17 @@ export function telaPerfil(){
         h('button', {class:'btn-renomear', type:'button', onTap: renomearPessoa},
           icone('lapis', 13), 'Mudar')
       )
+    ),
+
+    /* --- Semana modelo ---
+       Fica acima das Estatísticas porque é a única coisa do Perfil que muda o
+       app em vez de só olhar para ele. */
+    h('button', {class:'linha-atalho', type:'button', onTap: abrirSemana},
+      h('div', null,
+        rotuloSecao('Semana modelo'),
+        h('div', {class:'atalho-apoio'}, 'O molde de que todo dia nasce — vale de hoje em diante')
+      ),
+      icone('seta', 18)
     ),
 
     /* --- Estatísticas --- */

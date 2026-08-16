@@ -4,7 +4,8 @@ import { redesenhar } from '../nucleo/render.js';
 import { hojeISO, deISO, diaDaSemana, semanaDe, dataCurta, ehHoje, ehPassado,
          paraMinutos, paraHora, rotuloDuracao, agoraEmMinutos } from '../nucleo/tempo.js';
 import { blocosDoDia, blocoAtual, ordenarPorHora, materializar, statusDoBloco, proximoStatus,
-         ehSomenteLeitura, treinoDoDia, corDaCategoria, corSuaveDaCategoria } from '../nucleo/modelo.js';
+         ehSomenteLeitura, treinoDoDia, corDaCategoria, corSuaveDaCategoria,
+         congelarPassado, propagarParaFuturo } from '../nucleo/modelo.js';
 import { janelaDoDia, horasDaJanela, rotuloDaHora, lacunas, minutosLivres,
          blocosNaJanela, blocosAntesDaJanela, colunasDaJanela, arrastarPara,
          redimensionar, limitarInicio, noPasso, PASSO_MINUTOS } from '../nucleo/agenda.js';
@@ -714,17 +715,47 @@ let rascunhoBloco = null;
 function abrirEditorDeBloco(iso, bloco, soLeitura){
   if(soLeitura){ avisar('Reabra o dia para editar'); return; }
   const fim = paraHora(paraMinutos(bloco.hora) + bloco.dur);
-  rascunhoBloco = {titulo: bloco.titulo, cat: bloco.cat, inicio: bloco.hora, fim: fim};
+  rascunhoBloco = {
+    titulo: bloco.titulo, cat: bloco.cat, inicio: bloco.hora, fim: fim,
+    /* Nasce desligado: a edição de um dia é, por padrão, sobre AQUELE dia. */
+    noModelo: false
+  };
 
   abrirFolha({
     titulo: 'Editar bloco',
     rotuloConfirmar: 'Salvar',
-    corpo: () => corpoEditorDeBloco(),
+    corpo: () => corpoEditorDeBloco(iso, bloco),
     confirmar: () => salvarEdicaoDeBloco(iso, bloco)
   });
 }
 
-function corpoEditorDeBloco(){
+/**
+ * O que "valer sempre" quer dizer para cada tipo de bloco.
+ *
+ * A resposta muda com a origem: um bloco fixo é de um dia da semana, uma
+ * refeição vale para a semana toda, e um treino já está preso ao dia dele.
+ * Sem dizer isso na tela, ligar o interruptor seria apostar.
+ */
+function alcanceDoModelo(iso, bloco){
+  const dia = diaDaSemana(iso);
+  if(bloco.id.indexOf('slot:') === 0){
+    return {rotulo: 'Valer em todos os dias', diaK: null,
+            nota: 'As refeições têm um horário só para a semana inteira.'};
+  }
+  if(bloco.id.indexOf('treino:') === 0){
+    return {rotulo: 'Valer em toda ' + dia.full, diaK: dia.k,
+            nota: 'Muda o horário do treino na semana-modelo.'};
+  }
+  if(bloco.id.indexOf('fixo:') === 0){
+    return {rotulo: 'Valer em toda ' + dia.full, diaK: dia.k,
+            nota: 'Muda o bloco na semana-modelo.'};
+  }
+  return {rotulo: 'Repetir em toda ' + dia.full, diaK: dia.k,
+          nota: 'Este bloco existe só neste dia. Ligando, ele entra na semana-modelo.'};
+}
+
+function corpoEditorDeBloco(iso, bloco){
+  const alcance = alcanceDoModelo(iso, bloco);
   return h('div', {class:'folha-corpo'},
     h('label', {class:'campo'},
       h('span', {class:'campo-rotulo'}, 'Título'),
@@ -752,7 +783,20 @@ function corpoEditorDeBloco(){
     h('div', {class:'campo'},
       h('span', {class:'campo-rotulo'}, 'Categoria'),
       chipsDeCategoria(() => rascunhoBloco.cat, cat => { rascunhoBloco.cat = cat; })
-    )
+    ),
+
+    h('label', {class:'interruptor-linha'},
+      h('span', null, alcance.rotulo),
+      h('button', {
+        class:'interruptor' + (rascunhoBloco.noModelo ? ' ligado' : ''),
+        type:'button', role:'switch', 'aria-checked': String(rascunhoBloco.noModelo),
+        onTap: () => { rascunhoBloco.noModelo = !rascunhoBloco.noModelo; redesenhar(); }
+      }, h('span', {class:'interruptor-bola'}))
+    ),
+    h('p', {class:'nota'},
+      rascunhoBloco.noModelo
+        ? alcance.nota + ' Vale de hoje em diante — os dias já vividos ficam como estão.'
+        : 'Sem ligar, a mudança vale só para este dia.')
   );
 }
 
@@ -770,23 +814,68 @@ function chipsDeCategoria(lerAtual, definir){
 
 function salvarEdicaoDeBloco(iso, bloco){
   const r = rascunhoBloco;
+  const titulo = (r.titulo || '').trim() || 'Sem título';
   const inicio = paraMinutos(r.inicio);
   let dur = paraMinutos(r.fim) - inicio;
   /* Fim antes do início = o bloco atravessa a meia-noite. É legítimo (dormir),
      e a conta com o dia inteiro resolve sem precisar avisar nada. */
   if(dur <= 0) dur += 1440;
 
-  agir('Bloco atualizado', d => {
+  const alcance = alcanceDoModelo(iso, bloco);
+  const mensagem = r.noModelo
+    ? titulo + ' · ' + alcance.rotulo.toLowerCase()
+    : 'Bloco atualizado';
+
+  agir(mensagem, d => {
+    /* Antes de tocar no molde, os dias já vividos viram cópia própria. */
+    if(r.noModelo){
+      congelarPassado(d);
+      escreverNoModelo(d, iso, bloco, {titulo: titulo, cat: r.cat, hora: r.inicio, dur: dur});
+    }
+
     const lista = materializar(d, iso);
     const alvo = lista.filter(b => b.id === bloco.id)[0];
-    if(!alvo) return;
-    alvo.titulo = (r.titulo || '').trim() || 'Sem título';
-    alvo.cat = r.cat;
-    alvo.hora = r.inicio;
-    alvo.dur = dur;
-    d.blocos[iso] = ordenarPorHora(lista);
+    if(alvo){
+      /* Título escrito à mão não pode ser sobrescrito pelo modelo depois. */
+      if(titulo !== bloco.titulo && !r.noModelo) alvo.tituloProprio = true;
+      alvo.titulo = titulo;
+      alvo.cat = r.cat;
+      alvo.hora = r.inicio;
+      alvo.dur = dur;
+      d.blocos[iso] = ordenarPorHora(lista);
+    }
+
+    if(r.noModelo){
+      propagarParaFuturo(d, bloco.id, alcance.diaK,
+        {titulo: titulo, cat: r.cat, hora: r.inicio, dur: dur});
+    }
   });
   fecharFolha();
+}
+
+/** Escreve a mudança na camada de onde o bloco nasceu. */
+function escreverNoModelo(d, iso, bloco, m){
+  const diaK = diaDaSemana(iso).k;
+  const partes = bloco.id.split(':');
+
+  if(partes[0] === 'fixo'){
+    const lista = d.fixos[partes[1]];
+    const i = Number(partes[2]);
+    if(lista && lista[i]) lista[i] = [m.hora, m.dur, m.titulo, m.cat];
+    return;
+  }
+  if(partes[0] === 'slot'){
+    const slot = d.slots.filter(s => s.id === partes[1])[0];
+    if(slot){ slot.hora = m.hora; slot.dur = m.dur; slot.nome = m.titulo; }
+    return;
+  }
+  if(partes[0] === 'treino'){
+    const treino = d.treinos.filter(t => t.id === partes[1])[0];
+    if(treino){ treino.hora = m.hora; treino.dur = m.dur; treino.nome = m.titulo; }
+    return;
+  }
+  /* Bloco que só existia neste dia: passa a fazer parte da semana. */
+  d.fixos[diaK].push([m.hora, m.dur, m.titulo, m.cat]);
 }
 
 function removerBloco(iso, bloco, soLeitura){

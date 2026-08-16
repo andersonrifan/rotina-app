@@ -23,6 +23,7 @@ import { telaCaixa } from './telas/caixa.js';
 import { telaPrimeiroUso } from './telas/extras.js';
 import { telaBoasVindas, telaPerfil, precisaDeNome } from './telas/perfil.js';
 import { telaEstatisticas } from './telas/estatisticas.js';
+import { telaSemana } from './telas/semana.js';
 
 /* O id da aba do calendário continua 'dia' — ele é chave de armazenamento e
    de estado, e renomear id gravado só criaria migração para trocar uma
@@ -60,6 +61,7 @@ function desenharTudo(){
     camadas.textContent = '';
     /* Ordem importa: a última anexada fica por cima. */
     if(Tela.perfil) camadas.appendChild(telaPerfil());
+    if(Tela.semana) camadas.appendChild(telaSemana());
     if(Tela.estatisticas) camadas.appendChild(telaEstatisticas());
     /* A abertura tem uma ORDEM: primeiro o nome, depois a rotina.
        O `else if` importa — empilhar as duas deixaria a de baixo invisível
@@ -138,6 +140,7 @@ async function ligarBotaoVoltar(){
     App.addListener('backButton', () => {
       if(Tela.folha){ definirTela({folha: null}); return; }
       if(Tela.estatisticas){ definirTela({estatisticas: false}); return; }
+      if(Tela.semana){ definirTela({semana: false}); return; }
       if(Tela.perfil){ definirTela({perfil: false}); return; }
       if(Tela.primeiroUso){ definirTela({primeiroUso: false}); return; }
 

@@ -125,6 +125,10 @@ export const Tela = {
   primeiroUso: false,
   /* Tela de perfil aberta por cima do app. */
   perfil: false,
+  /* Tela de Semana modelo, aberta a partir do Perfil, e o dia que ela mostra.
+     O dia começa no de hoje: é quase sempre o que se quer olhar primeiro. */
+  semana: false,
+  diaDaSemana: null,
   /* Tela de estatísticas, aberta a partir do Perfil ou do Início. */
   estatisticas: false
 };

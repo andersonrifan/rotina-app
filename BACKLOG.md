@@ -105,6 +105,18 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 
 Fica registrado para não voltar à discussão.
 
+**Da rodada da semana-modelo:**
+
+- ~~Não dava para editar a rotina, só um dia de cada vez~~ — o interruptor
+  "Valer em toda segunda-feira" apareceu no editor de bloco (só existia ao
+  CRIAR bloco, nunca ao editar um que já existia), e o Perfil ganhou a tela
+  **Semana modelo** para redesenhar os sete dias
+- ~~Mudar o molde reescreveria o passado~~ — antes de tocar na semana-modelo
+  os dias já vividos são congelados, então a mudança vale de hoje em diante e
+  a aderência das estatísticas continua sendo sobre o dia que existiu
+- ~~Tirar um bloco da semana renumeraria os ids~~ — a remoção deixa um buraco
+  no lugar; sem isso cada marcação passaria a apontar para o bloco seguinte
+
 **Da rodada da Rotina:**
 
 - ~~O botão Voltar do Android fechava o app~~ — agora ele fecha a camada de
