@@ -57,6 +57,75 @@ export function textoDoBackup(){
   return JSON.stringify(montarBackup(), null, 2);
 }
 
+
+/* ===========================================================================
+   SAIR DO APARELHO DE VERDADE
+
+   `baixarBackup` sozinho era uma porta pintada na parede: dentro do app
+   Android empacotado o WebView engole downloads iniciados pela página, e o
+   único caminho de saída dos dados simplesmente não fazia nada — sem erro,
+   sem aviso, sem arquivo.
+
+   Três saídas, na ordem em que funcionam:
+
+     COMPARTILHAR  a folha do sistema (Drive, WhatsApp, e-mail). É o caminho
+                   do app instalado, e no desktop também funciona.
+     BAIXAR        o download comum, do navegador.
+     COPIAR        a área de transferência, para colar onde der. É o último
+                   recurso, e existe porque um backup que não sai não é backup.
+   =========================================================================== */
+
+function arquivoDoBackup(){
+  return new File([textoDoBackup()], nomeDoArquivo(), {type: 'application/json'});
+}
+
+/** O sistema aceita receber ESTE arquivo? Só isso decide o caminho. */
+export function podeCompartilhar(){
+  try{
+    return typeof File === 'function' && !!navigator.canShare &&
+           navigator.canShare({files: [arquivoDoBackup()]});
+  }catch(_err){
+    return false;
+  }
+}
+
+/**
+ * Salva o backup pelo melhor caminho disponível.
+ *
+ * Devolve `{via, nome}`, ou `null` se a pessoa fechou a folha de
+ * compartilhamento — desistir não é falha, e não deve virar mensagem de erro.
+ */
+export async function salvarBackup(){
+  if(podeCompartilhar()){
+    try{
+      await navigator.share({files: [arquivoDoBackup()], title: 'Backup do Rotina'});
+      return {via: 'compartilhado', nome: nomeDoArquivo()};
+    }catch(err){
+      /* Cancelar é uma resposta legítima; qualquer outra falha cai no download. */
+      if(err && err.name === 'AbortError') return null;
+    }
+  }
+  return {via: 'baixado', nome: baixarBackup()};
+}
+
+/** Copia o JSON inteiro. Devolve false se o navegador não deixar. */
+export async function copiarBackup(){
+  try{
+    await navigator.clipboard.writeText(textoDoBackup());
+    return true;
+  }catch(_err){
+    return false;
+  }
+}
+
+/** Há quantos dias o último backup foi feito. `null` se nunca houve. */
+export function diasDesdeOBackup(perfil, agora){
+  if(!perfil || !perfil.ultimoBackup) return null;
+  const feito = new Date(perfil.ultimoBackup + 'T12:00:00');
+  const hoje = agora || new Date();
+  return Math.max(0, Math.floor((hoje - feito) / 86400000));
+}
+
 /**
  * Lê um backup e devolve os dados prontos para uso, ou lança com uma
  * mensagem que faz sentido para quem está lendo a tela.

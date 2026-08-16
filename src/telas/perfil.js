@@ -17,7 +17,9 @@
    =========================================================================== */
 
 import { Dados, agir, agirSemAviso, avisar, definirTela } from '../nucleo/estado.js';
-import { baixarBackup, interpretarBackup, restaurar, resumirBackup } from '../nucleo/backup.js';
+import { salvarBackup, copiarBackup, textoDoBackup, diasDesdeOBackup,
+         interpretarBackup, restaurar, resumirBackup } from '../nucleo/backup.js';
+import { hojeISO } from '../nucleo/tempo.js';
 import { h, icone, cabecalhoTela, pilula, rotuloSecao, stepper, abrirFolha,
          fecharFolha, abrirFolhaTexto } from '../ui/index.js';
 import { reabrirPrimeiroUso } from './extras.js';
@@ -161,12 +163,15 @@ export function telaPerfil(){
     h('section', {class:'cartao'},
       rotuloSecao('Seus dados'),
       h('p', {class:'nota'},
-        'Tudo fica só neste aparelho. Baixe um backup de vez em quando — é o que ' +
+        'Tudo fica só neste aparelho. Guarde um backup de vez em quando — é o que ' +
         'permite trocar de celular ou voltar atrás se algo der errado.'),
+      avisoDeBackup(),
       h('div', {class:'linha-botoes'},
-        h('button', {class:'btn btn-suave', type:'button', onTap: exportar}, 'Baixar backup'),
+        h('button', {class:'btn btn-forte', type:'button', onTap: exportar}, 'Salvar backup'),
         h('button', {class:'btn btn-suave', type:'button', onTap: escolherArquivo}, 'Restaurar')
-      )
+      ),
+      h('button', {class:'btn btn-transparente largura-cheia', type:'button', onTap: copiar},
+        'Copiar como texto')
     ),
 
     /* --- Recomeçar --- */
@@ -200,12 +205,63 @@ function renomearPessoa(){
    rotina para um celular novo. */
 
 function exportar(){
-  try{
-    avisar('Backup salvo: ' + baixarBackup());
-  }catch(err){
+  salvarBackup().then(saida => {
+    if(!saida) return;                       // a pessoa fechou o compartilhamento
+    agirSemAviso(d => { d.perfil.ultimoBackup = hojeISO(); });
+    avisar('Backup ' + saida.via + ': ' + saida.nome);
+  }).catch(err => {
     console.error('Falha ao exportar:', err);
-    avisar('Não consegui baixar o arquivo neste navegador.');
+    avisar('Não consegui salvar o arquivo. Tente "Copiar".');
+  });
+}
+
+/* O último recurso quando nem compartilhar nem baixar funcionam: o JSON na
+   área de transferência, para colar num e-mail para si mesmo. Se nem isso o
+   navegador permitir, o texto aparece na tela para copiar à mão — o backup
+   precisa ter uma saída que não dependa de permissão nenhuma. */
+function copiar(){
+  copiarBackup().then(deu => {
+    if(deu){
+      agirSemAviso(d => { d.perfil.ultimoBackup = hojeISO(); });
+      avisar('Backup copiado. Cole num e-mail para você mesmo.');
+      return;
+    }
+    abrirFolha({
+      titulo: 'Copie o backup',
+      rotuloConfirmar: 'Pronto',
+      corpo: () => h('div', {class:'folha-corpo'},
+        h('p', {class:'nota'},
+          'Selecione tudo e copie. É este texto que a opção "Restaurar" espera de volta.'),
+        h('textarea', {class:'campo-entrada campo-backup', readonly:'true',
+          rows:'8', 'aria-label':'Texto do backup', value: textoDoBackup()})
+      ),
+      confirmar: () => {
+        agirSemAviso(d => { d.perfil.ultimoBackup = hojeISO(); });
+        fecharFolha();
+      }
+    });
+  });
+}
+
+/* Um backup de seis meses atrás protege a rotina de seis meses atrás. O aviso
+   só aparece quando já passou do prazo — lembrete que aparece sempre vira
+   parte do cenário e ninguém mais lê. */
+const DIAS_ATE_LEMBRAR = 30;
+
+function avisoDeBackup(){
+  const dias = diasDesdeOBackup(Dados.perfil);
+  if(dias === null){
+    return h('p', {class:'nota destaque'},
+      'Você ainda não guardou nenhum backup. Se este aparelho sumir ou o ' +
+      'navegador limpar os dados, a rotina vai junto.');
   }
+  if(dias < DIAS_ATE_LEMBRAR){
+    return h('p', {class:'nota'},
+      dias === 0 ? 'Último backup: hoje.' :
+      dias === 1 ? 'Último backup: ontem.' : 'Último backup: há ' + dias + ' dias.');
+  }
+  return h('p', {class:'nota destaque'},
+    'Faz ' + dias + ' dias desde o último backup. Vale guardar um novo.');
 }
 
 /* Um <input type=file> descartável: criar na hora evita deixar no DOM um

@@ -1328,6 +1328,14 @@ button, .tocavel{
 .cartao-agenda.curto .pega-duracao{ height:8px; }
 .cartao-agenda.curto .btn-remover{ height:100%; }
 
+/* Texto do backup para copiar à mão: o último recurso, quando nem
+   compartilhar nem a área de transferência estão disponíveis. */
+.campo-backup{
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:11px; line-height:1.45;
+  resize:vertical; width:100%;
+}
+
 /* --- Campo de horário nativo ------------------------------------------------
    `<input type=time>` abre o seletor do próprio aparelho, que era o que o
    handoff pedia — e resolve de vez o passo de 15 em 15 minutos. */

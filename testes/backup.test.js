@@ -4,11 +4,11 @@
    backup que não importa de volta só se descobre no dia em que a pessoa
    precisa dele, e aí não há o que fazer. */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { carregar, Dados } from '../src/nucleo/estado.js';
 import {
   montarBackup, textoDoBackup, interpretarBackup, restaurar,
-  resumirBackup, nomeDoArquivo
+  resumirBackup, nomeDoArquivo, diasDesdeOBackup, podeCompartilhar
 } from '../src/nucleo/backup.js';
 import { VERSAO_ESQUEMA } from '../src/nucleo/armazem.js';
 import { materializar } from '../src/nucleo/modelo.js';
@@ -130,5 +130,61 @@ describe('resumo para a tela de confirmação', () => {
   it('menciona os dias editados quando existem', () => {
     materializar(Dados, '2026-08-17');
     expect(resumirBackup(Dados)).toContain('1 dias editados');
+  });
+});
+
+/* ===========================================================================
+   AS SAÍDAS DO BACKUP
+
+   `baixarBackup` sozinho era uma porta pintada na parede: dentro do WebView
+   do app empacotado o download é engolido, e o único caminho de saída dos
+   dados não fazia nada — sem erro, sem arquivo.
+   =========================================================================== */
+
+describe('há quanto tempo foi o último backup', () => {
+  const EM = new Date('2026-08-16T12:00:00');
+
+  it('nunca ter feito não é "zero dias"', () => {
+    expect(diasDesdeOBackup({nome:'x'}, EM)).toBe(null);
+    expect(diasDesdeOBackup(null, EM)).toBe(null);
+  });
+
+  it('feito hoje dá zero', () => {
+    expect(diasDesdeOBackup({ultimoBackup:'2026-08-16'}, EM)).toBe(0);
+  });
+
+  it('conta os dias corridos', () => {
+    expect(diasDesdeOBackup({ultimoBackup:'2026-08-09'}, EM)).toBe(7);
+    expect(diasDesdeOBackup({ultimoBackup:'2026-06-16'}, EM)).toBe(61);
+  });
+
+  it('data no futuro não vira número negativo', () => {
+    expect(diasDesdeOBackup({ultimoBackup:'2026-09-01'}, EM)).toBe(0);
+  });
+});
+
+describe('escolher o caminho de saída', () => {
+  afterEach(() => {
+    delete globalThis.navigator.canShare;
+    delete globalThis.File;
+  });
+
+  it('sem suporte a compartilhar arquivo, sobra o download', () => {
+    expect(podeCompartilhar()).toBe(false);
+  });
+
+  it('o teste é sobre ESTE arquivo, não sobre a API existir', () => {
+    globalThis.File = class { constructor(){ /* suficiente para o teste */ } };
+    globalThis.navigator.canShare = () => false;
+    expect(podeCompartilhar()).toBe(false);
+
+    globalThis.navigator.canShare = () => true;
+    expect(podeCompartilhar()).toBe(true);
+  });
+
+  it('uma API que explode não derruba a tela', () => {
+    globalThis.File = class { constructor(){ /* suficiente para o teste */ } };
+    globalThis.navigator.canShare = () => { throw new Error('sem permissão'); };
+    expect(podeCompartilhar()).toBe(false);
   });
 });

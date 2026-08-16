@@ -1,6 +1,6 @@
 import { MODELO, MODELO_VAZIO } from '../dados/modelo.js';
 import { Dados, Tela, avisar, definirTela, dadosIniciais, substituirDados } from '../nucleo/estado.js';
-import { baixarBackup } from '../nucleo/backup.js';
+import { salvarBackup } from '../nucleo/backup.js';
 import { clonar } from '../nucleo/armazem.js';
 import { hojeISO } from '../nucleo/tempo.js';
 import { h } from '../ui/index.js';
@@ -81,12 +81,12 @@ function avisoDeQuePerdeTudo(){
 }
 
 function baixarAntesDeRecomecar(){
-  try{
-    avisar('Backup salvo: ' + baixarBackup());
-  }catch(err){
+  salvarBackup().then(saida => {
+    if(saida) avisar('Backup ' + saida.via + ': ' + saida.nome);
+  }).catch(err => {
     console.error('Falha ao exportar antes de recomeçar:', err);
-    avisar('Não consegui baixar o arquivo neste navegador.');
-  }
+    avisar('Não consegui salvar o arquivo. Use Perfil → Copiar como texto.');
+  });
 }
 
 /**

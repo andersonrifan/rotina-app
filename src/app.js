@@ -159,10 +159,27 @@ async function ligarBotaoVoltar(){
   }
 }
 
+/**
+ * Pede ao navegador que NÃO apague estes dados sozinho.
+ *
+ * Sem isto o armazenamento é "melhor esforço": sob pressão de espaço o Android
+ * despeja o localStorage dos sites, e a rotina inteira some sem aviso. É um
+ * pedido, não uma garantia — o navegador decide —, mas custa uma linha e é a
+ * diferença entre pedir e não pedir.
+ */
+function pedirArmazenamentoPersistente(){
+  try{
+    if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  }catch(_err){
+    /* Navegador sem a API: os dados continuam onde sempre estiveram. */
+  }
+}
+
 /* --- Início --------------------------------------------------------------- */
 export function iniciar(){
   registrarDesenho(desenharTudo);
   ligarBotaoVoltar();
+  pedirArmazenamentoPersistente();
 
   try{
     carregar(MODELO);
