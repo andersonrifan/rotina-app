@@ -122,6 +122,25 @@ bloco (`fixo:Seg:3`), e é ela que as marcações usam como chave — encurtar
 renumeraria todos os seguintes e cada marcação passaria, em silêncio, a apontar
 para o bloco errado.
 
+### Dia e noite
+
+O tema escuro é uma redefinição de **tokens**, e nada abaixo da seção 01 da
+folha de estilo sabe que ele existe: componente certo de dia é componente
+certo de noite. As duas exceções são as cores de categoria, que vêm do dado e
+não do CSS — `color-mix` as clareia para elas existirem sobre o escuro.
+
+Isso obrigou a separar dois tokens que faziam dois trabalhos. `--acao` era
+fundo de controle (com texto branco) **e** cor de texto; `--acao-escura` era
+cor de texto **e** fundo de uma faixa. No claro passava, porque um terracota
+médio-escuro serve para os dois papéis; inverter o tema é que separa os
+significados. A regra "um token é fundo OU é texto, nunca os dois" está no
+cabeçalho da folha de estilo, junto com as outras invioláveis.
+
+A garantia é medida, não prometida: um auditor percorre cada elemento com
+texto das seis telas, compõe o fundo real (inclusive camadas
+semitransparentes) e mede a razão de contraste contra o mínimo exigido pelo
+tamanho e peso da fonte. Zero falhas nos dois temas.
+
 **2. O que foi feito é separado do que foi planejado.**
 O treino é estrutura: "Força A tem 8 exercícios" vale para todas as quartas. A
 sessão é fato: "na quarta dia 19 fiz 5, 4, 4 repetições" vale para aquela data.
@@ -131,9 +150,13 @@ histórico. É essa separação que dá série temporal às estatísticas.
 O mesmo vale para o dia: a semana-modelo é o plano, `blocos[data]` é a exceção.
 
 **Não há desfazer.** Havia, e o aviso ficava no caminho o tempo todo — ele
-aparece a cada toque, e quase tudo aqui é um toque. As ações destrutivas de
-verdade (restaurar backup, recomeçar, excluir treino) confirmam antes, que é
-onde a proteção pertence.
+aparece a cada toque, e quase tudo aqui é um toque. O preço disso é que as
+ações destrutivas de verdade precisam confirmar antes, e a pergunta tem que
+dizer o que se perde: "tem certeza?" não é uma pergunta, é um obstáculo.
+Confirmam: restaurar backup, recomeçar, excluir treino, remover remédio,
+remover refeição, remover exercício e tirar um bloco da semana-modelo. O bloco
+de um dia não confirma — ele tem "Voltar ao padrão da semana", que é uma volta
+atrás melhor que uma pergunta.
 
 **3. O dia é uma régua, não uma lista.**
 A aba Dia desenha as horas numa coluna à esquerda e posiciona cada bloco pelo
@@ -228,9 +251,24 @@ uma sessão e outra. O arquivo único serve para mostrar o app a alguém na hora
 não para uma rodada de testes de dias.
 
 **Peça a quem testar:** depois de alguns dias, abrir o **Perfil** (avatar no
-canto da tela Início), tocar em *Baixar backup* e te enviar o JSON. Você
+canto da tela Início), tocar em *Salvar backup* e te enviar o JSON. Você
 restaura no seu aparelho e vê exatamente o que a pessoa montou — quais
 refeições renomeou, o que abandonou, onde travou. Vale mais que "achei legal".
+
+### Os dados só têm uma porta de saída, e ela tem três chaves
+
+O app não tem servidor: se este aparelho sumir, some tudo junto. Por isso
+*Salvar backup* tenta, nesta ordem, **compartilhar** pela folha do sistema
+(Drive, e-mail, WhatsApp), **baixar** o arquivo, e — se nada disso for
+permitido — **copiar** o JSON para colar onde der. Dentro do app empacotado o
+WebView engole downloads iniciados pela página, e por um tempo o único caminho
+de saída dos dados simplesmente não fazia nada: sem erro, sem aviso, sem
+arquivo. A última saída existe para nunca depender de permissão nenhuma.
+
+O app também pede `navigator.storage.persist()` ao abrir. Sem isso o
+armazenamento é "melhor esforço" e o Android pode despejá-lo sob pressão de
+espaço. E ele guarda a data do último backup: passados 30 dias, o Perfil
+avisa.
 
 ## Backlog
 

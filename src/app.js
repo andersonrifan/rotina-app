@@ -150,8 +150,10 @@ function mostrarErroDeInicio(mensagem){
  */
 function voltarUmaCamada(){
   if(Tela.folha){ fecharFolha(); return true; }
-  if(Tela.estatisticas){ definirTela({estatisticas: false}); return true; }
-  if(Tela.semana){ definirTela({semana: false}); return true; }
+  /* As duas telas de dentro devolvem para o Perfil, de onde vieram — o mesmo
+     que os botões "Voltar" delas fazem. */
+  if(Tela.estatisticas){ definirTela({estatisticas: false, perfil: true}); return true; }
+  if(Tela.semana){ definirTela({semana: false, perfil: true}); return true; }
   if(Tela.perfil){ definirTela({perfil: false}); return true; }
   if(Tela.primeiroUso){ definirTela({primeiroUso: false}); return true; }
 

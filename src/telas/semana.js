@@ -26,15 +26,18 @@ import { h, icone, cabecalhoTela, pilula, rotuloSecao, abrirFolha, fecharFolha }
    sobre o dia que existiu.
    =========================================================================== */
 
+/* Abre por cima do Perfil e devolve para lá ao fechar — mesma convenção das
+   Estatísticas. Sair da Semana modelo caindo direto no app faria perder o
+   lugar de onde se veio. */
 export function abrirSemana(){ definirTela({semana: true, perfil: false, folha: null}); }
-export function fecharSemana(){ definirTela({semana: false}); }
+export function fecharSemana(){ definirTela({semana: false, perfil: true}); }
 
 export function telaSemana(){
   const diaK = Tela.diaDaSemana || diaDaSemana(hojeISO()).k;
   const blocos = gerarDaSemana(diaK);
 
   return h('div', {class:'tela tela-semana'},
-    cabecalhoTela(null, 'Semana modelo', null, [pilula('Fechar', fecharSemana)]),
+    cabecalhoTela(null, 'Semana modelo', null, [pilula('Voltar', fecharSemana)]),
 
     h('p', {class:'nota destaque'},
       'É o molde de que todo dia nasce. O que você mudar aqui vale de hoje em ' +
@@ -111,9 +114,10 @@ function origemDoBloco(bloco){
   return null;
 }
 
+/* Ir para a aba que manda naquele bloco fecha TUDO: quem toca em "Comida"
+   quer chegar na Comida, não voltar para o Perfil por cima dela. */
 function irPara(origem){
-  fecharSemana();
-  definirTela({aba: origem.aba});
+  definirTela({semana: false, perfil: false, aba: origem.aba});
 }
 
 
