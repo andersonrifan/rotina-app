@@ -143,6 +143,17 @@
 
   /* --- Alvo de toque --- */
   --toque:44px;
+
+  /* --- Cor de categoria ------------------------------------------------
+     A cor de um bloco vem do DADO, não daqui — a folha de estilo só decide
+     o QUANTO dela usar. São estes dois números que fazem a mesma regra
+     servir de dia e de noite, sem duplicar seletor nenhum:
+       clareia — quanto de branco entra na cor cheia (a barra do cartão).
+                 De dia, nada; de noite, o bastante para o sono, que é quase
+                 preto, não sumir na borda.
+       tinta   — quanto da cor entra no fundo lavado do cartão. */
+  --clareia-cat:0%;
+  --tinta-cat:22%;
 }
 
 
@@ -169,50 +180,108 @@
    Contraste: os pares foram medidos sobre o fundo em que aparecem, mesmo
    critério da paleta de dia (4,5:1 para texto pequeno).
    =========================================================================== */
+/* Os valores da noite vivem AQUI, uma vez só. Os dois seletores abaixo apenas
+   apontam para eles — sem isso a paleta noturna existiria em duplicata (uma
+   para o tema do sistema, outra para a escolha manual) e as duas cópias
+   inevitavelmente iam divergir. */
+:root{
+  --noite-fundo: #1b1916;
+  --noite-superficie: #262320;
+  --noite-superficie-clara: #322e29;
+  --noite-superficie-marcada: #211e1b;
+  --noite-texto: #f4efe6;
+  --noite-texto-fraco: #a89e90;
+  --noite-acao: #a4531c;
+  --noite-acao-cartao: #8f4718;
+  --noite-acao-escura: #f3ab77;
+  --noite-acao-clara: #3f2718;
+  --noite-acao-tenue: #2c2018;
+  --noite-acao-contorno: #8b5730;
+  --noite-acao-viva: #c96f3c;
+  --noite-faixa-agora: #5c3315;
+  --noite-acao-texto: #f0a878;
+  --noite-salvia: #5d6b45;
+  --noite-salvia-clara: #2b3421;
+  --noite-salvia-tenue: #232b1a;
+  --noite-salvia-texto: #cfe0b2;
+  --noite-neutro-tracejado: #6d6559;
+  --noite-tracejado-forte: #877e70;
+  --noite-linha: #4b453c;
+  --noite-sono: #b7b0a3;
+  --noite-sombra-aparelho: 0 20px 50px rgba(0,0,0,.55);
+  --noite-sombra-flutuante: 0 8px 20px rgba(0,0,0,.5);
+  --noite-sombra-arraste: 0 10px 24px rgba(0,0,0,.55);
+  --noite-sombra-aviso: 0 10px 26px rgba(0,0,0,.6);
+  --noite-clareia-cat: 32%;
+  --noite-tinta-cat: 30%;
+}
+
+/* AUTO: segue o sistema, a não ser que a pessoa tenha escolhido "claro". */
 @media (prefers-color-scheme: dark){
-  :root{
-    /* --- Superfícies --- */
-    --fundo:            #1b1916;
-    --superficie:       #262320;
-    --superficie-clara: #322e29;
-    --superficie-marcada:#211e1b;
-
-    /* --- Texto --- */
-    --texto:      #f4efe6;
-    --texto-2:    #e2dace;
-    --texto-3:    #cec5b7;
-    --texto-4:    #bcb2a3;
-    --texto-fraco:#a89e90;   /* o mais claro permitido em texto ≥ 11 px */
-
-    /* --- Terracota --- */
-    --acao:         #a4531c;   /* fundo de controle, com texto branco */
-    --acao-cartao:  #8f4718;
-    --acao-escura:  #f3ab77;   /* TEXTO sobre fundo escuro — clareia */
-    --acao-clara:   #3f2718;   /* FUNDO de destaque — escurece */
-    --acao-tenue:   #2c2018;
-    --acao-contorno:#8b5730;
-    --acao-viva:    #c96f3c;
-    --faixa-agora:  #5c3315;   /* fundo, com texto branco — não acompanha o texto */
-    --acao-texto:   #f0a878;   /* terracota como TEXTO: clareia, ao contrário do fundo */
-
-    /* --- Sálvia --- */
-    --salvia:       #5d6b45;
-    --salvia-clara: #2b3421;   /* fundo de item concluído */
-    --salvia-tenue: #232b1a;
-    --salvia-texto: #cfe0b2;   /* texto sobre --salvia-clara */
-
-    /* --- Neutros de contorno --- */
-    --neutro-tracejado:#6d6559;
-    --tracejado-forte: #877e70;
-    --linha:           #4b453c;
-    --sono:            #b7b0a3;
-
-    /* Sombra preta some no escuro; o que separa as camadas é o contorno. */
-    --sombra-aparelho: 0 20px 50px rgba(0,0,0,.55);
-    --sombra-flutuante:0 8px 20px rgba(0,0,0,.5);
-    --sombra-arraste:  0 10px 24px rgba(0,0,0,.55);
-    --sombra-aviso:    0 10px 26px rgba(0,0,0,.6);
+  :root:not([data-tema="claro"]){
+    --fundo:var(--noite-fundo);
+    --superficie:var(--noite-superficie);
+    --superficie-clara:var(--noite-superficie-clara);
+    --superficie-marcada:var(--noite-superficie-marcada);
+    --texto:var(--noite-texto);
+    --texto-fraco:var(--noite-texto-fraco);
+    --acao:var(--noite-acao);
+    --acao-cartao:var(--noite-acao-cartao);
+    --acao-escura:var(--noite-acao-escura);
+    --acao-clara:var(--noite-acao-clara);
+    --acao-tenue:var(--noite-acao-tenue);
+    --acao-contorno:var(--noite-acao-contorno);
+    --acao-viva:var(--noite-acao-viva);
+    --faixa-agora:var(--noite-faixa-agora);
+    --acao-texto:var(--noite-acao-texto);
+    --salvia:var(--noite-salvia);
+    --salvia-clara:var(--noite-salvia-clara);
+    --salvia-tenue:var(--noite-salvia-tenue);
+    --salvia-texto:var(--noite-salvia-texto);
+    --neutro-tracejado:var(--noite-neutro-tracejado);
+    --tracejado-forte:var(--noite-tracejado-forte);
+    --linha:var(--noite-linha);
+    --sono:var(--noite-sono);
+    --sombra-aparelho:var(--noite-sombra-aparelho);
+    --sombra-flutuante:var(--noite-sombra-flutuante);
+    --sombra-arraste:var(--noite-sombra-arraste);
+    --sombra-aviso:var(--noite-sombra-aviso);
+    --clareia-cat:var(--noite-clareia-cat);
+    --tinta-cat:var(--noite-tinta-cat);
   }
+}
+
+/* ESCOLHA MANUAL: vence o sistema, nos dois sentidos. */
+:root[data-tema="escuro"]{
+    --fundo:var(--noite-fundo);
+    --superficie:var(--noite-superficie);
+    --superficie-clara:var(--noite-superficie-clara);
+    --superficie-marcada:var(--noite-superficie-marcada);
+    --texto:var(--noite-texto);
+    --texto-fraco:var(--noite-texto-fraco);
+    --acao:var(--noite-acao);
+    --acao-cartao:var(--noite-acao-cartao);
+    --acao-escura:var(--noite-acao-escura);
+    --acao-clara:var(--noite-acao-clara);
+    --acao-tenue:var(--noite-acao-tenue);
+    --acao-contorno:var(--noite-acao-contorno);
+    --acao-viva:var(--noite-acao-viva);
+    --faixa-agora:var(--noite-faixa-agora);
+    --acao-texto:var(--noite-acao-texto);
+    --salvia:var(--noite-salvia);
+    --salvia-clara:var(--noite-salvia-clara);
+    --salvia-tenue:var(--noite-salvia-tenue);
+    --salvia-texto:var(--noite-salvia-texto);
+    --neutro-tracejado:var(--noite-neutro-tracejado);
+    --tracejado-forte:var(--noite-tracejado-forte);
+    --linha:var(--noite-linha);
+    --sono:var(--noite-sono);
+    --sombra-aparelho:var(--noite-sombra-aparelho);
+    --sombra-flutuante:var(--noite-sombra-flutuante);
+    --sombra-arraste:var(--noite-sombra-arraste);
+    --sombra-aviso:var(--noite-sombra-aviso);
+    --clareia-cat:var(--noite-clareia-cat);
+    --tinta-cat:var(--noite-tinta-cat);
 }
 
 
@@ -663,6 +732,7 @@ input{ font:inherit; color:inherit; }
   width:4px; align-self:stretch; min-height:26px;
   border-radius:var(--r-pilula); flex-shrink:0;
   background:var(--cor-cat);
+  background:color-mix(in srgb, var(--cor-cat) calc(100% - var(--clareia-cat)), #ffffff);
 }
 .bloco-texto{ min-width:0; flex:1; }
 .bloco-titulo{
@@ -734,6 +804,7 @@ input{ font:inherit; color:inherit; }
 }
 .chip-cat.ativo{
   border-color:var(--cor-cat);
+  border-color:color-mix(in srgb, var(--cor-cat) calc(100% - var(--clareia-cat)), #ffffff);
   background:var(--superficie-clara);
   color:var(--texto); font-weight:700;
 }
@@ -1286,8 +1357,15 @@ button, .tocavel{
      de antes o texto ficava visivelmente jogado para dentro. */
   padding:5px 9px 5px 8px;
   border-radius:var(--r-min);
+  /* Duas declarações de propósito: a primeira é o que navegador antigo
+     entende (cor cheia e o rgba calculado no JS), a segunda é a versão que
+     acompanha o tema. Quem não conhece `color-mix` simplesmente ignora a
+     segunda e fica com a de cima. */
   border-left:4px solid var(--cor-cat);
   background:var(--cor-cat-suave);
+  --cor-cat-visivel:color-mix(in srgb, var(--cor-cat) calc(100% - var(--clareia-cat)), #ffffff);
+  border-left-color:var(--cor-cat-visivel);
+  background:color-mix(in srgb, var(--cor-cat-visivel) var(--tinta-cat), var(--superficie));
   box-shadow:0 0 0 1.5px var(--fundo);
   transition:top .16s ease, height .16s ease, left .16s ease, width .16s ease;
 }
@@ -1586,6 +1664,9 @@ button, .tocavel{
   border-radius:var(--r-linha-menor);
   border-left:4px solid var(--cor-cat);
   background:var(--cor-cat-suave);
+  --cor-cat-visivel:color-mix(in srgb, var(--cor-cat) calc(100% - var(--clareia-cat)), #ffffff);
+  border-left-color:var(--cor-cat-visivel);
+  background:color-mix(in srgb, var(--cor-cat-visivel) var(--tinta-cat), var(--superficie));
 }
 .linha-modelo-texto{ flex:1; min-width:0; }
 .linha-modelo-titulo{
@@ -1654,48 +1735,5 @@ button, .tocavel{
   border-radius:var(--r-linha-menor); padding:9px 13px;
 }
 
-
-/* ===========================================================================
-   14. AJUSTES DE NOITE
-
-   Tudo o que os tokens sozinhos não resolvem. São poucos casos, e todos pelo
-   mesmo motivo: cor que vem do DADO (a categoria do bloco), e não da folha de
-   estilo, não muda quando o tema muda.
-
-   `color-mix` clareia a cor da categoria o bastante para ela existir sobre o
-   escuro — o sono é quase preto e sumiria na borda do cartão. Onde o
-   navegador não conhecer a função, a declaração é ignorada e vale a cor cheia
-   de cima: mais escura do que o ideal, nunca invisível.
-   =========================================================================== */
-@media (prefers-color-scheme: dark){
-  .cartao-agenda,
-  .linha-modelo{
-    border-left-color:color-mix(in srgb, var(--cor-cat) 68%, #ffffff);
-  }
-  .bloco-barra{
-    background:color-mix(in srgb, var(--cor-cat) 68%, #ffffff);
-  }
-  .chip-cat.ativo{
-    border-color:color-mix(in srgb, var(--cor-cat) 68%, #ffffff);
-  }
-
-  /* O fundo lavado do cartão vem de um rgba calculado no JS sobre o creme.
-     Sobre o escuro ele fica quase invisível, então aqui a mistura é refeita
-     com a cor clara. */
-  .cartao-agenda{
-    background:color-mix(in srgb, var(--cor-cat) 30%, var(--superficie));
-  }
-  .linha-modelo{
-    background:color-mix(in srgb, var(--cor-cat) 26%, var(--superficie));
-  }
-
-  /* A alça de duração usava um creme fixo. */
-  .pega-duracao .pega{ background:var(--texto-fraco); }
-
-  /* O contorno que separa cartões colados é a cor do fundo — no escuro
-     também. Fica aqui só para deixar explícito que foi conferido. */
-  .cartao-agenda{ box-shadow:0 0 0 1.5px var(--fundo); }
-  .agenda.em-edicao .cartao-agenda{
-    box-shadow:0 0 0 1.5px var(--fundo), 0 1px 2px rgba(0,0,0,.35);
-  }
-}
+/* Três opções de tema, mesma peça do alternador Agenda/Lista. */
+.segmentado-tema{ grid-template-columns:repeat(3, 1fr); }

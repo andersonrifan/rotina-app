@@ -118,6 +118,22 @@ export function telaPerfil(){
       )
     ),
 
+    /* --- Aparência --- */
+    h('section', {class:'cartao'},
+      rotuloSecao('Aparência'),
+      h('p', {class:'nota'},
+        'No automático o app segue o tema do aparelho. Escolher um dos dois ' +
+        'vale sempre, independente do sistema.'),
+      h('div', {class:'segmentado segmentado-tema'},
+        [['auto', 'Automático'], ['claro', 'Claro'], ['escuro', 'Escuro']].map(([id, rotulo]) =>
+          h('button', {
+            class:'segmento' + (temaAtual() === id ? ' ativo' : ''),
+            type:'button', 'aria-pressed': String(temaAtual() === id),
+            onTap: () => agirSemAviso(d => { d.perfil.tema = id; })
+          }, rotulo))
+      )
+    ),
+
     /* --- Semana modelo ---
        Fica acima das Estatísticas porque é a única coisa do Perfil que muda o
        app em vez de só olhar para ele. */
@@ -187,6 +203,9 @@ export function telaPerfil(){
     h('p', {class:'versao'}, 'Rotina · versão ' + VERSAO)
   );
 }
+
+/* Sem escolha gravada, o tema é o do aparelho. */
+function temaAtual(){ return Dados.perfil.tema || 'auto'; }
 
 function renomearPessoa(){
   abrirFolhaTexto({

@@ -41,6 +41,21 @@ function abaAtual(){
   return ABAS.filter(a => a.id === Tela.aba)[0] || ABAS[0];
 }
 
+/**
+ * Aplica o tema escolhido.
+ *
+ * 'auto' não escreve atributo nenhum: sem ele, quem manda é o
+ * `prefers-color-scheme` do aparelho, e o tema já vale desde a primeira
+ * pintura — antes de o JavaScript rodar. Escolher claro ou escuro é que
+ * escreve `data-tema`, e aí a escolha vence o sistema nos dois sentidos.
+ */
+function aplicarTema(){
+  const tema = (Dados && Dados.perfil && Dados.perfil.tema) || 'auto';
+  const raiz = document.documentElement;
+  if(tema === 'auto') raiz.removeAttribute('data-tema');
+  else raiz.setAttribute('data-tema', tema);
+}
+
 /* --- O ciclo de desenho --------------------------------------------------- */
 function desenharTudo(){
   const conteudo = document.getElementById('conteudo');
@@ -53,6 +68,8 @@ function desenharTudo(){
   const seletorFocado = focado && focado.classList && focado.classList.contains('campo-entrada')
     ? '.' + Array.prototype.join.call(focado.classList, '.') : null;
   const posicaoCursor = seletorFocado ? focado.selectionStart : null;
+
+  aplicarTema();
 
   try{
     conteudo.textContent = '';
