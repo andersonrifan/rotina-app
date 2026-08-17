@@ -50,6 +50,9 @@ que não vale.
       sozinho: os almoços de seg/ter/qua continuam só com o prato principal
       desde a migração. Reabrir cada um em Comida → Semana e marcar o arroz
       junto faz a lista de compras voltar a pedir a quantidade certa.
+- [ ] **Conferir quais receitas são mesmo de lote.** Tudo que rende mais de
+      uma porção começou ligado, o que é um chute razoável mas é um chute.
+      A chave está em Comida → Receitas, dentro de cada ficha.
 - [ ] **Célula do cardápio não é tocável.** Os 30 px de altura vêm do handoff e
       não chegam ao alvo mínimo, então a edição é pela lista abaixo da grade.
       Funciona, mas alguém pode tentar tocar a célula primeiro.
@@ -101,6 +104,23 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 ## Já resolvido
 
 Fica registrado para não voltar à discussão.
+
+**Da rodada da comida:**
+
+- ~~Modo escuro só seguia o aparelho~~ — Perfil → Aparência, com Automático /
+  Claro / Escuro, e a escolha vence o sistema nos dois sentidos
+- ~~Modo de preparo, tempo e dica de conservação nunca apareciam~~ — estavam
+  escritos para as 27 receitas e só existiam no arquivo-fonte. Agora Comida
+  tem a aba Receitas e cada uma abre uma ficha completa
+- ~~Não dava para criar nem editar receitas~~ — elas saíram do código e viraram
+  dado (migração v7 → v8), com backup junto
+- ~~Preparação em lote não existia~~ — chave por receita: ligada, a ficha
+  mostra a panela que a semana vai exigir e a lista compra por panela;
+  desligada, mostra uma porção e a lista compra o exato
+- ~~A lista de compras pedia gramas, e no mercado se compra pacote~~ — o
+  tamanho da embalagem estava no banco de alimentos e nunca tinha sido usado
+- ~~Três tokens de texto ficaram de fora do tema manual~~ — achado pelo
+  auditor de contraste, que é justamente para isso
 
 **Da rodada de robustez:**
 

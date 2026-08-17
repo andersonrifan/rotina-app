@@ -190,6 +190,9 @@
   --noite-superficie-clara: #322e29;
   --noite-superficie-marcada: #211e1b;
   --noite-texto: #f4efe6;
+  --noite-texto-2: #e2dace;
+  --noite-texto-3: #cec5b7;
+  --noite-texto-4: #bcb2a3;
   --noite-texto-fraco: #a89e90;
   --noite-acao: #a4531c;
   --noite-acao-cartao: #8f4718;
@@ -224,6 +227,9 @@
     --superficie-clara:var(--noite-superficie-clara);
     --superficie-marcada:var(--noite-superficie-marcada);
     --texto:var(--noite-texto);
+    --texto-2:var(--noite-texto-2);
+    --texto-3:var(--noite-texto-3);
+    --texto-4:var(--noite-texto-4);
     --texto-fraco:var(--noite-texto-fraco);
     --acao:var(--noite-acao);
     --acao-cartao:var(--noite-acao-cartao);
@@ -258,6 +264,9 @@
     --superficie-clara:var(--noite-superficie-clara);
     --superficie-marcada:var(--noite-superficie-marcada);
     --texto:var(--noite-texto);
+    --texto-2:var(--noite-texto-2);
+    --texto-3:var(--noite-texto-3);
+    --texto-4:var(--noite-texto-4);
     --texto-fraco:var(--noite-texto-fraco);
     --acao:var(--noite-acao);
     --acao-cartao:var(--noite-acao-cartao);
