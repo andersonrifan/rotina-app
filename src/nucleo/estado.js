@@ -11,6 +11,7 @@
    =========================================================================== */
 
 import { MODELO } from '../dados/modelo.js';
+import { RECEITAS } from '../dados/receitas.js';
 import { armazem, clonar, migrar, CHAVE, VERSAO_ESQUEMA } from './armazem.js';
 import { redesenhar } from './render.js';
 
@@ -34,6 +35,10 @@ export function dadosIniciais(modelo){
     treinos:  clonar(modelo.treinos),
     remedios: clonar(modelo.remedios),
     cardapio: clonar(modelo.cardapio),
+    /* As receitas começam como o banco que vem no código, mas passam a ser
+       DADO: dá para criar, mudar quantidade e excluir. Ficam no backup junto
+       com o resto, senão trocar de celular perderia o que a pessoa escreveu. */
+    receitas: clonar(RECEITAS),
 
     /* Exceções por data: quando o usuário edita um dia específico, os blocos
        daquele dia são materializados aqui e passam a ignorar a geração. */
@@ -130,7 +135,11 @@ export const Tela = {
   semana: false,
   diaDaSemana: null,
   /* Tela de estatísticas, aberta a partir do Perfil ou do Início. */
-  estatisticas: false
+  estatisticas: false,
+  /* Tela da receita, aberta pelo cardápio. Guarda o id, não o objeto: os
+     dados podem mudar embaixo dela. */
+  receita: null,
+  editandoReceita: false
 };
 
 export function definirTela(patch){

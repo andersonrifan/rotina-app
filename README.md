@@ -43,7 +43,7 @@ src/
 
   dados/
     modelo.js         ← a rotina-modelo. O ÚNICO arquivo pessoal.
-    receitas.js       banco de alimentos e receitas
+    receitas.js       banco de alimentos, e as receitas de partida
 
   nucleo/             sem DOM, testável fora do navegador
     tempo.js          datas e horários
@@ -58,9 +58,9 @@ src/
   ui/index.js         h(), ícones, peças reaproveitadas, folha, aviso
   ui/graficos.js      SVG à mão: colunas, barras, linha, medidor
   telas/              uma por aba, mais boas-vindas, perfil,
-                      estatisticas, semana e primeiro-uso
+                      estatisticas, semana, receita e primeiro-uso
 
-testes/               224 testes sobre o núcleo
+testes/               237 testes sobre o núcleo
 docs/                 publicação e privacidade
 ```
 

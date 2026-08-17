@@ -319,12 +319,93 @@ export function exercicioFeito(iso, treinoId, volta, indice){
    nomes juntos — é o que as telas mostram numa linha só.
    --------------------------------------------------------------------------- */
 
+/**
+ * O banco de receitas.
+ *
+ * Vive nos DADOS, não no código: dá para criar, ajustar quantidade e excluir.
+ * O fallback para o arquivo importado cobre dados antigos que ainda não
+ * passaram pela migração — e os testes que montam `Dados` na mão.
+ */
+export function receitas(){
+  return (Dados && Array.isArray(Dados.receitas)) ? Dados.receitas : RECEITAS;
+}
+
+export function receitaDe(id){
+  return receitas().filter(r => r.id === id)[0] || null;
+}
+
 /** As receitas escolhidas para um dia da semana + refeição. Sempre um array. */
 export function pratosDe(diaK, slotId){
   const escolha = (Dados.cardapio[diaK] || {})[slotId];
   if(!escolha) return [];
   const ids = Array.isArray(escolha) ? escolha : [escolha];
-  return ids.map(id => RECEITAS.filter(r => r.id === id)[0]).filter(Boolean);
+  return ids.map(receitaDe).filter(Boolean);
+}
+
+/* ---------------------------------------------------------------------------
+   PREPARAÇÃO EM LOTE
+
+   Uma receita marcada como lote é cozida de uma vez para a semana inteira: o
+   molho de bolonhesa sai numa panela só, não em três noites. Isso muda a
+   COMPRA, porque não existe cozinhar três quartos de uma panela — ou se faz a
+   panela inteira, ou não se faz.
+
+   Sem lote, a lista compra exatamente o que as porções da semana pedem, e a
+   ficha mostra a receita como ela é escrita: para uma porção.
+
+   Com lote, a lista agrupa as refeições da semana e arredonda para panelas
+   inteiras — o que sobra vira a marmita do dia seguinte, que é justamente o
+   motivo de cozinhar em lote.
+   --------------------------------------------------------------------------- */
+
+/**
+ * Esta receita é cozida em lote?
+ *
+ * `emLote` é a escolha da pessoa. Sem escolha, vale o que a receita já diz de
+ * si mesma: uma que rende 5 porções JÁ é uma panela — ninguém faz um quinto
+ * de arroz carreteiro. Receita de uma porção começa desligada.
+ *
+ * Não confundir com `receita.lote`, que é o TEXTO da dica ("congela bem",
+ * "dura 3 dias na geladeira"). Um é conselho, o outro é conta.
+ */
+export function ehLote(receita){
+  if(!receita) return false;
+  if(receita.emLote !== undefined) return !!receita.emLote;
+  return (receita.porcoes || 1) > 1;
+}
+
+/** Quantas porções a semana pede de cada receita. */
+export function porcoesDaSemana(){
+  const contagem = {};
+  DIAS.forEach(d => {
+    Object.keys(Dados.cardapio[d.k] || {}).forEach(slotId => {
+      pratosDe(d.k, slotId).forEach(r => {
+        contagem[r.id] = (contagem[r.id] || 0) + 1;
+      });
+    });
+  });
+  return contagem;
+}
+
+/**
+ * Quantas porções realmente serão COZIDAS de uma receita nesta semana.
+ *
+ * Em lote, sobe para o próximo múltiplo do rendimento: 3 porções de uma
+ * receita que rende 4 significam uma panela de 4, e uma porção sobrando.
+ */
+export function porcoesCozidas(receita, porcoesPedidas){
+  if(!porcoesPedidas) return 0;
+  const rende = Math.max(1, receita.porcoes || 1);
+  if(!ehLote(receita)) return porcoesPedidas;
+  return Math.ceil(porcoesPedidas / rende) * rende;
+}
+
+/** As quantidades de ingrediente para um número de porções. */
+export function ingredientesPara(receita, porcoes){
+  const fator = porcoes / Math.max(1, receita.porcoes || 1);
+  return receita.ingr
+    .filter(([id]) => ALIMENTOS[id])
+    .map(([id, q]) => ({id: id, alimento: ALIMENTOS[id], qtd: q * fator}));
 }
 
 /**
@@ -419,24 +500,16 @@ export function gerarCompras(){
   /* Quantas porções de cada receita a semana pede. Uma refeição pode ter mais
      de um prato, e cada um conta a sua porção — é aqui que a lista deixava de
      pedir o arroz que acompanha o frango. */
-  const porcoes = {};
-  DIAS.forEach(d => {
-    Object.keys(Dados.cardapio[d.k] || {}).forEach(slotId => {
-      pratosDe(d.k, slotId).forEach(r => {
-        porcoes[r.id] = (porcoes[r.id] || 0) + 1;
-      });
-    });
-  });
+  const porcoes = porcoesDaSemana();
 
-  /* Soma os ingredientes, escalando cada receita pela fração usada */
+  /* Soma os ingredientes. O que entra na conta é o que vai ser COZIDO: em
+     lote, a panela inteira, mesmo que a semana peça menos que ela. */
   const total = {};
   Object.keys(porcoes).forEach(idReceita => {
-    const r = RECEITAS.filter(x => x.id === idReceita)[0];
+    const r = receitaDe(idReceita);
     if(!r) return;
-    const fator = porcoes[idReceita] / r.porcoes;
-    r.ingr.forEach(([idAlim, q]) => {
-      if(!ALIMENTOS[idAlim]) return;
-      total[idAlim] = (total[idAlim] || 0) + q * fator;
+    ingredientesPara(r, porcoesCozidas(r, porcoes[idReceita])).forEach(ing => {
+      total[ing.id] = (total[ing.id] || 0) + ing.qtd;
     });
   });
 
@@ -446,6 +519,9 @@ export function gerarCompras(){
       id: 'c:' + id,
       nome: a.nome,
       qtd: formatarQuantidade(total[id], a),
+      /* No mercado ninguém compra 760 g de arroz: compra pacote. O banco de
+         alimentos sempre soube o tamanho da embalagem e a lista nunca disse. */
+      embalagem: embalagemPara(total[id], a),
       secao: SECAO_DA_DESPENSA[a.sec] || 'Mercado',
       feito: false
     };
@@ -466,6 +542,20 @@ export function gerarCompras(){
 
   itens.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   return itens;
+}
+
+/**
+ * Quantas embalagens fechadas dão conta da quantidade.
+ *
+ * Devolve '' para alimento sem embalagem conhecida (carne, hortifruti — que
+ * se compram a peso mesmo) e para o que já é contado em unidade.
+ */
+export function embalagemPara(qtd, alimento){
+  if(!alimento || !alimento.emb || alimento.un === 'un') return '';
+  const n = Math.ceil(qtd / alimento.emb - 0.001);
+  if(n < 1) return '';
+  const desc = alimento.embDesc || (alimento.emb + ' ' + alimento.un);
+  return n === 1 ? '1 ' + desc : n + ' × ' + desc;
 }
 
 /** Arredonda pra cima, pra não faltar na hora de cozinhar. */

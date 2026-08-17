@@ -2,11 +2,13 @@ import { DIAS, NOMES_REFEICAO, REFEICOES_SUGERIDAS } from '../dados/modelo.js';
 import { Dados, Tela, agir, agirSemAviso, definirTela } from '../nucleo/estado.js';
 import { diaDaSemana, semanaDe, dataCurta, paraMinutos } from '../nucleo/tempo.js';
 import { pratoDe, pratosDe, nutriDaReceita, totaisDoDia, refeicaoFeita, gerarCompras,
-         comprasAtuais, SECOES_COMPRA, horaDaRefeicaoNoDia } from '../nucleo/modelo.js';
-import { RECEITAS } from '../dados/receitas.js';
+         comprasAtuais, SECOES_COMPRA, horaDaRefeicaoNoDia,
+         receitas, ehLote } from '../nucleo/modelo.js';
 import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, estadoVazio,
          numeroBR, abrirFolha, fecharFolha, abrirFolhaTexto, confirmarRemocao,
-         pilulaConcluir, ligarToqueLongo, consumirToqueLongo } from '../ui/index.js';
+         botaoFlutuante, pilulaConcluir, ligarToqueLongo,
+         consumirToqueLongo } from '../ui/index.js';
+import { abrirReceita, criarReceita } from './receita.js';
 
 /* ===========================================================================
    TELA 4 — COMIDA
@@ -15,6 +17,8 @@ import { h, icone, cabecalhoTela, rotuloSecao, barraProgresso, estadoVazio,
      HOJE     o que comer agora, marcado por refeição.
      SEMANA   a grade do cardápio e a escolha de prato por refeição.
      COMPRAS  a lista derivada do cardápio, agrupada por onde se compra.
+     RECEITAS o banco de pratos: o que tem dentro, como se faz, e quais são
+              cozidos em lote. Era conteúdo escrito e nunca mostrado.
 
    O modo de edição desta tela é o que generaliza o app: a lista de refeições
    não é fixa. Quem só faz café, almoço, janta e ceia chega nisso removendo e
@@ -35,15 +39,20 @@ export function telaComida(){
     ),
     segmentado(),
     editando ? edicaoDasRefeicoes()
-      : Tela.abaComida === 'hoje'   ? comidaHoje(iso)
-      : Tela.abaComida === 'semana' ? comidaSemana(iso)
-      :                               comidaCompras()
+      : Tela.abaComida === 'hoje'     ? comidaHoje(iso)
+      : Tela.abaComida === 'semana'   ? comidaSemana(iso)
+      : Tela.abaComida === 'receitas' ? comidaReceitas()
+      :                                 comidaCompras(),
+    !editando && Tela.abaComida === 'receitas'
+      ? botaoFlutuante('Nova receita', criarReceita, {classe: 'salvia'})
+      : null
   );
 }
 
 export function segmentado(){
-  const abas = [['hoje','Hoje'], ['semana','Semana'], ['compras','Compras']];
-  return h('div', {class:'segmentado'},
+  const abas = [['hoje','Hoje'], ['semana','Semana'],
+                ['receitas','Receitas'], ['compras','Compras']];
+  return h('div', {class:'segmentado segmentado-comida'},
     abas.map(([id, rotulo]) => h('button', {
         class:'segmento' + (Tela.abaComida === id ? ' ativo' : ''),
         type:'button',
@@ -229,6 +238,12 @@ function resumoDaEscolha(diaK, slot){
     h('p', {class:'nota destaque'},
       escolhidos.map(r => r.nome).join(' + ') + ' · ' +
       numeroBR(prato.kcal) + ' kcal · ' + prato.prot + ' g prot'),
+    /* Atalho para a ficha de cada prato escolhido: é de dentro dela que se
+       vê o preparo e se liga a preparação em lote. */
+    h('div', {class:'sugestoes'},
+      escolhidos.map(r => h('button', {class:'sugestao', type:'button',
+        onTap: () => { fecharFolha(); abrirReceita(r.id); }}, 'Ver ' + r.nome))
+    ),
     h('button', {class:'btn btn-suave largura-cheia', type:'button',
       onTap: () => limparPratos(diaK, slot)}, 'Deixar a definir')
   );
@@ -236,7 +251,7 @@ function resumoDaEscolha(diaK, slot){
 
 export function listaDePratos(diaK, slot){
   const termo = buscaDePrato.trim().toLowerCase();
-  const lista = RECEITAS.filter(r => !termo || r.nome.toLowerCase().indexOf(termo) >= 0);
+  const lista = receitas().filter(r => !termo || r.nome.toLowerCase().indexOf(termo) >= 0);
   const escolhidos = pratosDe(diaK, slot.id).map(r => r.id);
 
   if(!lista.length){
@@ -285,6 +300,80 @@ export function limparPratos(diaK, slot){
 }
 
 /* ===========================================================================
+   RECEITAS
+
+   O banco de pratos, que até aqui só existia no arquivo-fonte. Cada receita
+   tinha modo de preparo, tempo, rendimento e uma dica de conservação escrita
+   à mão — e o app mostrava o nome e as calorias.
+
+   A lista é agrupada por categoria porque é assim que se procura: ninguém
+   pensa "quero a receita nº 14", pensa "o que eu faço de café da manhã".
+   =========================================================================== */
+
+const ORDEM_CATEGORIA = [
+  ['cafe', 'Café da manhã'], ['lanche', 'Lanches'],
+  ['principal', 'Pratos principais'], ['base', 'Bases']
+];
+
+export function comidaReceitas(){
+  const todas = receitas();
+  const emUso = {};
+  DIAS.forEach(d => Object.keys(Dados.cardapio[d.k] || {}).forEach(slotId => {
+    pratosDe(d.k, slotId).forEach(r => { emUso[r.id] = (emUso[r.id] || 0) + 1; });
+  }));
+
+  if(!todas.length){
+    return estadoVazio('Sem receitas',
+      'Toque no + para escrever a primeira.');
+  }
+
+  return h('div', null,
+    h('p', {class:'nota'},
+      'Toque numa receita para ver os ingredientes, o modo de preparo e ' +
+      'ligar a preparação em lote.'),
+
+    ORDEM_CATEGORIA.map(([cat, titulo]) => {
+      const doGrupo = todas.filter(r => (r.cat || 'principal') === cat);
+      if(!doGrupo.length) return null;
+      return h('section', {class:'cartao'},
+        rotuloSecao(titulo),
+        h('div', {class:'lista-receitas'},
+          doGrupo.map(r => linhaDeReceita(r, emUso[r.id] || 0)))
+      );
+    }),
+
+    /* Categoria que não está na lista acima não pode sumir da tela. */
+    (() => {
+      const conhecidas = ORDEM_CATEGORIA.map(([c]) => c);
+      const sobra = todas.filter(r => conhecidas.indexOf(r.cat || 'principal') < 0);
+      if(!sobra.length) return null;
+      return h('section', {class:'cartao'},
+        rotuloSecao('Outras'),
+        h('div', {class:'lista-receitas'}, sobra.map(r => linhaDeReceita(r, emUso[r.id] || 0))));
+    })()
+  );
+}
+
+function linhaDeReceita(r, vezes){
+  const n = nutriDaReceita(r);
+  return h('button', {class:'linha-receita', type:'button',
+      'aria-label':'Abrir ' + r.nome, onTap: () => abrirReceita(r.id)},
+    h('div', {class:'linha-receita-texto'},
+      h('div', {class:'linha-receita-nome'}, r.nome),
+      h('div', {class:'linha-receita-meta'},
+        r.tempo + ' min · ' + numeroBR(n.kcal) + ' kcal · ' +
+        Math.round(n.prot) + ' g prot' +
+        (r.porcoes > 1 ? ' · rende ' + r.porcoes : ''))
+    ),
+    h('div', {class:'linha-receita-marcas'},
+      ehLote(r) ? h('span', {class:'chip-lote'}, 'lote') : null,
+      vezes ? h('span', {class:'chip-uso'}, vezes + '×') : null
+    ),
+    icone('seta', 15)
+  );
+}
+
+/* ===========================================================================
    COMPRAS
    =========================================================================== */
 export function comidaCompras(){
@@ -320,7 +409,11 @@ export function linhaDeCompra(item){
       })
     },
     h('span', {class:'compra-circulo'}, item.feito ? icone('check', 13) : null),
-    h('span', {class:'compra-nome'}, item.nome),
+    h('div', {class:'compra-texto'},
+      h('span', {class:'compra-nome'}, item.nome),
+      /* O que se pega na prateleira, quando o banco de alimentos sabe. */
+      item.embalagem ? h('span', {class:'compra-embalagem'}, item.embalagem) : null
+    ),
     h('span', {class:'compra-qtd'}, item.qtd)
   );
 }

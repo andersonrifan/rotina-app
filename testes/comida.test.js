@@ -4,9 +4,10 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { carregar, Dados } from '../src/nucleo/estado.js';
 import {
   pratoDe, pratosDe, nutriDaReceita, totaisDoDia, refeicaoFeita,
-  gerarCompras, formatarQuantidade, SECOES_COMPRA
+  gerarCompras, formatarQuantidade, SECOES_COMPRA,
+  ehLote, porcoesCozidas, ingredientesPara
 } from '../src/nucleo/modelo.js';
-import { migrar } from '../src/nucleo/armazem.js';
+import { migrar, VERSAO_ESQUEMA } from '../src/nucleo/armazem.js';
 import { RECEITAS } from '../src/dados/receitas.js';
 import { rotinaDeTeste } from './ajuda.js';
 
@@ -68,7 +69,8 @@ describe('lista de compras', () => {
     expect(lista.some(i => /carne moída/i.test(i.nome))).toBe(true);
   });
 
-  it('escala pela quantidade de porções que a semana pede', () => {
+  it('fora do lote, escala pela quantidade de porções que a semana pede', () => {
+    Dados.receitas.filter(r => r.id === 'bolonhesa')[0].emLote = false;
     const umDia = gerarCompras().filter(i => /macarrão/i.test(i.nome))[0];
     // o mesmo prato em mais um dia tem que pedir mais ingrediente
     Dados.cardapio.Qua.almoco = 'bolonhesa';
@@ -173,6 +175,7 @@ describe('mais de um prato por refeição', () => {
       });
       return mapa;
     };
+    Dados.receitas.filter(r => r.id === 'bolonhesa')[0].emLote = false;
     const antes = emGramas();
     Dados.cardapio.Qua.almoco = ['bolonhesa'];   // mais uma porção na semana
     const depois = emGramas();
@@ -208,6 +211,99 @@ describe('migração v6 → v7: o cardápio vira lista', () => {
   });
 
   it('cardápio ausente não quebra a migração', () => {
-    expect(migrar({versao: 6, slots: []}).versao).toBe(7);
+    /* As migrações são aplicadas em sequência, então isto sai na versão
+       atual do esquema, não na 7. */
+    expect(migrar({versao: 6, slots: []}).versao).toBe(VERSAO_ESQUEMA);
+  });
+});
+
+/* ===========================================================================
+   PREPARAÇÃO EM LOTE
+
+   Uma receita em lote é cozida de uma vez para a semana inteira. Isso muda a
+   COMPRA, porque não existe cozinhar três quartos de uma panela: ou se faz a
+   panela inteira, ou não se faz.
+   =========================================================================== */
+
+describe('preparação em lote', () => {
+  const bolonhesa = () => Dados.receitas.filter(r => r.id === 'bolonhesa')[0];
+
+  it('quem rende várias porções já nasce em lote', () => {
+    expect(bolonhesa().porcoes).toBeGreaterThan(1);
+    expect(ehLote(bolonhesa())).toBe(true);
+  });
+
+  it('receita de uma porção nasce fora do lote', () => {
+    expect(ehLote({porcoes: 1})).toBe(false);
+  });
+
+  it('a escolha da pessoa vence o padrão, nos dois sentidos', () => {
+    expect(ehLote({porcoes: 6, emLote: false})).toBe(false);
+    expect(ehLote({porcoes: 1, emLote: true})).toBe(true);
+  });
+
+  it('em lote, a semana cozinha panelas inteiras', () => {
+    const r = bolonhesa();               // rende 6
+    expect(porcoesCozidas(r, 1)).toBe(6);
+    expect(porcoesCozidas(r, 6)).toBe(6);
+    expect(porcoesCozidas(r, 7)).toBe(12);
+  });
+
+  it('fora do lote, cozinha exatamente o que a semana pede', () => {
+    const r = Object.assign({}, bolonhesa(), {emLote: false});
+    expect(porcoesCozidas(r, 1)).toBe(1);
+    expect(porcoesCozidas(r, 7)).toBe(7);
+  });
+
+  it('sem nenhuma porção pedida, não se cozinha nada', () => {
+    expect(porcoesCozidas(bolonhesa(), 0)).toBe(0);
+  });
+
+  it('a lista de compras compra a panela inteira', () => {
+    const macarrao = () => gerarCompras().filter(i => /macarrão/i.test(i.nome))[0];
+    // O modelo de teste usa bolonhesa em 2 almoços; a receita rende 6.
+    const emLote = parseFloat(macarrao().qtd);
+    bolonhesa().emLote = false;
+    const semLote = parseFloat(macarrao().qtd);
+    expect(emLote).toBeGreaterThan(semLote);
+  });
+
+  it('e a conta de ingredientes escala com as porções', () => {
+    const r = bolonhesa();
+    const uma = ingredientesPara(r, 1).filter(i => i.id === 'macarrao')[0];
+    const seis = ingredientesPara(r, 6).filter(i => i.id === 'macarrao')[0];
+    expect(seis.qtd).toBeCloseTo(uma.qtd * 6, 5);
+    expect(seis.qtd).toBe(500);           // a receita inteira, como escrita
+  });
+
+  it('ingrediente que sumiu do banco de alimentos é ignorado', () => {
+    const r = {porcoes: 1, ingr: [['macarrao', 100], ['alimento-fantasma', 50]]};
+    expect(ingredientesPara(r, 1).length).toBe(1);
+  });
+});
+
+describe('as receitas viraram dado', () => {
+  it('o app lê do que está gravado, não do arquivo', () => {
+    Dados.receitas.filter(r => r.id === 'bolonhesa')[0].nome = 'Meu macarrão';
+    expect(pratoDe('Seg', 'almoco').nome).toBe('Meu macarrão');
+  });
+
+  it('receita nova aparece no cardápio como qualquer outra', () => {
+    Dados.receitas.push({id:'minha', nome:'Minha receita', cat:'principal',
+                         porcoes:1, tempo:5, ingr:[['ovo',2]], preparo:[], lote:''});
+    Dados.cardapio.Seg.almoco = ['minha'];
+    expect(pratoDe('Seg', 'almoco').nome).toBe('Minha receita');
+  });
+
+  it('migração v7 → v8 entrega o banco de receitas a quem não tinha', () => {
+    const antigo = {versao: 7, slots: [], cardapio: {}};
+    const novo = migrar(antigo);
+    expect(Array.isArray(novo.receitas)).toBe(true);
+    expect(novo.receitas.length).toBeGreaterThan(20);
+  });
+
+  it('e não mexe em quem ja tem as suas', () => {
+    const antigo = {versao: 7, slots: [], cardapio: {}, receitas: [{id:'x'}]};
+    expect(migrar(antigo).receitas).toEqual([{id:'x'}]);
   });
 });

@@ -24,6 +24,7 @@ import { telaPrimeiroUso } from './telas/extras.js';
 import { telaBoasVindas, telaPerfil, precisaDeNome } from './telas/perfil.js';
 import { telaEstatisticas } from './telas/estatisticas.js';
 import { telaSemana } from './telas/semana.js';
+import { telaReceita, fecharReceita } from './telas/receita.js';
 
 /* O id da aba do calendário continua 'dia' — ele é chave de armazenamento e
    de estado, e renomear id gravado só criaria migração para trocar uma
@@ -81,6 +82,7 @@ function desenharTudo(){
     if(Tela.perfil){ camadas.appendChild(telaPerfil()); temModal = true; }
     if(Tela.semana){ camadas.appendChild(telaSemana()); temModal = true; }
     if(Tela.estatisticas){ camadas.appendChild(telaEstatisticas()); temModal = true; }
+    if(Tela.receita){ camadas.appendChild(telaReceita()); temModal = true; }
     /* A abertura tem uma ORDEM: primeiro o nome, depois a rotina.
        O `else if` importa — empilhar as duas deixaria a de baixo invisível
        mas ainda alcançável por Tab e lida por leitor de tela. */
@@ -167,6 +169,7 @@ function mostrarErroDeInicio(mensagem){
  */
 function voltarUmaCamada(){
   if(Tela.folha){ fecharFolha(); return true; }
+  if(Tela.receita){ fecharReceita(); return true; }
   /* As duas telas de dentro devolvem para o Perfil, de onde vieram — o mesmo
      que os botões "Voltar" delas fazem. */
   if(Tela.estatisticas){ definirTela({estatisticas: false, perfil: true}); return true; }

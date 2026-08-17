@@ -1737,3 +1737,105 @@ button, .tocavel{
 
 /* Três opções de tema, mesma peça do alternador Agenda/Lista. */
 .segmentado-tema{ grid-template-columns:repeat(3, 1fr); }
+
+/* ===========================================================================
+   14. RECEITAS
+
+   O banco de pratos ganhou tela. Tudo aqui é lista simples de propósito: a
+   informação é textual (o que leva, como se faz), e enfeite atrapalha quem
+   está cozinhando com o celular apoiado na bancada.
+   =========================================================================== */
+
+.segmentado-comida{ grid-template-columns:repeat(4, 1fr); }
+.segmentado-comida .segmento{ font-size:11px; padding:0 4px; }
+
+.lista-receitas{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.linha-receita{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:9px 10px;
+  border-radius:var(--r-linha-menor);
+  background:var(--superficie-clara);
+  color:var(--texto);
+}
+.linha-receita-texto{ flex:1; min-width:0; }
+.linha-receita-nome{
+  font-size:12.5px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.linha-receita-meta{
+  font-size:10.5px; font-weight:500; color:var(--texto-fraco); margin-top:2px;
+  font-variant-numeric:tabular-nums;
+}
+.linha-receita-marcas{ display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.chip-lote, .chip-uso{
+  font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  border-radius:var(--r-pilula); padding:4px 8px;
+}
+.chip-lote{ background:var(--salvia-clara); color:var(--salvia-texto); }
+.chip-uso{ background:var(--acao-clara); color:var(--acao-escura); }
+
+/* --- A ficha --------------------------------------------------------------- */
+.tela-receita{
+  position:absolute; inset:0;
+  background:var(--fundo);
+  overflow-y:auto;
+  display:flex; flex-direction:column; gap:var(--gap-cartoes);
+  padding:0 var(--pad-tela) calc(24px + env(safe-area-inset-bottom));
+}
+.chips-receita{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip-receita{
+  font-size:10.5px; font-weight:600; color:var(--texto-3);
+  background:var(--superficie); border-radius:var(--r-pilula);
+  padding:6px 11px;
+}
+
+/* Os dois números do lote, lado a lado: é a diferença entre eles que
+   responde à pergunta que a pessoa está fazendo. */
+.linha-lote{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  background:var(--superficie-clara);
+  border-radius:var(--r-linha-menor);
+  padding:11px 14px;
+}
+.lote-numero{ text-align:center; }
+.lote-valor{ font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
+.lote-rotulo{ font-size:10px; font-weight:500; color:var(--texto-fraco); margin-top:1px; }
+.lote-seta{ color:var(--texto-fraco); display:flex; }
+.lote-sobra{
+  margin-left:auto;
+  font-size:10.5px; font-weight:700;
+  color:var(--salvia-texto); background:var(--salvia-clara);
+  border-radius:var(--r-pilula); padding:5px 10px;
+}
+
+.lista-ingredientes{ display:flex; flex-direction:column; }
+.ingrediente{
+  display:flex; align-items:center; gap:10px;
+  min-height:38px;
+  border-bottom:1px solid var(--linha);
+}
+.ingrediente:last-child{ border-bottom:none; }
+.ingrediente-nome{ flex:1; min-width:0; font-size:12.5px; font-weight:500; }
+.ingrediente-qtd{
+  font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;
+  flex-shrink:0;
+}
+.ingrediente-acoes{ display:flex; gap:4px; flex-shrink:0; }
+
+.lista-preparo{ margin:0; padding-left:20px; display:flex; flex-direction:column; gap:9px; }
+.passo-preparo{ font-size:12.5px; line-height:1.5; color:var(--texto-2); }
+.passo-editavel{ display:flex; align-items:flex-start; gap:8px; }
+.passo-texto{
+  flex:1; text-align:left; font:inherit; color:inherit;
+  min-height:0; padding:2px 0;
+  border-bottom:1px dashed var(--neutro-tracejado);
+}
+
+.lista-alimentos{ display:flex; flex-direction:column; gap:5px; max-height:44vh; overflow-y:auto; }
+
+/* A embalagem na lista de compras: o que se pega na prateleira. */
+.compra-texto{ flex:1; min-width:0; }
+.compra-embalagem{
+  display:block;
+  font-size:10px; font-weight:500; color:var(--texto-fraco); margin-top:1px;
+}

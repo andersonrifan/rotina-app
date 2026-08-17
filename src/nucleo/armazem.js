@@ -15,7 +15,7 @@
 export const CHAVE = 'rotina_v4';
 
 /** A versão do esquema que ESTA build entende. Suba ao mudar o formato. */
-export const VERSAO_ESQUEMA = 7;
+export const VERSAO_ESQUEMA = 8;
 
 /** Cópia profunda. Usada ao semear dados e ao simular hipóteses. */
 export function clonar(valor){
@@ -36,6 +36,8 @@ export const armazem = {
     catch(_err){ return false; }
   }
 };
+
+import { RECEITAS } from '../dados/receitas.js';
 
 /* ---------------------------------------------------------------------------
    MIGRAÇÕES
@@ -67,6 +69,14 @@ const MIGRACOES = {
   /* v6 → v7: uma refeição pode ter mais de um prato. O cardápio guardava um
      id solto por refeição; passa a guardar uma lista. Um prato vira lista de
      um, e nada se perde. */
+  /* v7 → v8: as receitas saem do código e viram dado do usuario. Quem já
+     usava recebe o banco atual como ponto de partida; a partir daqui, o que
+     ele editar é dele. */
+  7: (dados) => {
+    if(!Array.isArray(dados.receitas)) dados.receitas = clonar(RECEITAS);
+    return dados;
+  },
+
   6: (dados) => {
     const cardapio = dados.cardapio || {};
     Object.keys(cardapio).forEach(diaK => {
