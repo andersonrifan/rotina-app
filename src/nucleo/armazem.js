@@ -12,10 +12,12 @@
       usava. As migrações são numeradas e aplicadas em ordem.
    =========================================================================== */
 
+import { RECEITAS } from '../dados/receitas.js';
+
 export const CHAVE = 'rotina_v4';
 
 /** A versão do esquema que ESTA build entende. Suba ao mudar o formato. */
-export const VERSAO_ESQUEMA = 8;
+export const VERSAO_ESQUEMA = 9;
 
 /** Cópia profunda. Usada ao semear dados e ao simular hipóteses. */
 export function clonar(valor){
@@ -37,13 +39,13 @@ export const armazem = {
   }
 };
 
-import { RECEITAS } from '../dados/receitas.js';
-
 /* ---------------------------------------------------------------------------
    MIGRAÇÕES
 
-   Cada entrada leva os dados de uma versão para a seguinte. São aplicadas em
-   sequência, então dados da v3 passam por 3→4 e depois 4→5 sozinhos.
+   Cada entrada leva os dados de uma versão para a SEGUINTE, e elas são
+   aplicadas em sequência: dados da v4 passam por 4→5, 5→6 e assim por diante,
+   sozinhos. Por isso a chave é a versão de ORIGEM, e a ordem aqui é crescente
+   — ler de cima para baixo é ler a história do formato.
 
    Regra: uma migração nunca é editada depois de publicada. Se ela estava
    errada, escreva a próxima corrigindo — há gente com dados que já passaram
@@ -69,14 +71,6 @@ const MIGRACOES = {
   /* v6 → v7: uma refeição pode ter mais de um prato. O cardápio guardava um
      id solto por refeição; passa a guardar uma lista. Um prato vira lista de
      um, e nada se perde. */
-  /* v7 → v8: as receitas saem do código e viram dado do usuario. Quem já
-     usava recebe o banco atual como ponto de partida; a partir daqui, o que
-     ele editar é dele. */
-  7: (dados) => {
-    if(!Array.isArray(dados.receitas)) dados.receitas = clonar(RECEITAS);
-    return dados;
-  },
-
   6: (dados) => {
     const cardapio = dados.cardapio || {};
     Object.keys(cardapio).forEach(diaK => {
@@ -86,6 +80,31 @@ const MIGRACOES = {
         if(!escolha) delete dia[slotId];
         else if(!Array.isArray(escolha)) dia[slotId] = [escolha];
       });
+    });
+    return dados;
+  },
+
+  /* v7 → v8: as receitas saem do código e viram dado do usuário. Quem já
+     usava recebe o banco atual como ponto de partida; a partir daqui, o que
+     ele editar é dele. */
+  7: (dados) => {
+    if(!Array.isArray(dados.receitas)) dados.receitas = clonar(RECEITAS);
+    return dados;
+  },
+
+  /* v8 → v9: a preparação em lote deixou de ser adivinhada pelo rendimento e
+     passou a ser escrita receita por receita — o feijão rende 12 e congela,
+     a sardinha com batata rende 2 e é prato de emergência.
+
+     Quem já tinha o banco copiado recebe as marcas sem perder o que editou:
+     só preenche onde o campo não existe, e só em receita que ainda casa por
+     id com a que veio no código. */
+  8: (dados) => {
+    if(!Array.isArray(dados.receitas)) return dados;
+    dados.receitas.forEach(r => {
+      if(r.emLote !== undefined) return;
+      const original = RECEITAS.filter(x => x.id === r.id)[0];
+      if(original && original.emLote !== undefined) r.emLote = original.emLote;
     });
     return dados;
   }

@@ -68,6 +68,15 @@ export const ALIMENTOS = {
 /* ===========================================================
    RECEITAS
    ingr: [idAlimento, quantidade]  — quantidade em g/ml, ou em unidades p/ itens 'un'
+
+   emLote: cozinha-se de uma vez para a semana?
+
+   Marcado à mão, receita por receita, porque "rende várias porções" não é a
+   mesma pergunta. O feijão rende 12 e congela: é lote. A sardinha com batata
+   rende 2 e e prato de emergencia, feito na hora: nao e. Onde o campo nao
+   aparece, vale o padrão — rende mais de uma porção, é lote (ver `ehLote` em
+   nucleo/modelo.js). O campo só muda alguma coisa em receita que rende mais
+   de uma porção: para as de porção única, cozinhar N é sempre N.
    =========================================================== */
 export const RECEITAS = [
   /* ---------------- CAFÉ DA MANHÃ ---------------- */
@@ -188,7 +197,7 @@ export const RECEITAS = [
 
   /* ---------------- BASES DE LOTE ---------------- */
   {
-    id:'arroz-lote', nome:'Arroz branco (lote da semana)', cat:'base', porcoes:10, tempo:30,
+    id:'arroz-lote', emLote:true, nome:'Arroz branco (lote da semana)', cat:'base', porcoes:10, tempo:30,
     ingr:[['arroz',500],['oleo',20],['alho',15],['cebola',50],['sal',8]],
     preparo:[
       'Refogue o alho e a cebola no óleo até dourar.',
@@ -199,7 +208,7 @@ export const RECEITAS = [
     lote:'Rende 10 porções. Guarde em potes individuais na geladeira (4 dias) ou congele (3 meses). Reaqueça com um fio de água.'
   },
   {
-    id:'feijao-lote', nome:'Feijão carioca com calabresa (lote)', cat:'base', porcoes:12, tempo:60,
+    id:'feijao-lote', emLote:true, nome:'Feijão carioca com calabresa (lote)', cat:'base', porcoes:12, tempo:60,
     ingr:[['feijao',500],['calabresa',100],['oleo',20],['alho',15],['cebola',80],['sal',8],['tempero',5]],
     preparo:[
       'Deixe o feijão de molho na véspera (ou 4 h). Descarte a água.',
@@ -212,7 +221,7 @@ export const RECEITAS = [
 
   /* ---------------- ALMOÇO / JANTA ---------------- */
   {
-    id:'frango-cremoso', nome:'Frango desfiado cremoso (lote)', cat:'principal', porcoes:8, tempo:50,
+    id:'frango-cremoso', emLote:true, nome:'Frango desfiado cremoso (lote)', cat:'principal', porcoes:8, tempo:50,
     ingr:[['sobrecoxa',1000],['requeijao',150],['molhoTomate',300],['cebola',100],['alho',15],['azeite',20],['sal',8],['tempero',5]],
     preparo:[
       'Cozinhe as sobrecoxas na pressão com pouca água e sal por 20 min. Reserve o caldo.',
@@ -224,7 +233,7 @@ export const RECEITAS = [
     lote:'Rende 8 porções. Congela bem. Serve pra tudo: com arroz, no pão, na tapioca, no macarrão.'
   },
   {
-    id:'carne-moida', nome:'Carne moída refogada (lote)', cat:'principal', porcoes:8, tempo:40,
+    id:'carne-moida', emLote:true, nome:'Carne moída refogada (lote)', cat:'principal', porcoes:8, tempo:40,
     ingr:[['carneMoida',1000],['molhoTomate',500],['cebola',150],['alho',15],['cenoura',200],['oleo',20],['sal',8],['tempero',5]],
     preparo:[
       'Doure a cebola e o alho no óleo.',
@@ -235,7 +244,7 @@ export const RECEITAS = [
     lote:'Rende 8 porções. A cenoura ralada rende volume e some no molho. Congela perfeitamente.'
   },
   {
-    id:'strogonoff', nome:'Strogonoff de frango econômico', cat:'principal', porcoes:6, tempo:35,
+    id:'strogonoff', emLote:true, nome:'Strogonoff de frango econômico', cat:'principal', porcoes:6, tempo:35,
     ingr:[['peitoFrango',800],['cremeLeite',400],['molhoTomate',200],['milho',170],['cebola',100],['alho',10],['oleo',20],['sal',6]],
     preparo:[
       'Corte o frango em cubos e doure no óleo com cebola e alho.',
@@ -246,7 +255,7 @@ export const RECEITAS = [
     lote:'Rende 6 porções. Congela razoavelmente (o creme pode separar um pouco — mexa bem ao reaquecer).'
   },
   {
-    id:'bolonhesa', nome:'Macarrão à bolonhesa (lote)', cat:'principal', porcoes:6, tempo:35,
+    id:'bolonhesa', emLote:true, nome:'Macarrão à bolonhesa (lote)', cat:'principal', porcoes:6, tempo:35,
     ingr:[['macarrao',500],['carneMoida',500],['molhoTomate',500],['cebola',100],['alho',15],['azeite',25],['sal',8],['mucarela',100]],
     preparo:[
       'Faça o molho: doure cebola e alho no azeite, junte a carne moída, depois o molho de tomate. Cozinhe 20 min.',
@@ -256,7 +265,7 @@ export const RECEITAS = [
     lote:'Congele o molho separado do macarrão — o macarrão congelado fica mole. Molho dura 3 meses no freezer.'
   },
   {
-    id:'escondidinho', nome:'Escondidinho de carne com batata', cat:'principal', porcoes:6, tempo:60,
+    id:'escondidinho', emLote:true, nome:'Escondidinho de carne com batata', cat:'principal', porcoes:6, tempo:60,
     ingr:[['batata',1200],['carneMoida',600],['leite',150],['manteiga',40],['mucarela',150],['cebola',100],['alho',10],['oleo',15],['sal',10]],
     preparo:[
       'Cozinhe as batatas até ficarem macias, amasse com o leite, a manteiga e sal — faça um purê firme.',
@@ -267,7 +276,7 @@ export const RECEITAS = [
     lote:'Rende 6 porções. Monte em potes individuais antes de assar e congele crus — asse direto do freezer quando quiser.'
   },
   {
-    id:'frango-assado', nome:'Frango e batata-doce assados na travessa', cat:'principal', porcoes:6, tempo:60,
+    id:'frango-assado', emLote:true, nome:'Frango e batata-doce assados na travessa', cat:'principal', porcoes:6, tempo:60,
     ingr:[['sobrecoxa',1000],['batataDoce',1000],['azeite',30],['alho',20],['sal',10],['tempero',8]],
     preparo:[
       'Tempere o frango com alho amassado, sal e temperos. Se der, deixe 30 min pegando gosto.',
@@ -277,7 +286,7 @@ export const RECEITAS = [
     lote:'Rende 6 porções e usa uma travessa só — quase não suja louça. Guarde em potes; dura 4 dias na geladeira.'
   },
   {
-    id:'lentilha-calabresa', nome:'Lentilha com calabresa', cat:'principal', porcoes:6, tempo:40,
+    id:'lentilha-calabresa', emLote:true, nome:'Lentilha com calabresa', cat:'principal', porcoes:6, tempo:40,
     ingr:[['lentilha',400],['calabresa',200],['cebola',100],['alho',15],['cenoura',150],['oleo',20],['sal',8],['tempero',5]],
     preparo:[
       'Cozinhe a lentilha em água (não precisa de molho longo) por ~20 min, até macia mas inteira.',
@@ -287,7 +296,7 @@ export const RECEITAS = [
     lote:'Rende 6 porções. Barata, proteica e congela bem. Boa alternativa ao feijão pra não enjoar.'
   },
   {
-    id:'panqueca-carne', nome:'Panqueca de carne (lote/congela)', cat:'principal', porcoes:6, tempo:70,
+    id:'panqueca-carne', emLote:true, nome:'Panqueca de carne (lote/congela)', cat:'principal', porcoes:6, tempo:70,
     ingr:[['farinhaTrigo',200],['ovo',2],['leite',400],['carneMoida',500],['molhoTomate',400],['mucarela',100],['cebola',80],['alho',10],['oleo',30],['sal',8]],
     preparo:[
       'Massa: bata farinha, ovos, leite, sal e 15 ml de óleo no liquidificador. Deixe descansar 15 min.',
@@ -299,7 +308,7 @@ export const RECEITAS = [
     lote:'Rende 6 porções (2 panquecas cada). Congele enroladas e sem molho, separadas por plástico; monte com molho na hora de assar.'
   },
   {
-    id:'sardinha-batata', nome:'Sardinha com batata e ovo', cat:'principal', porcoes:2, tempo:30,
+    id:'sardinha-batata', emLote:false, nome:'Sardinha com batata e ovo', cat:'principal', porcoes:2, tempo:30,
     ingr:[['sardinha',2],['batata',500],['ovo',2],['cebola',80],['azeite',20],['sal',5]],
     preparo:[
       'Cozinhe as batatas em cubos e os ovos (10 min) na mesma panela.',
@@ -319,7 +328,7 @@ export const RECEITAS = [
     lote:'Janta de 12 minutos pros dias em que você chega tarde da faculdade.'
   },
   {
-    id:'arroz-carreteiro', nome:'Arroz carreteiro (prato único)', cat:'principal', porcoes:5, tempo:40,
+    id:'arroz-carreteiro', emLote:true, nome:'Arroz carreteiro (prato único)', cat:'principal', porcoes:5, tempo:40,
     ingr:[['arroz',400],['carneMoida',500],['calabresa',150],['cebola',120],['alho',15],['tomate',150],['oleo',25],['sal',8],['tempero',5]],
     preparo:[
       'Doure a calabresa e a carne moída no óleo, até secar bem.',

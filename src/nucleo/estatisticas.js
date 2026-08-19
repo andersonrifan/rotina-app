@@ -12,7 +12,8 @@
 import { Dados } from './estado.js';
 import { hojeISO, semanaDe, ehFuturo, diaDaSemana, somarDias } from './tempo.js';
 import { blocosDoDia, statusDoBloco, refeicaoFeita, pratoDe, totaisDoDia } from './modelo.js';
-import { sessoesRegistradas, volumeDaSessao, totalDeSeries } from './sessoes.js';
+import { sessoesRegistradas, volumeDaSessao, totalDeSeries,
+         tipoDoExercicio } from './sessoes.js';
 
 /* --- Aderência ------------------------------------------------------------
    A fração dos blocos do dia marcados como feitos. Só conta bloco que já
@@ -172,4 +173,117 @@ export function refeicoesDaSemana(iso){
     });
   });
   return previstas ? {feitas: feitas, previstas: previstas, fracao: feitas / previstas} : null;
+}
+
+
+/* ===========================================================================
+   EVOLUÇÃO DO TREINO
+
+   O app registrava séries desde a rodada das sessões, e as estatísticas
+   mostravam uma coisa só: quantos treinos por semana. Isso responde
+   "apareci?", que é a pergunta do primeiro mês. Depois dela vem "estou
+   ficando mais forte?", e essa exige olhar CARGA e VOLUME ao longo do tempo.
+
+   O nome do exercício vem da estrutura do treino, e a série vem do índice
+   dentro dela. Se um exercício foi removido do meio da lista, os índices
+   antigos passam a apontar para o vizinho — é a mesma limitação que os
+   blocos fixos têm, e a razão de remover exercício avisar antes.
+   =========================================================================== */
+
+/** O exercício de índice `i` no treino de uma sessão, se ainda existir. */
+function exercicioDaSessao(sessao, indice){
+  const treino = Dados.treinos.filter(t => t.id === sessao.treinoId)[0];
+  return treino ? treino.exercicios[indice] : null;
+}
+
+/** Volume total (kg) por semana, nas últimas `semanas` semanas. */
+export function volumePorSemana(iso, semanas){
+  const base = iso || hojeISO();
+  const n = semanas || 8;
+  const saida = [];
+  for(let i = n - 1; i >= 0; i--){
+    const dias = semanaDe(somarDias(base, -7 * i));
+    const daSemana = sessoesRegistradas().filter(s => dias.indexOf(s.data) >= 0);
+    saida.push({
+      semana: dias[0],
+      volume: daSemana.reduce((t, s) => t + volumeDaSessao(s), 0),
+      series: daSemana.reduce((t, s) => t + totalDeSeries(s), 0),
+      minutos: daSemana.reduce((t, s) => t + (s.duracao || 0), 0)
+    });
+  }
+  return saida;
+}
+
+/** Totais do período: o retrato de quanto trabalho foi feito. */
+export function resumoDoTreino(iso, dias){
+  const sessoes = sessoesRecentes(iso, dias || 30);
+  return {
+    sessoes: sessoes.length,
+    series: sessoes.reduce((t, s) => t + totalDeSeries(s), 0),
+    volume: sessoes.reduce((t, s) => t + volumeDaSessao(s), 0),
+    minutos: sessoes.reduce((t, s) => t + (s.duracao || 0), 0)
+  };
+}
+
+/**
+ * O recorde de cada exercício: a maior carga já registrada, e quantas
+ * repetições foram feitas com ela.
+ *
+ * É o número que se persegue, e o app tinha todos os dados para calcular sem
+ * nunca ter mostrado. Exercício sem carga (peso do corpo, prancha) entra pela
+ * melhor marca de repetições ou segundos.
+ */
+export function recordes(){
+  const porNome = {};
+  sessoesRegistradas().forEach(sessao => {
+    Object.keys(sessao.series).forEach(indice => {
+      const ex = exercicioDaSessao(sessao, indice);
+      if(!ex) return;
+      const atual = porNome[ex.n] || {
+        nome: ex.n, tipo: tipoDoExercicio(ex),
+        carga: 0, reps: 0, data: sessao.data, sessoes: 0
+      };
+      atual.sessoes++;
+      sessao.series[indice].forEach(serie => {
+        const carga = serie.carga || 0;
+        const reps = serie.reps || 0;
+        /* Carga maior manda. Empatou na carga, mais repetições manda —
+           é assim que se lê progresso quando o peso não muda. */
+        if(carga > atual.carga || (carga === atual.carga && reps > atual.reps)){
+          atual.carga = carga;
+          atual.reps = reps;
+          atual.data = sessao.data;
+        }
+      });
+      porNome[ex.n] = atual;
+    });
+  });
+
+  return Object.keys(porNome).map(n => porNome[n])
+    .sort((a, b) => (b.carga - a.carga) || (b.reps - a.reps));
+}
+
+/**
+ * A série temporal de UM exercício: a melhor carga de cada sessão, e o
+ * volume dele naquele dia.
+ */
+export function evolucaoDoExercicio(nome){
+  const pontos = [];
+  sessoesRegistradas().slice().reverse().forEach(sessao => {
+    Object.keys(sessao.series).forEach(indice => {
+      const ex = exercicioDaSessao(sessao, indice);
+      if(!ex || ex.n !== nome) return;
+      const series = sessao.series[indice];
+      const melhor = series.reduce((m, s) => Math.max(m, s.carga || 0), 0);
+      const repsMax = series.reduce((m, s) => Math.max(m, s.reps || 0), 0);
+      pontos.push({
+        data: sessao.data,
+        carga: melhor,
+        reps: repsMax,
+        volume: series.reduce((t, s) => t + (s.reps || 0) * (s.carga || 0), 0),
+        series: series.length
+      });
+    });
+  });
+  return pontos;
 }

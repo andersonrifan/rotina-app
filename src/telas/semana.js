@@ -56,8 +56,9 @@ export function telaSemana(){
       onTap: () => abrirEditor(diaK, null)}, icone('mais', 15), 'Adicionar bloco à ' + nomeCompleto(diaK)),
 
     h('p', {class:'nota'},
-      'Refeições e treinos aparecem aqui para você ver o dia inteiro, mas são ' +
-      'definidos nas abas Comida e Treino — toque para ir até lá.')
+      'Toque em qualquer linha para mudar o horário. O que ela TEM dentro — o ' +
+      'prato de uma refeição, os exercícios de um treino — continua nas abas ' +
+      'Comida e Treino, e o chip leva até lá.')
   );
 }
 
@@ -82,9 +83,9 @@ function seletorDeDia(diaK){
 }
 
 /* --- Uma linha do molde ----------------------------------------------------
-   Blocos fixos se editam aqui. Refeição e treino não: eles já têm dono, e um
-   terceiro lugar para mudar o mesmo horário é onde as telas começam a
-   discordar. A linha diz de onde vem e leva até lá. */
+   Tocar edita o horário de qualquer bloco, venha ele de onde vier: é para isso
+   que se abre esta tela. O que continua morando na aba dona é o RESTO — qual
+   prato, quais exercícios —, e o chip leva até lá. */
 function linhaDoModelo(diaK, bloco){
   const origem = origemDoBloco(bloco);
   const fim = paraHora(paraMinutos(bloco.hora) + bloco.dur);
@@ -93,7 +94,11 @@ function linhaDoModelo(diaK, bloco){
       class:'linha-modelo' + (origem ? ' emprestada' : ''),
       style:'--cor-cat:' + corDaCategoria(bloco.cat) +
             ';--cor-cat-suave:' + corSuaveDaCategoria(bloco.cat),
-      onTap: () => origem ? irPara(origem) : abrirEditor(diaK, bloco)
+      /* Tocar edita o HORÁRIO, seja qual for a origem do bloco. Antes, uma
+         refeição levava direto para a aba Comida e a Semana modelo virava um
+         catálogo sem uso: o horário está escrito ali e não dá para mexer. O
+         chip continua levando à aba dona do resto (prato, exercícios). */
+      onTap: () => origem ? abrirEditorDeOrigem(bloco, origem) : abrirEditor(diaK, bloco)
     },
     h('div', {class:'linha-modelo-texto'},
       h('div', {class:'linha-modelo-titulo'}, bloco.titulo),
@@ -101,11 +106,86 @@ function linhaDoModelo(diaK, bloco){
         bloco.hora + '–' + fim + ' · ' + rotuloDuracao(bloco.dur))
     ),
     origem
-      ? h('span', {class:'chip-origem'}, origem.rotulo)
+      ? h('button', {class:'chip-origem acionavel', type:'button',
+          'aria-label':'Abrir a aba ' + origem.rotulo,
+          onTap: () => irPara(origem)}, origem.rotulo)
       : h('button', {class:'btn-mini perigo', type:'button',
           'aria-label':'Remover ' + bloco.titulo + ' de toda ' + nomeCompleto(diaK),
           onTap: () => removerDoModelo(diaK, bloco)}, icone('fechar', 14))
   );
+}
+
+/* ---------------------------------------------------------------------------
+   HORÁRIO DE REFEIÇÃO E DE TREINO
+
+   Os dois nascem fora da semana-modelo (a refeição vale para todo dia, o
+   treino é do dia da semana dele), mas o HORÁRIO deles é exatamente o tipo de
+   coisa que se vem ajustar aqui. Editar o horário não invade a aba dona: o
+   prato continua sendo da Comida, os exercícios continuam sendo do Treino.
+   --------------------------------------------------------------------------- */
+
+let rascunhoOrigem = null;
+
+function abrirEditorDeOrigem(bloco, origem){
+  const fim = paraHora(paraMinutos(bloco.hora) + bloco.dur);
+  rascunhoOrigem = {inicio: bloco.hora, fim: fim};
+
+  abrirFolha({
+    titulo: bloco.titulo,
+    rotuloConfirmar: 'Salvar horário',
+    corpo: () => h('div', {class:'folha-corpo'},
+      h('p', {class:'nota'},
+        origem.aba === 'comida'
+          ? 'As refeições têm um horário só para a semana inteira — mudar aqui '
+            + 'move esta refeição em todos os dias.'
+          : 'O treino acontece uma vez por semana, no dia dele — mudar aqui '
+            + 'move o bloco de exercício nesse dia.'),
+      h('div', {class:'campo-duplo'},
+        h('label', {class:'campo'},
+          h('span', {class:'campo-rotulo'}, 'Começa'),
+          h('input', {class:'campo-entrada campo-hora', type:'time', step:'300',
+            value: rascunhoOrigem.inicio,
+            onInput: ev => { rascunhoOrigem.inicio = ev.target.value; }})
+        ),
+        h('label', {class:'campo'},
+          h('span', {class:'campo-rotulo'}, 'Termina'),
+          h('input', {class:'campo-entrada campo-hora', type:'time', step:'300',
+            value: rascunhoOrigem.fim,
+            onInput: ev => { rascunhoOrigem.fim = ev.target.value; }})
+        )
+      ),
+      h('p', {class:'nota'},
+        'Vale de hoje em diante. Os dias já vividos ficam como estão.'),
+      h('button', {class:'btn btn-suave largura-cheia', type:'button',
+        onTap: () => { fecharFolha(); irPara(origem); }},
+        origem.aba === 'comida' ? 'Escolher o prato na aba Comida'
+                                : 'Ver os exercícios na aba Treino')
+    ),
+    confirmar: () => salvarHorarioDeOrigem(bloco)
+  });
+}
+
+function salvarHorarioDeOrigem(bloco){
+  const inicio = rascunhoOrigem.inicio;
+  let dur = paraMinutos(rascunhoOrigem.fim) - paraMinutos(inicio);
+  if(dur <= 0) dur += 1440;
+
+  const partes = bloco.id.split(':');
+  agir(bloco.titulo + ' às ' + inicio, d => {
+    congelarPassado(d);
+    if(partes[0] === 'slot'){
+      const slot = d.slots.filter(x => x.id === partes[1])[0];
+      if(slot){ slot.hora = inicio; slot.dur = dur; }
+      d.slots.sort((a, b) => paraMinutos(a.hora) - paraMinutos(b.hora));
+      /* Refeição vale para todo dia da semana: `null` diz isso ao propagador. */
+      propagarParaFuturo(d, bloco.id, null, {hora: inicio, dur: dur});
+    } else {
+      const treino = d.treinos.filter(t => t.id === partes[1])[0];
+      if(treino){ treino.hora = inicio; treino.dur = dur; }
+      propagarParaFuturo(d, bloco.id, treino ? treino.dia : null, {hora: inicio, dur: dur});
+    }
+  });
+  fecharFolha();
 }
 
 function origemDoBloco(bloco){

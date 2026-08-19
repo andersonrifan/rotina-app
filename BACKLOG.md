@@ -105,6 +105,25 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 
 Fica registrado para não voltar à discussão.
 
+**Da rodada de acabamento:**
+
+- ~~Semana modelo não deixava mudar horário de refeição~~ — tocar a linha
+  edita o horário de qualquer bloco; o chip é que leva à aba dona do resto
+- ~~Botões da folha saindo da tela com o teclado aberto~~ — a folha não rola
+  mais inteira (rola o corpo, as ações ficam fixas) e o viewport avisa o
+  navegador para encolher a área quando o teclado abre
+- ~~Metas do dia com metade do controle fora do aparelho~~ — dois steppers
+  lado a lado somavam 300 px de largura mínima numa tela de 375
+- ~~Alvos de toque colados~~ — 71 pares a menos de 8 px viraram 16, e os que
+  sobraram são restrição real (7 colunas em 375 px, e a régua onde a posição
+  é o horário)
+- ~~Bloco de 10 min virava um risco~~ — a régua passou de 0,95 para 1,6 px por
+  minuto: 16 px para 10 min, 32 px para 20 min
+- ~~Lote ligado em receita que se faz na hora~~ — marcado à mão, receita por
+  receita, e a migração entrega as marcas a quem já tinha o banco copiado
+- ~~Estatísticas de treino só respondiam "apareci?"~~ — volume por semana,
+  totais de 30 dias e recordes de carga por exercício
+
 **Da rodada da comida:**
 
 - ~~Modo escuro só seguia o aparelho~~ — Perfil → Aparência, com Automático /

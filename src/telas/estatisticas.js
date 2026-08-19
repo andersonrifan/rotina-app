@@ -26,11 +26,12 @@ import { sessoesRegistradas, volumeDaSessao, totalDeSeries,
          semanasSeguidasComTreino } from '../nucleo/sessoes.js';
 import {
   aderenciaDaSemana, aderenciaMediaDaSemana, tempoPorAreaResumido,
-  sessoesRecentes, treinosPorSemana, kcalDaSemana, kcalMediaDaSemana,
+  sessoesRecentes, treinosPorSemana, volumePorSemana, resumoDoTreino, recordes,
+  kcalDaSemana, kcalMediaDaSemana,
   cardapioPreenchido, adesaoAosRemedios, refeicoesDaSemana
 } from '../nucleo/estatisticas.js';
-import { h, cabecalhoTela, pilula, rotuloSecao } from '../ui/index.js';
-import { figura, colunas, barrasHorizontais, fileiraDeDestaques,
+import { h, cabecalhoTela, pilula, rotuloSecao, numeroBR } from '../ui/index.js';
+import { figura, colunas, linha, barrasHorizontais, fileiraDeDestaques,
          medidor, figuraVazia } from '../ui/graficos.js';
 
 export function abrirEstatisticas(){ definirTela({estatisticas: true, perfil: false}); }
@@ -137,13 +138,30 @@ function cartaoTempoPorArea(iso){
   );
 }
 
-/* --- Treino ---------------------------------------------------------------- */
+/* --- Treino ----------------------------------------------------------------
+   Duas perguntas, nesta ordem: "apareci?" e "estou ficando mais forte?". A
+   primeira se responde com frequência, a segunda com carga e volume — e por
+   muito tempo o app registrava as duas e mostrava só a primeira. */
 function cartaoTreino(iso){
   const porSemana = treinosPorSemana(iso, 6);
+  const volumes = volumePorSemana(iso, 8);
+  const resumo = resumoDoTreino(iso, 30);
   const registradas = sessoesRegistradas();
   const algum = porSemana.some(s => s.treinos > 0);
+  const temVolume = volumes.some(v => v.volume > 0);
 
   return h('section', {class:'cartao'},
+    rotuloSecao('Treino nos últimos 30 dias'),
+    fileiraDeDestaques([
+      {valor: resumo.sessoes, rotulo: 'Sessões'},
+      {valor: resumo.series, rotulo: 'Séries'},
+      {valor: resumo.volume >= 1000
+          ? (resumo.volume / 1000).toFixed(1).replace('.', ',')
+          : resumo.volume,
+       unidade: resumo.volume >= 1000 ? 't' : 'kg', rotulo: 'Volume'},
+      {valor: Math.round(resumo.minutos / 60), unidade: 'h', rotulo: 'Tempo'}
+    ]),
+
     figura(
       'Treinos por semana',
       'As últimas seis semanas. Só conta sessão com séries registradas.',
@@ -159,6 +177,23 @@ function cartaoTreino(iso){
         : figuraVazia('Registre as séries de um treino para começar o histórico.')
     ),
 
+    /* Volume é repetições × carga somando tudo: é o número que cresce quando
+       se progride, e o único que compara semanas de treinos diferentes. */
+    figura(
+      'Volume por semana',
+      'Repetições × carga, somando as sessões da semana. É o número que cresce quando você progride.',
+      temVolume
+        ? linha(volumes.map(v => ({valor: v.volume})), {
+            descricao: 'Volume semanal em kg: ' + volumes.map(v => Math.round(v.volume)).join(', '),
+            rotuloFinal: numeroBR(volumes[volumes.length - 1].volume) + ' kg',
+            rotuloInicio: dataCurta(volumes[0].semana),
+            rotuloFim: dataCurta(volumes[volumes.length - 1].semana)
+          })
+        : figuraVazia('Anote a carga das séries para o volume aparecer.')
+    ),
+
+    cartaoDeRecordes(),
+
     registradas.length
       ? h('div', {class:'historico'},
           rotuloSecao('Últimas sessões'),
@@ -169,11 +204,52 @@ function cartaoTreino(iso){
               h('span', {class:'historico-data'}, dataCurta(s.data)),
               h('span', {class:'historico-nome'}, treino ? treino.nome : 'treino removido'),
               h('span', {class:'historico-meta'},
-                totalDeSeries(s) + ' séries' + (volume ? ' · ' + volume.toLocaleString('pt-BR') + ' kg' : ''))
+                totalDeSeries(s) + ' séries' + (volume ? ' · ' + numeroBR(volume) + ' kg' : ''))
             );
           })
         )
       : null
+  );
+}
+
+/* --- Recordes ---------------------------------------------------------------
+   A maior carga já registrada em cada exercício. O app tinha todos os dados
+   para calcular isto desde que passou a guardar séries, e nunca mostrou — e é
+   justamente o número que alguém que treina persegue. */
+function cartaoDeRecordes(){
+  const lista = recordes();
+  if(!lista.length) return null;
+
+  const comCarga = lista.filter(r => r.carga > 0);
+  const semCarga = lista.filter(r => r.carga === 0);
+
+  return h('div', {class:'historico'},
+    rotuloSecao('Recordes'),
+    h('p', {class:'figura-nota'},
+      'A melhor marca de cada exercício, com a data em que aconteceu.'),
+    h('div', {class:'lista-recordes'},
+      comCarga.slice(0, 6).map(r => linhaDeRecorde(r,
+        emKg(r.carga) + (r.reps ? ' × ' + r.reps : ''))),
+      semCarga.slice(0, 4).map(r => linhaDeRecorde(r,
+        r.reps + (r.tipo === 'tempo' ? 's' : ' reps')))
+    )
+  );
+}
+
+/* Meio quilo importa: `numeroBR` arredonda, e 27,5 kg virava 28 kg — um
+   recorde que a pessoa nunca fez. */
+function emKg(n){
+  return (Math.round(n * 10) / 10).toLocaleString('pt-BR') + ' kg';
+}
+
+function linhaDeRecorde(r, marca){
+  return h('div', {class:'linha-recorde'},
+    h('div', {class:'recorde-texto'},
+      h('div', {class:'recorde-nome'}, r.nome),
+      h('div', {class:'recorde-quando'},
+        dataCurta(r.data) + ' · ' + r.sessoes + (r.sessoes > 1 ? ' sessões' : ' sessão'))
+    ),
+    h('span', {class:'recorde-marca'}, marca)
   );
 }
 

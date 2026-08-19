@@ -13,7 +13,8 @@ import {
 } from '../src/nucleo/sessoes.js';
 import {
   aderenciaDoDia, aderenciaMediaDaSemana, tempoPorAreaResumido,
-  evolucaoDeVolume, treinosPorSemana, adesaoAosRemedios, cardapioPreenchido
+  evolucaoDeVolume, treinosPorSemana, adesaoAosRemedios, cardapioPreenchido,
+  volumePorSemana, resumoDoTreino, recordes, evolucaoDoExercicio
 } from '../src/nucleo/estatisticas.js';
 import { rotinaDeTeste } from './ajuda.js';
 
@@ -287,5 +288,97 @@ describe('exercícios por tempo', () => {
     Dados.treinos[0].exercicios[1] = {n:'Prancha', a:'3 × 30s', tipo:'tempo'};
     registrar(QUARTA_1, 't1', {0: [{reps:10, carga:20}], 1: [{reps:60, carga:0}]});
     expect(totalDeSeries(sessaoDe(QUARTA_1, 't1'))).toBe(2);
+  });
+});
+
+/* ===========================================================================
+   EVOLUÇÃO DO TREINO
+
+   "Apareci?" é a pergunta do primeiro mês e já tinha resposta. "Estou ficando
+   mais forte?" exige carga e volume ao longo do tempo — o app registrava os
+   dois e mostrava nenhum.
+   =========================================================================== */
+
+describe('evolução do treino', () => {
+  beforeEach(() => {
+    vi.setSystemTime(new Date(QUARTA_3 + 'T20:00:00'));
+  });
+
+  it('sem sessão nenhuma, os totais são zero e nada quebra', () => {
+    const r = resumoDoTreino(QUARTA_3, 30);
+    expect(r).toEqual({sessoes: 0, series: 0, volume: 0, minutos: 0});
+    expect(recordes()).toEqual([]);
+    expect(evolucaoDoExercicio('Ex A')).toEqual([]);
+  });
+
+  it('o resumo soma sessões, séries, volume e minutos do período', () => {
+    registrar(QUARTA_2, 't1', {0: [{reps:10, carga:20}, {reps:8, carga:20}]}, 45);
+    registrar(QUARTA_3, 't1', {0: [{reps:10, carga:25}]}, 50);
+    const r = resumoDoTreino(QUARTA_3, 30);
+    expect(r.sessoes).toBe(2);
+    expect(r.series).toBe(3);
+    expect(r.volume).toBe(10*20 + 8*20 + 10*25);
+    expect(r.minutos).toBe(95);
+  });
+
+  it('e ignora o que ficou fora da janela', () => {
+    registrar('2026-01-07', 't1', {0: [{reps:10, carga:100}]});
+    expect(resumoDoTreino(QUARTA_3, 30).sessoes).toBe(0);
+  });
+
+  it('o volume por semana devolve uma casa por semana, na ordem', () => {
+    registrar(QUARTA_3, 't1', {0: [{reps:10, carga:30}]});
+    const v = volumePorSemana(QUARTA_3, 4);
+    expect(v.length).toBe(4);
+    expect(v[3].volume).toBe(300);
+    expect(v[0].volume).toBe(0);
+  });
+
+  it('o recorde é a maior carga já registrada', () => {
+    registrar(QUARTA_1, 't1', {0: [{reps:10, carga:20}]});
+    registrar(QUARTA_2, 't1', {0: [{reps:8,  carga:30}]});
+    registrar(QUARTA_3, 't1', {0: [{reps:12, carga:25}]});
+    const r = recordes().filter(x => x.nome === 'Ex A')[0];
+    expect(r.carga).toBe(30);
+    expect(r.reps).toBe(8);
+    expect(r.data).toBe(QUARTA_2);
+    expect(r.sessoes).toBe(3);
+  });
+
+  it('empatou na carga, mais repetições é o recorde', () => {
+    registrar(QUARTA_1, 't1', {0: [{reps:8,  carga:30}]});
+    registrar(QUARTA_2, 't1', {0: [{reps:12, carga:30}]});
+    const r = recordes().filter(x => x.nome === 'Ex A')[0];
+    expect(r.reps).toBe(12);
+    expect(r.data).toBe(QUARTA_2);
+  });
+
+  it('exercício sem carga entra pela melhor marca de repetições', () => {
+    registrar(QUARTA_1, 't1', {1: [{reps:30, carga:0}]});
+    registrar(QUARTA_2, 't1', {1: [{reps:45, carga:0}]});
+    const r = recordes().filter(x => x.nome === 'Ex B')[0];
+    expect(r.carga).toBe(0);
+    expect(r.reps).toBe(45);
+  });
+
+  it('a lista vem do mais pesado para o mais leve', () => {
+    registrar(QUARTA_1, 't1', {0: [{reps:5, carga:50}], 1: [{reps:20, carga:5}]});
+    expect(recordes()[0].nome).toBe('Ex A');
+  });
+
+  it('exercício que sumiu do treino não aparece nem quebra', () => {
+    registrar(QUARTA_1, 't1', {0: [{reps:5, carga:50}]});
+    Dados.treinos[0].exercicios = [];
+    expect(recordes()).toEqual([]);
+  });
+
+  it('a evolução de um exercício vem da mais antiga para a mais nova', () => {
+    registrar(QUARTA_1, 't1', {0: [{reps:10, carga:20}]});
+    registrar(QUARTA_3, 't1', {0: [{reps:10, carga:30}, {reps:8, carga:30}]});
+    const p = evolucaoDoExercicio('Ex A');
+    expect(p.map(x => x.data)).toEqual([QUARTA_1, QUARTA_3]);
+    expect(p[1].carga).toBe(30);
+    expect(p[1].series).toBe(2);
+    expect(p[1].volume).toBe(10*30 + 8*30);
   });
 });

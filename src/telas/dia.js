@@ -37,14 +37,20 @@ import { h, icone, cabecalhoTela, pilula, pilulaConcluir, estadoVazio, rotuloSec
    já era o começo de um arraste.
    =========================================================================== */
 
-/* Escala da régua. 0,95 px por minuto dá 57 px por hora: um bloco de meia
-   hora tem 28 px (lê-se o título e o horário) e um dia acordado de 17 h cabe
-   em pouco mais de duas telas de rolagem. */
-const PX_POR_MINUTO = 0.95;
+/* Escala da régua: 1,6 px por minuto, ou 96 px por hora.
 
-/* Piso de altura, só para um bloco de 10 min não virar um risco. Blocos
-   assim curtos passam a se sobrepor de uns poucos pixels ao seguinte — o
-   contorno e o empilhamento fazem isso parecer o que é. */
+   Era 0,95, e a conta parecia boa no papel — um dia acordado de 17 h cabia em
+   duas telas. Mas o dia real tem deslocamentos de 10 min, e a 0,95 eles
+   viravam um risco de 9 px sem título legível. A régua existe para mostrar o
+   dia como ele é; um bloco que não dá para ler não mostra nada.
+   
+   A 1,6 o bloco de 10 min tem 16 px e o de 20 min, 32 px — dá para ler e para
+   acertar com o dedo. O preço é rolagem, e ela ficou barata desde que a tela
+   abre na altura de agora. */
+const PX_POR_MINUTO = 1.6;
+
+/* Piso de altura, só para um bloco muito curto não virar um risco. Com a
+   escala atual quase nada chega aqui: 10 min já dão 16 px. */
 const ALTURA_MINIMA = 15;
 
 /* Em edição o piso sobe: as duas alças e o × precisam caber, e um alvo de

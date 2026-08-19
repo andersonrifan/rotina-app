@@ -132,7 +132,10 @@
   /* --- Espaçamento --- */
   --gap-cartoes:12px;      /* entre cartões */
   --pad-cartao:16px;       /* interno dos cartões */
-  --gap-linhas:7px;        /* entre linhas de lista */
+  /* 7 px deixava dois alvos de toque a menos de 8 px um do outro, que e o
+     minimo recomendado para o dedo nao errar de linha. Custa 3 px por linha e
+     paga em toque certo. */
+  --gap-linhas:10px;       /* entre linhas de lista */
   --pad-tela:22px;         /* margem lateral das telas */
 
   /* --- Sombras --- */
@@ -496,20 +499,25 @@ input{ font:inherit; color:inherit; }
 /* --- Stepper --- */
 /* O stepper inteiro tem exatamente a altura de um alvo de toque: os dois
    botões ocupam essa altura toda, sem padding no contêiner roubando pixels. */
+/* Ocupa a largura que tem, em vez de exigir a sua. Dois steppers lado a lado
+   somavam 150 px cada e estouravam a tela de 375 px — as metas do Perfil
+   ficavam com metade do controle fora do aparelho. */
 .stepper{
-  display:inline-flex; align-items:center;
+  display:flex; align-items:center; justify-content:space-between;
+  width:100%; max-width:100%;
   background:var(--superficie-clara);
   border-radius:var(--r-pilula);
 }
 .stepper-btn{
-  width:var(--toque); height:var(--toque);
+  width:var(--toque); height:var(--toque); flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
   border-radius:var(--r-pilula);
   color:var(--texto-3);
 }
 .stepper-btn:active{ background:var(--superficie); }
 .stepper-valor{
-  min-width:62px; text-align:center;
+  flex:1; min-width:0; text-align:center;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   font-size:12.5px; font-weight:700; color:var(--texto);
 }
 
@@ -528,7 +536,7 @@ input{ font:inherit; color:inherit; }
 .campo-entrada::placeholder{ color:var(--texto-fraco); font-weight:500; }
 
 /* --- Sugestões e chips genéricos --- */
-.sugestoes{ display:flex; flex-wrap:wrap; gap:6px; }
+.sugestoes{ display:flex; flex-wrap:wrap; gap:9px; }
 .sugestao, .chip-acao{
   min-height:var(--toque);
   padding:0 13px;
@@ -589,7 +597,7 @@ input{ font:inherit; color:inherit; }
    espaço do sistema e não do app. */
 #abas{
   flex-shrink:0;
-  display:grid; grid-template-columns:repeat(5, 1fr); gap:4px;
+  display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;
   background:var(--superficie);
   border-radius:var(--r-grande) var(--r-grande) 0 0;
   padding:15px 10px calc(15px + env(safe-area-inset-bottom));
@@ -683,7 +691,7 @@ input{ font:inherit; color:inherit; }
 /* ===========================================================================
    06. DIA
    =========================================================================== */
-.faixa-semana{ display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; }
+.faixa-semana{ display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
 .dia-faixa{
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
   height:64px;
@@ -802,7 +810,7 @@ input{ font:inherit; color:inherit; }
 }
 
 /* --- Chips de categoria da folha --- */
-.chips-categoria{ display:flex; flex-wrap:wrap; gap:6px; }
+.chips-categoria{ display:flex; flex-wrap:wrap; gap:9px; }
 .chip-cat{
   min-height:var(--toque);
   padding:0 13px;
@@ -842,7 +850,7 @@ input{ font:inherit; color:inherit; }
 /* ===========================================================================
    07. TREINO
    =========================================================================== */
-.chips-treino{ display:flex; flex-wrap:wrap; gap:6px; }
+.chips-treino{ display:flex; flex-wrap:wrap; gap:9px; }
 .chip-treino{
   min-height:var(--toque);
   padding:0 13px;
@@ -872,7 +880,7 @@ input{ font:inherit; color:inherit; }
 .treino-contagem{ font-size:11px; font-weight:700; color:var(--salvia-texto); white-space:nowrap; }
 
 .seletor-volta{
-  display:flex; gap:3px;
+  display:flex; gap:5px;
   background:var(--superficie);
   border-radius:var(--r-pilula);
   padding:3px;
@@ -919,7 +927,7 @@ input{ font:inherit; color:inherit; }
    por causa do respiro de 3 px — o handoff pede 44, e o número que importa
    para a regra 1 é o do alvo, não o da moldura. */
 .segmentado{
-  display:grid; grid-template-columns:repeat(3, 1fr); gap:3px;
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:5px;
   background:var(--superficie);
   border-radius:var(--r-pilula);
   padding:3px;
@@ -979,7 +987,7 @@ input{ font:inherit; color:inherit; }
 .grade-cardapio{
   display:grid;
   grid-template-columns:64px repeat(7, 1fr);
-  gap:3px;
+  gap:5px;
   align-items:center;
 }
 .grade-canto{ min-height:1px; }
@@ -1019,7 +1027,7 @@ input{ font:inherit; color:inherit; }
 .amostra.a-definir{ border:1.5px dashed var(--tracejado-forte); }
 
 /* --- Seletor de prato --- */
-.lista-pratos{ display:flex; flex-direction:column; gap:4px; max-height:44vh; overflow-y:auto; }
+.lista-pratos{ display:flex; flex-direction:column; gap:8px; max-height:44vh; overflow-y:auto; }
 .item-prato{
   display:flex; flex-direction:column; align-items:flex-start; gap:2px;
   min-height:var(--toque);
@@ -1088,7 +1096,7 @@ input{ font:inherit; color:inherit; }
 .grade-caixa{
   display:grid;
   grid-template-columns:38px repeat(var(--colunas), 1fr);
-  gap:4px;
+  gap:7px;
   align-items:center;
 }
 .caixa-dia{ font-size:10.5px; font-weight:500; color:var(--texto-3); }
@@ -1147,7 +1155,11 @@ input{ font:inherit; color:inherit; }
   border-radius:32px 32px 0 0;
   padding:10px var(--pad-tela) calc(18px + env(safe-area-inset-bottom));
   display:flex; flex-direction:column; gap:12px;
-  overflow-y:auto;
+  /* A folha NAO rola inteira: quem rola e o corpo. Rolando inteira, os
+     botoes de acao desciam junto com o conteudo e saiam da tela — e com o
+     teclado ou o seletor de hora abertos, a area visivel encolhe e eles
+     ficavam inalcancaveis. */
+  overflow:hidden;
   animation:sobe .22s ease;
 }
 @keyframes sobe{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
@@ -1157,9 +1169,16 @@ input{ font:inherit; color:inherit; }
   margin:0 auto 2px;
   flex-shrink:0;
 }
-.folha-titulo{ font-size:16px; font-weight:700; margin:0; }
-.folha-corpo{ display:flex; flex-direction:column; gap:12px; }
-.folha-acoes{ display:flex; gap:9px; margin-top:2px; }
+.folha-titulo{ font-size:16px; font-weight:700; margin:0; flex-shrink:0; }
+/* `min-height:0` e o que permite um filho de flex encolher abaixo do proprio
+   conteudo — sem ele o corpo empurra as acoes para fora em vez de rolar. */
+.folha-corpo{
+  display:flex; flex-direction:column; gap:12px;
+  overflow-y:auto; flex:1; min-height:0;
+  /* Respiro para o ultimo campo nao encostar na barra de acoes. */
+  padding-bottom:4px;
+}
+.folha-acoes{ display:flex; gap:9px; margin-top:2px; flex-shrink:0; }
 .folha-acoes .btn{ flex:1; min-height:50px; }
 
 .aviso{
@@ -1829,7 +1848,7 @@ button, .tocavel{
   font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;
   flex-shrink:0;
 }
-.ingrediente-acoes{ display:flex; gap:4px; flex-shrink:0; }
+.ingrediente-acoes{ display:flex; gap:7px; flex-shrink:0; }
 
 .lista-preparo{ margin:0; padding-left:20px; display:flex; flex-direction:column; gap:9px; }
 .passo-preparo{ font-size:12.5px; line-height:1.5; color:var(--texto-2); }
@@ -1840,11 +1859,39 @@ button, .tocavel{
   border-bottom:1px dashed var(--neutro-tracejado);
 }
 
-.lista-alimentos{ display:flex; flex-direction:column; gap:5px; max-height:44vh; overflow-y:auto; }
+.lista-alimentos{ display:flex; flex-direction:column; gap:8px; max-height:44vh; overflow-y:auto; }
 
 /* A embalagem na lista de compras: o que se pega na prateleira. */
 .compra-texto{ flex:1; min-width:0; }
 .compra-embalagem{
   display:block;
   font-size:10px; font-weight:500; color:var(--texto-fraco); margin-top:1px;
+}
+
+/* O chip de origem virou botão: leva à aba dona do bloco. */
+.chip-origem.acionavel{ min-height:32px; cursor:pointer; }
+
+/* --- Recordes de treino ---------------------------------------------------- */
+.lista-recordes{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.linha-recorde{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 12px;
+  border-radius:var(--r-linha-menor);
+  background:var(--superficie-clara);
+}
+.recorde-texto{ flex:1; min-width:0; }
+.recorde-nome{
+  font-size:12.5px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.recorde-quando{
+  font-size:10px; font-weight:500; color:var(--texto-fraco); margin-top:1px;
+  font-variant-numeric:tabular-nums;
+}
+.recorde-marca{
+  flex-shrink:0;
+  font-size:13px; font-weight:700; color:var(--salvia-texto);
+  background:var(--salvia-clara);
+  border-radius:var(--r-pilula); padding:6px 12px;
+  font-variant-numeric:tabular-nums;
 }
