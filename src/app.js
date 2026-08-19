@@ -106,6 +106,8 @@ function desenharTudo(){
        isto o Tab continuava passeando pela tela de trás. */
     conteudo.inert = temModal;
     document.getElementById('abas').inert = temModal;
+
+    sincronizarHistorico();
   }catch(err){
     console.error('Falha ao desenhar a tela:', err);
     mostrarErroDeInicio('Não consegui desenhar a tela "' + Tela.aba + '".');
@@ -150,19 +152,28 @@ function mostrarErroDeInicio(mensagem){
 }
 
 /* ===========================================================================
-   O BOTÃO VOLTAR DO ANDROID
+   O BOTÃO VOLTAR
 
-   Sem isto, Voltar com uma folha aberta fecha o app inteiro — e a folha é
-   onde a pessoa está digitando. Num app instalado, Voltar é o gesto de sair
-   de uma camada, não de sair de tudo.
+   Voltar tem que fechar a camada de cima, não o app. A folha é onde a pessoa
+   está digitando; sair dela pelo Voltar e perder o app inteiro é o pior
+   desfecho possível.
 
-   A ordem é a da pilha visual: fecha primeiro o que está mais por cima, e o
-   app só termina quando não há mais nada de onde voltar. `exitApp` fica por
-   último e é a única saída que encerra de verdade.
+   POR QUE PELO HISTÓRICO, e não só pelo Capacitor. `@capacitor/app` só existe
+   dentro do APK empacotado. Instalada como PWA — que é como o app roda hoje —
+   a página nunca recebe aquele evento: o Android manda o WebView voltar no
+   HISTÓRICO, e como o app é uma página só, voltar significa sair. Era esse o
+   bug: o tratamento existia e nunca era chamado.
 
-   O plugin do Capacitor não existe no navegador comum: lá o evento nunca
-   dispara e o `catch` cobre o import ausente. Nada disso muda o build web.
+   A saída é fazer as camadas existirem no histórico. Enquanto houver camada
+   aberta, o app mantém UMA entrada empurrada — a "guarda". Voltar consome a
+   guarda, o `popstate` fecha a camada de cima e, se ainda sobrou camada, a
+   guarda é empurrada de novo. Fechar pelo botão da tela faz o caminho
+   inverso, devolvendo a entrada ao histórico sem disparar nada.
+
+   Uma entrada só, e não uma por camada: assim não há como o histórico e a
+   tela discordarem sobre quantos níveis existem.
    =========================================================================== */
+
 /**
  * Sobe uma camada. Devolve false quando não havia de onde voltar — e aí só
  * sobra sair do app.
@@ -187,15 +198,59 @@ function voltarUmaCamada(){
   return false;
 }
 
+/** Há algo de onde voltar sem sair do app? */
+function haCamadaAberta(){
+  if(Tela.folha || Tela.receita || Tela.estatisticas || Tela.semana ||
+     Tela.perfil || Tela.primeiroUso) return true;
+  if(Object.keys(Tela.editando).some(k => Tela.editando[k])) return true;
+  return Tela.aba !== 'inicio';
+}
+
+let guardaNoHistorico = false;
+let ignorarProximoPop = false;
+
+/* Chamado ao fim de cada desenho: mantém o histórico contando a mesma
+   história que a tela. */
+function sincronizarHistorico(){
+  const precisa = haCamadaAberta();
+  if(precisa && !guardaNoHistorico){
+    guardaNoHistorico = true;
+    try{ history.pushState({rotina: 'guarda'}, ''); }
+    catch(_err){ guardaNoHistorico = false; }
+  } else if(!precisa && guardaNoHistorico){
+    /* Fechou pelo botão da tela: devolve a entrada ao histórico sem que o
+       nosso `popstate` a interprete como um Voltar. */
+    guardaNoHistorico = false;
+    ignorarProximoPop = true;
+    try{ history.back(); }catch(_err){ ignorarProximoPop = false; }
+  }
+}
+
+function ligarHistorico(){
+  window.addEventListener('popstate', () => {
+    if(ignorarProximoPop){ ignorarProximoPop = false; return; }
+    if(!guardaNoHistorico) return;      // não era a nossa entrada
+    guardaNoHistorico = false;
+    /* `voltarUmaCamada` redesenha, e o desenho chama `sincronizarHistorico`,
+       que empurra a guarda de novo se ainda sobrou camada aberta. */
+    voltarUmaCamada();
+  });
+}
+
+/* No APK o Capacitor engole a navegação de histórico quando existe um ouvinte
+   de `backButton` — então ali o caminho é mandar o histórico voltar à mão,
+   para os dois mundos passarem pelo mesmo lugar. */
 async function ligarBotaoVoltar(){
   try{
     const { App } = await import('@capacitor/app');
     App.addListener('backButton', () => {
+      if(guardaNoHistorico){ history.back(); return; }
       if(!voltarUmaCamada()) App.exitApp();
     });
   }catch(_err){
     /* Navegador comum: não existe botão Voltar de sistema para ouvir, e isso
-       não é uma falha — é o caso normal fora do app empacotado. */
+       não é uma falha — é o caso normal fora do app empacotado. O histórico
+       cuida do gesto. */
   }
 }
 
@@ -227,6 +282,7 @@ function pedirArmazenamentoPersistente(){
 /* --- Início --------------------------------------------------------------- */
 export function iniciar(){
   registrarDesenho(desenharTudo);
+  ligarHistorico();
   ligarBotaoVoltar();
   ligarEscape();
   pedirArmazenamentoPersistente();
