@@ -41,9 +41,9 @@ export function garantirSessao(dados, iso, treinoId, duracaoPadrao){
 }
 
 /** As séries registradas para um exercício naquela data. */
-export function seriesDe(iso, treinoId, indice){
+export function seriesDe(iso, treinoId, exId){
   const s = sessaoDe(iso, treinoId);
-  return (s && s.series[indice]) || [];
+  return (s && s.series[exId]) || [];
 }
 
 /**
@@ -52,14 +52,14 @@ export function seriesDe(iso, treinoId, indice){
  * É o número que mais importa na hora de treinar: "da última vez foram 3 × 8
  * com 20 kg". Sem isso a pessoa precisa lembrar, e não lembra.
  */
-export function ultimaSerieAnterior(iso, treinoId, indice){
+export function ultimaSerieAnterior(iso, treinoId, exId){
   const anteriores = Object.keys(Dados.sessoes)
     .map(k => Dados.sessoes[k])
     .filter(s => s.treinoId === treinoId && s.data < iso &&
-                 s.series[indice] && s.series[indice].length)
+                 s.series[exId] && s.series[exId].length)
     .sort((a, b) => (a.data < b.data ? 1 : -1));
   return anteriores.length
-    ? {data: anteriores[0].data, series: anteriores[0].series[indice]}
+    ? {data: anteriores[0].data, series: anteriores[0].series[exId]}
     : null;
 }
 
@@ -88,10 +88,11 @@ export function tipoDoExercicio(ex){
 
 export function ehPorTempo(ex){ return tipoDoExercicio(ex) === 'tempo'; }
 
-/** O exercício de índice `i` do treino de uma sessão, se ainda existir. */
-function exercicioDaSessao(sessao, indice){
+/** O exercício de uma sessão, pelo id. Null se ele saiu do treino. */
+export function exercicioDaSessao(sessao, exId){
   const treino = Dados.treinos.filter(t => t.id === sessao.treinoId)[0];
-  return treino ? treino.exercicios[indice] : null;
+  if(!treino) return null;
+  return treino.exercicios.filter(e => e && e.id === exId)[0] || null;
 }
 
 /** Resumo curto: "3 × 8 · 20 kg", "8, 7, 6" ou "3 × 30s". */

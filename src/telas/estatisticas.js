@@ -27,10 +27,10 @@ import { sessoesRegistradas, volumeDaSessao, totalDeSeries,
 import {
   aderenciaDaSemana, aderenciaMediaDaSemana, tempoPorAreaResumido,
   sessoesRecentes, treinosPorSemana, volumePorSemana, resumoDoTreino, recordes,
-  kcalDaSemana, kcalMediaDaSemana,
+  evolucaoDoExercicio, kcalDaSemana, kcalMediaDaSemana,
   cardapioPreenchido, adesaoAosRemedios, refeicoesDaSemana
 } from '../nucleo/estatisticas.js';
-import { h, cabecalhoTela, pilula, rotuloSecao, numeroBR } from '../ui/index.js';
+import { h, icone, cabecalhoTela, pilula, rotuloSecao, numeroBR } from '../ui/index.js';
 import { figura, colunas, linha, barrasHorizontais, fileiraDeDestaques,
          medidor, figuraVazia } from '../ui/graficos.js';
 
@@ -242,16 +242,81 @@ function emKg(n){
   return (Math.round(n * 10) / 10).toLocaleString('pt-BR') + ' kg';
 }
 
+/* A linha do recorde é um botão: tocar abre a curva daquele exercício. O
+   recorde diz onde você chegou; a curva diz como. */
 function linhaDeRecorde(r, marca){
-  return h('div', {class:'linha-recorde'},
-    h('div', {class:'recorde-texto'},
-      h('div', {class:'recorde-nome'}, r.nome),
-      h('div', {class:'recorde-quando'},
-        dataCurta(r.data) + ' · ' + r.sessoes + (r.sessoes > 1 ? ' sessões' : ' sessão'))
+  const aberto = Tela.exercicioAberto === r.nome;
+  return h('div', {class:'recorde-bloco'},
+    h('button', {
+        class:'linha-recorde' + (aberto ? ' aberta' : ''), type:'button',
+        'aria-expanded': String(aberto),
+        'aria-label': (aberto ? 'Fechar' : 'Ver') + ' a evolução de ' + r.nome,
+        onTap: () => definirTela({exercicioAberto: aberto ? null : r.nome})
+      },
+      h('div', {class:'recorde-texto'},
+        h('div', {class:'recorde-nome'}, r.nome),
+        h('div', {class:'recorde-quando'},
+          dataCurta(r.data) + ' · ' + r.sessoes + (r.sessoes > 1 ? ' sessões' : ' sessão'))
+      ),
+      h('span', {class:'recorde-marca'}, marca),
+      h('span', {class:'recorde-seta' + (aberto ? ' aberta' : '')}, icone('baixo', 14))
     ),
-    h('span', {class:'recorde-marca'}, marca)
+    aberto ? evolucaoDe(r) : null
   );
 }
+
+/**
+ * A curva de UM exercício: a melhor carga de cada sessão.
+ *
+ * O volume por semana responde "estou trabalhando mais?"; esta responde
+ * "a MINHA BARRA FIXA subiu?", que é a pergunta que se faz de verdade. Uma
+ * sessão só não é curva — abaixo de duas o app diz isso em vez de desenhar
+ * um ponto solto e chamar de gráfico.
+ */
+function evolucaoDe(r){
+  const pontos = evolucaoDoExercicio(r.nome);
+  const porTempo = r.tipo === 'tempo';
+  /* Quem manda é haver CARGA, não o tipo do exercício: uma prancha com 10 kg
+     progride pelo peso, e é o peso que a linha tem que mostrar. Sem isso o
+     gráfico dizia "segundos" e desenhava as repetições, discordando da marca
+     logo acima dele. */
+  const usaCarga = pontos.some(p => p.carga > 0);
+  const valor = p => usaCarga ? p.carga : p.reps;
+  const unidade = usaCarga ? ' kg' : (porTempo ? 's' : ' reps');
+
+  if(pontos.length < 2){
+    return h('div', {class:'recorde-evolucao'},
+      figuraVazia('A partir da segunda sessão registrada, a evolução aparece aqui.'));
+  }
+
+  const primeiro = valor(pontos[0]);
+  const ultimo = valor(pontos[pontos.length - 1]);
+  const delta = ultimo - primeiro;
+  /* Vírgula, não ponto: 27.5 kg num app em português é erro de digitação. */
+  const escrever = n => (Math.round(n * 10) / 10).toLocaleString('pt-BR');
+
+  return h('div', {class:'recorde-evolucao'},
+    figura(
+      usaCarga ? 'Carga por sessão' : (porTempo ? 'Segundos por sessão' : 'Repetições por sessão'),
+      usaCarga
+        ? 'A maior carga de cada sessão, da mais antiga para a mais recente.'
+        : 'A melhor marca de cada sessão — este exercício não usa carga.',
+      linha(pontos.map(p => ({valor: valor(p)})), {
+        descricao: r.nome + ': ' + pontos.map(p => valor(p)).join(', ') + unidade,
+        rotuloFinal: escrever(ultimo) + unidade,
+        rotuloInicio: dataCurta(pontos[0].data),
+        rotuloFim: dataCurta(pontos[pontos.length - 1].data)
+      })
+    ),
+    h('p', {class:'figura-nota'},
+      delta > 0
+        ? 'Subiu ' + escrever(delta) + unidade + ' desde a primeira sessão registrada.'
+        : delta < 0
+          ? 'Está ' + escrever(-delta) + unidade + ' abaixo da primeira sessão registrada.'
+          : 'Na mesma marca da primeira sessão registrada.')
+  );
+}
+
 
 /* --- Comida ---------------------------------------------------------------- */
 function cartaoComida(iso){

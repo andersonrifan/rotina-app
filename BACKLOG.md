@@ -50,12 +50,10 @@ que não vale.
       sozinho: os almoços de seg/ter/qua continuam só com o prato principal
       desde a migração. Reabrir cada um em Comida → Semana e marcar o arroz
       junto faz a lista de compras voltar a pedir a quantidade certa.
-- [ ] **Célula do cardápio não é tocável.** Os 30 px de altura vêm do handoff e
-      não chegam ao alvo mínimo, então a edição é pela lista abaixo da grade.
-      Funciona, mas alguém pode tentar tocar a célula primeiro.
-- [ ] **Seletor de dia do cardápio tem 33 px de largura.** Consequência da
-      coluna de rótulos de 64 px + 7 dias em 390 px. Acima do mínimo do WCAG AA
-      (24 px), abaixo do ideal (44 px).
+- [ ] **A grade do cardápio tem 32 px de largura por coluna.** Sete dias mais
+      a coluna de rótulos não cabem de outro jeito em 375 px. Acima do mínimo
+      do WCAG AA (24 px), abaixo do ideal (44 px) — a altura, essa sim, está
+      em 44 px.
 
 ### Não testado — precisa de celular de verdade
 
@@ -101,6 +99,20 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 ## Já resolvido
 
 Fica registrado para não voltar à discussão.
+
+**Da rodada da identidade do exercício:**
+
+- ~~O botão Voltar não funcionava~~ — o tratamento existia para o APK e o app
+  roda como PWA, onde `@capacitor/app` nunca dispara. As camadas passaram a
+  existir no histórico do navegador, que é o que o Android realmente aciona
+- ~~A posição do exercício era a identidade dele~~ — remover ou mover um
+  deslocava o histórico dos seguintes, em silêncio. Cada exercício ganhou id
+  (migração v9 → v10) e as séries e marcações passaram a usar ele
+- ~~`evolucaoDoExercicio` escrita e nunca ligada~~ — tocar num recorde abre a
+  curva de carga daquele exercício
+- ~~Três funções mortas na tela de receita~~ — removidas
+- ~~Célula do cardápio não era tocável~~ — virou botão de 44 px que leva ao dia
+  e abre a escolha do prato
 
 **Da rodada de acabamento:**
 

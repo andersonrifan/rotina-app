@@ -986,7 +986,7 @@ input{ font:inherit; color:inherit; }
 /* --- Grade do cardápio --- */
 .grade-cardapio{
   display:grid;
-  grid-template-columns:64px repeat(7, 1fr);
+  grid-template-columns:56px repeat(7, 1fr);
   gap:5px;
   align-items:center;
 }
@@ -1001,10 +1001,15 @@ input{ font:inherit; color:inherit; }
   font-size:9.5px; font-weight:600; color:var(--texto-3);
   line-height:1.15; padding-right:4px;
 }
-/* A célula é resumo visual, não controle — quem edita é a lista logo abaixo,
-   com linhas de 56 px. É por isso que 30 px de altura aqui não conflita com a
-   regra dos 44 px: não há nada para tocar. */
-.celula-cardapio{ height:30px; border-radius:var(--r-min); pointer-events:none; }
+/* A célula é o controle: tocar escolhe o prato daquela refeição naquele dia.
+   Ela já parecia tocável e não era — os 30 px do desenho não davam alvo, e a
+   edição ficava escondida na lista abaixo. Como `button`, ela herda os 44 px
+   de altura da regra de acessibilidade, que é exatamente o que faltava.
+
+   A largura fica em 32 px: sete colunas mais os rótulos não cabem de outro
+   jeito em 375 px. Acima do mínimo do WCAG (24 px), abaixo do ideal — e agora
+   com 44 px de altura para compensar. */
+.celula-cardapio{ border-radius:var(--r-min); padding:0; }
 /* Trocar o dia mostrado na lista se faz pelo cabeçalho da coluna, que é um
    alvo de toque de verdade. */
 .grade-cabecalho.dia-selecionavel{
@@ -1894,4 +1899,17 @@ button, .tocavel{
   background:var(--salvia-clara);
   border-radius:var(--r-pilula); padding:6px 12px;
   font-variant-numeric:tabular-nums;
+}
+
+/* A linha do recorde abre a curva daquele exercício. */
+.recorde-bloco{ display:flex; flex-direction:column; gap:var(--gap-linhas); }
+.linha-recorde{ width:100%; text-align:left; color:inherit; }
+.linha-recorde.aberta{ background:var(--superficie); }
+.recorde-seta{ display:flex; color:var(--texto-fraco); flex-shrink:0; transition:transform .18s ease; }
+.recorde-seta.aberta{ transform:rotate(180deg); }
+.recorde-evolucao{
+  display:flex; flex-direction:column; gap:9px;
+  padding:12px 14px;
+  border-radius:var(--r-linha-menor);
+  background:var(--superficie);
 }

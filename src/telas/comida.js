@@ -149,16 +149,24 @@ export function comidaSemana(iso){
             onTap: () => definirTela({data: datas[i]})
           }, d.letra)),
 
-        /* Uma linha por refeição. As células são resumo, não controle. */
+        /* Uma linha por refeição. A célula É o controle: tocar leva ao dia e
+           abre a escolha do prato daquela refeição. Ela já parecia tocável e
+           não era — a edição ficava escondida na lista abaixo, e quem tentava
+           o caminho óbvio não conseguia nada. */
         Dados.slots.map(slot => [
           h('div', {class:'grade-rotulo'}, slot.nome),
           DIAS.map((d, i) => {
             const prato = pratoDe(d.k, slot.id);
-            return h('div', {
+            return h('button', {
                 class:'celula-cardapio' + (prato ? ' definido' : ' a-definir') +
                       (datas[i] === iso ? ' selecionado' : ''),
-                role:'img',
-                'aria-label': d.full + ', ' + slot.nome + ': ' + (prato ? prato.nome : 'a definir')
+                type:'button',
+                'aria-label': d.full + ', ' + slot.nome + ': ' +
+                              (prato ? prato.nome : 'a definir') + '. Toque para escolher.',
+                onTap: () => {
+                  definirTela({data: datas[i]});
+                  abrirEscolhaDePrato(d.k, slot);
+                }
               });
           })
         ])

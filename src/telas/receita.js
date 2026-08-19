@@ -1,7 +1,6 @@
 import { ALIMENTOS } from '../dados/receitas.js';
-import { Dados, Tela, agir, agirSemAviso, avisar, definirTela } from '../nucleo/estado.js';
-import { redesenhar } from '../nucleo/render.js';
-import { clonar } from '../nucleo/armazem.js';
+import { Dados, Tela, agir, agirSemAviso, definirTela } from '../nucleo/estado.js';
+
 import { DIAS } from '../dados/modelo.js';
 import { receitaDe, nutriDaReceita, ehLote, porcoesDaSemana, porcoesCozidas,
          ingredientesPara, formatarQuantidade } from '../nucleo/modelo.js';
@@ -77,7 +76,6 @@ function rotuloPorcoes(n){
   return n + (n > 1 ? ' porções' : ' porção');
 }
 
-
 /* ===========================================================================
    LOTE
    =========================================================================== */
@@ -127,7 +125,6 @@ function cartaoDeLote(r){
     r.lote ? h('p', {class:'nota destaque'}, r.lote) : null
   );
 }
-
 
 /* ===========================================================================
    INGREDIENTES
@@ -274,7 +271,6 @@ function listaDeAlimentos(r){
   );
 }
 
-
 /* ===========================================================================
    PREPARO
    =========================================================================== */
@@ -327,7 +323,6 @@ function removerPasso(r, indice){
     if(alvo) alvo.preparo.splice(indice, 1);
   });
 }
-
 
 /* ===========================================================================
    EDIÇÃO DO CABEÇALHO E EXCLUSÃO
@@ -444,7 +439,6 @@ function excluirReceita(r){
   });
 }
 
-
 /* --- Onde esta receita aparece na semana ---------------------------------- */
 function ondeAparece(r){
   const onde = [];
@@ -468,7 +462,6 @@ function ondeAparece(r){
   );
 }
 
-
 /* ===========================================================================
    NOVA RECEITA
    =========================================================================== */
@@ -484,22 +477,4 @@ export function criarReceita(){
   /* Abre já em edição: uma receita chamada "Receita nova" e sem ingrediente
      nenhum não serve para nada até ser preenchida. */
   definirTela({receita: id, editandoReceita: true, folha: null});
-}
-
-/** Copia uma receita inteira, para ajustar sem perder a original. */
-export function duplicarReceita(r){
-  const copia = clonar(r);
-  copia.id = 'r' + Date.now().toString(36);
-  copia.nome = r.nome + ' (cópia)';
-  agir(copia.nome + ' criada', d => { d.receitas.push(copia); });
-  definirTela({receita: copia.id, editandoReceita: true, folha: null});
-}
-
-export function podeEditarReceitas(){
-  return Array.isArray(Dados.receitas);
-}
-
-export function avisarSemReceitas(){
-  avisar('Recarregue o app para editar receitas.');
-  redesenhar();
 }

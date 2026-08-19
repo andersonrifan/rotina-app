@@ -144,9 +144,9 @@ function seletorDeVolta(voltas){
 }
 
 function linhaDeExercicio(iso, treino, indice, ex){
-  const feito = exercicioFeito(iso, treino.id, Tela.volta, indice);
-  const series = seriesDe(iso, treino.id, indice);
-  const anterior = ultimaSerieAnterior(iso, treino.id, indice);
+  const feito = exercicioFeito(iso, treino.id, Tela.volta, ex.id);
+  const series = seriesDe(iso, treino.id, ex.id);
+  const anterior = ultimaSerieAnterior(iso, treino.id, ex.id);
 
   const linhaEl = h('div', {class:'exercicio' + (feito ? ' feito' : '')},
     /* Marcar continua sendo um toque no círculo: é o caminho rápido, e quem
@@ -158,7 +158,7 @@ function linhaDeExercicio(iso, treino, indice, ex){
         onTap: () => {
           if(consumirToqueLongo()) return;
           agir(ex.n + (feito ? ' desmarcado' : ' feito'), d => {
-            d.exercFeitos[iso + ':' + treino.id + ':' + Tela.volta + ':' + indice] = !feito;
+            d.exercFeitos[iso + ':' + treino.id + ':' + Tela.volta + ':' + ex.id] = !feito;
           });
         }
       }, feito ? icone('check', 14) : null),
@@ -196,8 +196,8 @@ function linhaDeExercicio(iso, treino, indice, ex){
 let rascunhoSeries = null;
 
 function abrirRegistroDeSerie(iso, treino, indice, ex){
-  const existentes = seriesDe(iso, treino.id, indice);
-  const anterior = ultimaSerieAnterior(iso, treino.id, indice);
+  const existentes = seriesDe(iso, treino.id, ex.id);
+  const anterior = ultimaSerieAnterior(iso, treino.id, ex.id);
 
   const padrao = ehPorTempo(ex) ? {reps: 30, carga: 0} : {reps: 10, carga: 0};
   rascunhoSeries = existentes.length
@@ -267,13 +267,13 @@ function salvarSeries(iso, treino, indice, ex){
   const validas = rascunhoSeries.filter(s => s.reps > 0);
   agir(validas.length ? ex.n + ' registrado' : ex.n + ' sem registro', d => {
     const sessao = garantirSessao(d, iso, treino.id, treino.dur);
-    if(validas.length) sessao.series[indice] = validas;
-    else delete sessao.series[indice];
+    if(validas.length) sessao.series[ex.id] = validas;
+    else delete sessao.series[ex.id];
 
     /* Registrar é marcar: anotar as séries e o círculo continuar vazio seria
        o app discordando de si mesmo. */
     if(validas.length){
-      d.exercFeitos[iso + ':' + treino.id + ':' + Tela.volta + ':' + indice] = true;
+      d.exercFeitos[iso + ':' + treino.id + ':' + Tela.volta + ':' + ex.id] = true;
     }
   });
   fecharFolha();
@@ -368,7 +368,10 @@ function copiarTreino(iso, original){
       dia: dia.k, nome: original.nome,
       formato: original.formato, circuito: original.circuito,
       hora: original.hora, dur: original.dur,
-      exercicios: clonar(original.exercicios)
+      /* Ids novos: o treino copiado é outro treino, e herdar os ids faria as
+         séries do original aparecerem nele. */
+      exercicios: clonar(original.exercicios).map(ex =>
+        Object.assign({}, ex, {id: novoIdDeExercicio()}))
     });
   });
 }
@@ -444,6 +447,10 @@ function treinoEmEdicao(iso, treino){
 
 function acharTreino(dados, id){ return dados.treinos.filter(t => t.id === id)[0]; }
 
+function novoIdDeExercicio(){
+  return 'ex' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+}
+
 /* --- Editor de exercício ---------------------------------------------------
    Nome e alvo em campos livres. Antes só dava para escolher da lista de
    sugestões, o que deixava de fora qualquer exercício fora dela — e o alvo
@@ -514,7 +521,9 @@ function abrirEditorDeExercicio(treino, indice, ex){
       const tipo = rascunhoExercicio.tipo;
       agir(novo ? nome + ' adicionado' : nome + ' salvo', d => {
         const t = acharTreino(d, treino.id);
-        if(novo) t.exercicios.push({n: nome, a: alvo, tipo: tipo});
+        /* Id na criação: é por ele que as séries vão encontrar este
+           exercício, e sem id ele só ganharia um na próxima abertura do app. */
+        if(novo) t.exercicios.push({id: novoIdDeExercicio(), n: nome, a: alvo, tipo: tipo});
         else Object.assign(t.exercicios[indice], {n: nome, a: alvo, tipo: tipo});
       });
       fecharFolha();

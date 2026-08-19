@@ -6,6 +6,8 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { carregar, Dados } from '../src/nucleo/estado.js';
+import { migrar, VERSAO_ESQUEMA } from '../src/nucleo/armazem.js';
+import { exercicioFeito } from '../src/nucleo/modelo.js';
 import {
   sessaoDe, garantirSessao, seriesDe, ultimaSerieAnterior, resumirSeries,
   volumeDaSessao, totalDeSeries, sessoesRegistradas, sessoesDoTreino,
@@ -26,29 +28,36 @@ beforeEach(() => { carregar(rotinaDeTeste()); });
 afterEach(() => { vi.useRealTimers(); });
 
 /* Grava uma sessão direto, como a tela faria. */
+/* Os testes falam em ÍNDICE porque é assim que se lê o treino ("o primeiro
+   exercício"); os dados guardam por ID. A tradução mora aqui, num lugar só. */
+function idDoExercicio(treinoId, indice){
+  const t = Dados.treinos.filter(x => x.id === treinoId)[0];
+  return t.exercicios[indice].id;
+}
+
 function registrar(iso, treinoId, series, duracao){
   const s = garantirSessao(Dados, iso, treinoId, duracao || 40);
-  Object.keys(series).forEach(i => { s.series[i] = series[i]; });
+  Object.keys(series).forEach(i => { s.series[idDoExercicio(treinoId, i)] = series[i]; });
   return s;
 }
 
 describe('sessão é fato, treino é estrutura', () => {
   it('não existe sessão antes de registrar', () => {
     expect(sessaoDe(QUARTA_1, 't1')).toBe(null);
-    expect(seriesDe(QUARTA_1, 't1', 0)).toEqual([]);
+    expect(seriesDe(QUARTA_1, 't1', idDoExercicio('t1', 0))).toEqual([]);
   });
 
   it('registrar numa data não afeta outra', () => {
     registrar(QUARTA_1, 't1', {0: [{reps: 10, carga: 20}]});
-    expect(seriesDe(QUARTA_1, 't1', 0)).toHaveLength(1);
-    expect(seriesDe(QUARTA_2, 't1', 0)).toEqual([]);
+    expect(seriesDe(QUARTA_1, 't1', idDoExercicio('t1', 0))).toHaveLength(1);
+    expect(seriesDe(QUARTA_2, 't1', idDoExercicio('t1', 0))).toEqual([]);
   });
 
   it('editar o treino não apaga o que já foi registrado', () => {
     registrar(QUARTA_1, 't1', {0: [{reps: 10, carga: 20}]});
     Dados.treinos[0].nome = 'Outro nome';
     Dados.treinos[0].exercicios.push({n: 'Ex C', a: '3 × 10'});
-    expect(seriesDe(QUARTA_1, 't1', 0)).toHaveLength(1);
+    expect(seriesDe(QUARTA_1, 't1', idDoExercicio('t1', 0))).toHaveLength(1);
   });
 
   it('excluir o treino não apaga o histórico', () => {
@@ -62,7 +71,7 @@ describe('a última vez', () => {
   it('devolve a sessão anterior mais recente', () => {
     registrar(QUARTA_1, 't1', {0: [{reps: 8, carga: 20}]});
     registrar(QUARTA_2, 't1', {0: [{reps: 9, carga: 20}]});
-    const anterior = ultimaSerieAnterior(QUARTA_3, 't1', 0);
+    const anterior = ultimaSerieAnterior(QUARTA_3, 't1', idDoExercicio('t1', 0));
     expect(anterior.data).toBe(QUARTA_2);
     expect(anterior.series[0].reps).toBe(9);
   });
@@ -70,16 +79,16 @@ describe('a última vez', () => {
   it('ignora a própria data — é a ÚLTIMA, não a de hoje', () => {
     registrar(QUARTA_1, 't1', {0: [{reps: 8, carga: 20}]});
     registrar(QUARTA_2, 't1', {0: [{reps: 9, carga: 20}]});
-    expect(ultimaSerieAnterior(QUARTA_2, 't1', 0).data).toBe(QUARTA_1);
+    expect(ultimaSerieAnterior(QUARTA_2, 't1', idDoExercicio('t1', 0)).data).toBe(QUARTA_1);
   });
 
   it('devolve null quando é a primeira vez', () => {
-    expect(ultimaSerieAnterior(QUARTA_1, 't1', 0)).toBe(null);
+    expect(ultimaSerieAnterior(QUARTA_1, 't1', idDoExercicio('t1', 0))).toBe(null);
   });
 
   it('não confunde exercícios diferentes', () => {
     registrar(QUARTA_1, 't1', {0: [{reps: 8, carga: 20}]});
-    expect(ultimaSerieAnterior(QUARTA_2, 't1', 1)).toBe(null);
+    expect(ultimaSerieAnterior(QUARTA_2, 't1', idDoExercicio('t1', 1))).toBe(null);
   });
 });
 
@@ -276,7 +285,7 @@ describe('exercícios por tempo', () => {
 
   it('segundos não entram no volume', () => {
     // O treino de teste tem dois exercícios; o segundo passa a ser por tempo.
-    Dados.treinos[0].exercicios[1] = {n:'Prancha', a:'3 × 30s', tipo:'tempo'};
+    Object.assign(Dados.treinos[0].exercicios[1], {n:'Prancha', a:'3 × 30s', tipo:'tempo'});
     registrar(QUARTA_1, 't1', {
       0: [{reps:10, carga:20}],          // 200 de volume
       1: [{reps:60, carga:10}]           // por tempo: fora da conta
@@ -285,7 +294,7 @@ describe('exercícios por tempo', () => {
   });
 
   it('mas continuam contando como séries feitas', () => {
-    Dados.treinos[0].exercicios[1] = {n:'Prancha', a:'3 × 30s', tipo:'tempo'};
+    Object.assign(Dados.treinos[0].exercicios[1], {n:'Prancha', a:'3 × 30s', tipo:'tempo'});
     registrar(QUARTA_1, 't1', {0: [{reps:10, carga:20}], 1: [{reps:60, carga:0}]});
     expect(totalDeSeries(sessaoDe(QUARTA_1, 't1'))).toBe(2);
   });
@@ -380,5 +389,99 @@ describe('evolução do treino', () => {
     expect(p[1].carga).toBe(30);
     expect(p[1].series).toBe(2);
     expect(p[1].volume).toBe(10*30 + 8*30);
+  });
+});
+
+/* ===========================================================================
+   O EXERCÍCIO TEM ID
+
+   A posição na lista era uma identidade traiçoeira: remover o segundo
+   exercício, ou só mover um para cima, deslocava o histórico de todos os
+   seguintes — o recorde da barra fixa virava recorde da remada, em silêncio.
+   =========================================================================== */
+
+describe('identidade do exercício', () => {
+  it('todo exercício da rotina-modelo nasce com id', () => {
+    Dados.treinos.forEach(t => t.exercicios.forEach(ex => {
+      expect(typeof ex.id).toBe('string');
+      expect(ex.id.length).toBeGreaterThan(2);
+    }));
+  });
+
+  it('os ids não se repetem dentro do treino', () => {
+    const ids = Dados.treinos[0].exercicios.map(ex => ex.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('REMOVER um exercício não desloca o histórico dos outros', () => {
+    const idB = idDoExercicio('t1', 1);
+    registrar(QUARTA_1, 't1', {0: [{reps:5, carga:50}], 1: [{reps:20, carga:5}]});
+
+    Dados.treinos[0].exercicios.splice(0, 1);          // sai o primeiro
+
+    // O que era do segundo continua sendo dele, e não herdou o do primeiro.
+    expect(seriesDe(QUARTA_1, 't1', idB)).toEqual([{reps:20, carga:5}]);
+    expect(recordes().filter(r => r.nome === 'Ex B')[0].carga).toBe(5);
+  });
+
+  it('MOVER um exercício também não embaralha nada', () => {
+    registrar(QUARTA_1, 't1', {0: [{reps:5, carga:50}], 1: [{reps:20, carga:5}]});
+    const ex = Dados.treinos[0].exercicios;
+    ex.push(ex.shift());                                // troca a ordem
+
+    expect(recordes().filter(r => r.nome === 'Ex A')[0].carga).toBe(50);
+    expect(recordes().filter(r => r.nome === 'Ex B')[0].carga).toBe(5);
+  });
+
+  it('a marcação de feito também segue o id', () => {
+    const idA = idDoExercicio('t1', 0);
+    Dados.exercFeitos[QUARTA_1 + ':t1:1:' + idA] = true;
+    Dados.treinos[0].exercicios.splice(1, 1);          // sai o SEGUNDO
+    expect(exercicioFeito(QUARTA_1, 't1', 1, idA)).toBe(true);
+  });
+});
+
+describe('migração v9 → v10: séries por índice viram séries por id', () => {
+  function dadosAntigos(){
+    return {
+      versao: 9, slots: [],
+      treinos: [{id:'t1', dia:'Qua', nome:'T', exercicios:[
+        {n:'Primeiro', a:'3 × 10'}, {n:'Segundo', a:'3 × 10'}
+      ]}],
+      sessoes: {'2026-08-12:t1': {data:'2026-08-12', treinoId:'t1',
+        series: {0: [{reps:10, carga:20}], 1: [{reps:8, carga:30}]}}},
+      exercFeitos: {'2026-08-12:t1:1:0': true}
+    };
+  }
+
+  it('cada exercício ganha um id', () => {
+    const d = migrar(dadosAntigos());
+    d.treinos[0].exercicios.forEach(ex => expect(typeof ex.id).toBe('string'));
+  });
+
+  it('as séries passam a ser guardadas pelo id, sem perder nenhuma', () => {
+    const d = migrar(dadosAntigos());
+    const ids = d.treinos[0].exercicios.map(e => e.id);
+    const series = d.sessoes['2026-08-12:t1'].series;
+    expect(Object.keys(series).sort()).toEqual(ids.slice().sort());
+    expect(series[ids[0]]).toEqual([{reps:10, carga:20}]);
+    expect(series[ids[1]]).toEqual([{reps:8, carga:30}]);
+  });
+
+  it('e a marcação de feito acompanha', () => {
+    const d = migrar(dadosAntigos());
+    const id = d.treinos[0].exercicios[0].id;
+    expect(d.exercFeitos['2026-08-12:t1:1:' + id]).toBe(true);
+  });
+
+  it('série de exercício que já não existe é descartada, não remanejada', () => {
+    const antigo = dadosAntigos();
+    antigo.sessoes['2026-08-12:t1'].series[5] = [{reps:1, carga:1}];
+    const d = migrar(antigo);
+    expect(Object.keys(d.sessoes['2026-08-12:t1'].series).length).toBe(2);
+  });
+
+  it('dados sem treino nem sessão passam inteiros', () => {
+    expect(migrar({versao: 9, slots: []}).versao).toBe(VERSAO_ESQUEMA);
   });
 });

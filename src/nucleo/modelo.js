@@ -297,8 +297,8 @@ export function refeicaoFeita(iso, slot){
   return false;
 }
 
-export function exercicioFeito(iso, treinoId, volta, indice){
-  return !!Dados.exercFeitos[iso + ':' + treinoId + ':' + volta + ':' + indice];
+export function exercicioFeito(iso, treinoId, volta, exId){
+  return !!Dados.exercFeitos[iso + ':' + treinoId + ':' + volta + ':' + exId];
 }
 
 
@@ -604,7 +604,9 @@ export function progressoDoTreino(iso, treino){
   const voltas = voltasDoTreino(treino);
   let feitos = 0;
   voltas.forEach(v => {
-    treino.exercicios.forEach((ex, i) => { if(exercicioFeito(iso, treino.id, v, i)) feitos++; });
+    treino.exercicios.forEach(ex => {
+      if(ex && exercicioFeito(iso, treino.id, v, ex.id)) feitos++;
+    });
   });
   return {feitos: feitos, total: voltas.length * treino.exercicios.length};
 }

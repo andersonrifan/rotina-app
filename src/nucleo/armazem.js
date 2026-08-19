@@ -17,7 +17,7 @@ import { RECEITAS } from '../dados/receitas.js';
 export const CHAVE = 'rotina_v4';
 
 /** A versão do esquema que ESTA build entende. Suba ao mudar o formato. */
-export const VERSAO_ESQUEMA = 9;
+export const VERSAO_ESQUEMA = 10;
 
 /** Cópia profunda. Usada ao semear dados e ao simular hipóteses. */
 export function clonar(valor){
@@ -106,6 +106,55 @@ const MIGRACOES = {
       const original = RECEITAS.filter(x => x.id === r.id)[0];
       if(original && original.emLote !== undefined) r.emLote = original.emLote;
     });
+    return dados;
+  },
+
+  /* v9 → v10: cada exercício ganha um id, e as séries deixam de ser guardadas
+     pela POSIÇÃO dele no treino.
+
+     A posição era uma identidade traiçoeira: remover o segundo exercício, ou
+     só mover um para cima, deslocava todo o histórico dos seguintes — o
+     recorde da barra fixa passava a aparecer como recorde da remada, em
+     silêncio. O mesmo defeito que os blocos fixos têm e que lá foi contornado
+     deixando buraco em vez de encurtar a lista; aqui dá para resolver de vez.
+
+     A conversão precisa acontecer ANTES de qualquer tela ler os dados, senão
+     as séries somem: elas continuam gravadas sob as chaves antigas. */
+  9: (dados) => {
+    const idsPorTreino = {};
+    (dados.treinos || []).forEach(t => {
+      idsPorTreino[t.id] = [];
+      (t.exercicios || []).forEach((ex, i) => {
+        if(ex && !ex.id) ex.id = 'ex' + i + Math.random().toString(36).slice(2, 7);
+        idsPorTreino[t.id][i] = ex ? ex.id : null;
+      });
+    });
+
+    Object.keys(dados.sessoes || {}).forEach(chave => {
+      const sessao = dados.sessoes[chave];
+      const ids = idsPorTreino[sessao.treinoId];
+      if(!ids || !sessao.series) return;
+      const convertido = {};
+      Object.keys(sessao.series).forEach(indice => {
+        const id = ids[Number(indice)];
+        /* Série de exercício que já não existe no treino não tem para onde
+           ir. Guardá-la sob a chave antiga faria a próxima leitura confundi-la
+           com outro exercício. */
+        if(id) convertido[id] = sessao.series[indice];
+      });
+      sessao.series = convertido;
+    });
+
+    const feitos = {};
+    Object.keys(dados.exercFeitos || {}).forEach(chave => {
+      const p = chave.split(':');           // data : treino : volta : índice
+      if(p.length !== 4){ feitos[chave] = dados.exercFeitos[chave]; return; }
+      const ids = idsPorTreino[p[1]];
+      const id = ids && ids[Number(p[3])];
+      if(id) feitos[p[0] + ':' + p[1] + ':' + p[2] + ':' + id] = dados.exercFeitos[chave];
+    });
+    dados.exercFeitos = feitos;
+
     return dados;
   }
 };

@@ -13,7 +13,7 @@ import { Dados } from './estado.js';
 import { hojeISO, semanaDe, ehFuturo, diaDaSemana, somarDias } from './tempo.js';
 import { blocosDoDia, statusDoBloco, refeicaoFeita, pratoDe, totaisDoDia } from './modelo.js';
 import { sessoesRegistradas, volumeDaSessao, totalDeSeries,
-         tipoDoExercicio } from './sessoes.js';
+         tipoDoExercicio, exercicioDaSessao } from './sessoes.js';
 
 /* --- Aderência ------------------------------------------------------------
    A fração dos blocos do dia marcados como feitos. Só conta bloco que já
@@ -190,12 +190,6 @@ export function refeicoesDaSemana(iso){
    blocos fixos têm, e a razão de remover exercício avisar antes.
    =========================================================================== */
 
-/** O exercício de índice `i` no treino de uma sessão, se ainda existir. */
-function exercicioDaSessao(sessao, indice){
-  const treino = Dados.treinos.filter(t => t.id === sessao.treinoId)[0];
-  return treino ? treino.exercicios[indice] : null;
-}
-
 /** Volume total (kg) por semana, nas últimas `semanas` semanas. */
 export function volumePorSemana(iso, semanas){
   const base = iso || hojeISO();
@@ -236,15 +230,15 @@ export function resumoDoTreino(iso, dias){
 export function recordes(){
   const porNome = {};
   sessoesRegistradas().forEach(sessao => {
-    Object.keys(sessao.series).forEach(indice => {
-      const ex = exercicioDaSessao(sessao, indice);
+    Object.keys(sessao.series).forEach(exId => {
+      const ex = exercicioDaSessao(sessao, exId);
       if(!ex) return;
       const atual = porNome[ex.n] || {
         nome: ex.n, tipo: tipoDoExercicio(ex),
         carga: 0, reps: 0, data: sessao.data, sessoes: 0
       };
       atual.sessoes++;
-      sessao.series[indice].forEach(serie => {
+      sessao.series[exId].forEach(serie => {
         const carga = serie.carga || 0;
         const reps = serie.reps || 0;
         /* Carga maior manda. Empatou na carga, mais repetições manda —
@@ -270,10 +264,10 @@ export function recordes(){
 export function evolucaoDoExercicio(nome){
   const pontos = [];
   sessoesRegistradas().slice().reverse().forEach(sessao => {
-    Object.keys(sessao.series).forEach(indice => {
-      const ex = exercicioDaSessao(sessao, indice);
+    Object.keys(sessao.series).forEach(exId => {
+      const ex = exercicioDaSessao(sessao, exId);
       if(!ex || ex.n !== nome) return;
-      const series = sessao.series[indice];
+      const series = sessao.series[exId];
       const melhor = series.reduce((m, s) => Math.max(m, s.carga || 0), 0);
       const repsMax = series.reduce((m, s) => Math.max(m, s.reps || 0), 0);
       pontos.push({

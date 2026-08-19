@@ -71,15 +71,37 @@ export function carregar(modelo){
       const salvo = JSON.parse(cru);
       if(salvo && typeof salvo === 'object' && salvo.slots){
         const migrado = migrar(salvo);
-        if(migrado){ Dados = migrado; return Dados; }
+        if(migrado){ Dados = garantirIdsDeExercicio(migrado); return Dados; }
       }
     }catch(err){
       console.warn('Dados salvos ilegíveis — recomeçando do modelo.', err);
     }
   }
-  Dados = dadosIniciais(modelo || MODELO);
+  Dados = garantirIdsDeExercicio(dadosIniciais(modelo || MODELO));
   return Dados;
 }
+
+/**
+ * Todo exercício precisa de um id.
+ *
+ * É por ele que as séries e as marcações encontram o exercício certo — a
+ * posição na lista não serve, porque mover ou remover um deslocaria o
+ * histórico de todos os seguintes. A migração cuida de quem já tinha dados;
+ * esta função cuida de tudo o mais que entra: a rotina-modelo, um backup
+ * restaurado, um treino copiado.
+ *
+ * É idempotente de propósito — só preenche o que falta, e pode rodar em
+ * qualquer caminho de entrada sem medo.
+ */
+export function garantirIdsDeExercicio(dados){
+  (dados && dados.treinos || []).forEach((treino, t) => {
+    (treino.exercicios || []).forEach((ex, i) => {
+      if(ex && !ex.id) ex.id = 'ex' + t + i + Math.random().toString(36).slice(2, 7);
+    });
+  });
+  return dados;
+}
+
 
 export function salvarDados(){
   armazem.gravar(CHAVE, JSON.stringify(Dados));
@@ -87,7 +109,7 @@ export function salvarDados(){
 
 /** Troca os dados inteiros. Usado ao restaurar backup e ao recomeçar. */
 export function substituirDados(novos){
-  Dados = novos;
+  Dados = garantirIdsDeExercicio(novos);
   salvarDados();
 }
 
@@ -139,7 +161,9 @@ export const Tela = {
   /* Tela da receita, aberta pelo cardápio. Guarda o id, não o objeto: os
      dados podem mudar embaixo dela. */
   receita: null,
-  editandoReceita: false
+  editandoReceita: false,
+  /* Qual recorde está aberto mostrando a curva, nas Estatísticas. */
+  exercicioAberto: null
 };
 
 export function definirTela(patch){
