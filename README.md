@@ -104,10 +104,10 @@ Dois caminhos, e os dois obedecem à mesma regra:
   segunda-feira"* (ou *"em todos os dias"*, se for refeição). É o caminho de
   quem já está olhando o bloco e percebeu que a mudança é permanente.
 - **Perfil → Semana modelo**, para redesenhar a semana inteira sentado: os
-  sete dias, o que cada um tem, adicionar e tirar. Refeições e treinos
-  aparecem lá para dar o dia completo, mas continuam sendo definidos nas abas
-  Comida e Treino — um terceiro lugar para mudar o mesmo horário é onde as
-  telas começam a discordar.
+  sete dias, o que cada um tem, adicionar e tirar. Tocar em qualquer linha
+  edita o HORÁRIO, inclusive o de uma refeição ou de um treino — é para isso
+  que se abre essa tela. O que continua morando na aba dona é o resto: qual
+  prato, quais exercícios. O chip na linha leva até lá.
 
 **A regra:** mudança no molde vale **de hoje em diante**. Antes de tocar no
 molde, os dias já vividos são *congelados* — ganham uma cópia própria do que

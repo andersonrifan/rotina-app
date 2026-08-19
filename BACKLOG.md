@@ -50,9 +50,6 @@ que não vale.
       sozinho: os almoços de seg/ter/qua continuam só com o prato principal
       desde a migração. Reabrir cada um em Comida → Semana e marcar o arroz
       junto faz a lista de compras voltar a pedir a quantidade certa.
-- [ ] **Conferir quais receitas são mesmo de lote.** Tudo que rende mais de
-      uma porção começou ligado, o que é um chute razoável mas é um chute.
-      A chave está em Comida → Receitas, dentro de cada ficha.
 - [ ] **Célula do cardápio não é tocável.** Os 30 px de altura vêm do handoff e
       não chegam ao alvo mínimo, então a edição é pela lista abaixo da grade.
       Funciona, mas alguém pode tentar tocar a célula primeiro.
