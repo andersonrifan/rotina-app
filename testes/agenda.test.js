@@ -9,7 +9,8 @@ import { describe, it, expect } from 'vitest';
 import {
   janelaDoDia, blocosNaJanela, blocosAntesDaJanela, horasDaJanela, rotuloDaHora,
   lacunas, minutosLivres, colunasDaJanela, arrastarPara, limitarInicio,
-  redimensionar, limitarDuracao, noPasso, LACUNA_MINIMA
+  redimensionar, limitarDuracao, noPasso, trocarComVizinho, podeTrocar,
+  LACUNA_MINIMA
 } from '../src/nucleo/agenda.js';
 
 function b(id, hora, dur, cat){
@@ -282,3 +283,96 @@ function paraMin(hhmm){
   const p = hhmm.split(':');
   return (+p[0]) * 60 + (+p[1]);
 }
+
+describe('trocar de lugar sem arrastar', () => {
+  /* Durações diferentes de propósito: é aí que "trocar de horário" e "trocar
+     de casa" divergem, e só a segunda não cria sobreposição. */
+  const dia = () => [b('cafe', '06:30', 30), b('trab', '07:00', 150), b('fim', '12:00', 60)];
+
+  it('o segundo assume o começo do primeiro', () => {
+    const depois = trocarComVizinho(dia(), 'cafe', 1);
+    expect(depois.map(x => [x.id, x.hora])).toEqual([
+      ['trab', '06:30'], ['cafe', '09:00'], ['fim', '12:00']
+    ]);
+  });
+
+  it('e NÃO cria sobreposição, que era o erro de trocar só o horário', () => {
+    const depois = trocarComVizinho(dia(), 'cafe', 1);
+    for(let i = 0; i < depois.length - 1; i++){
+      const fim = paraMin(depois[i].hora) + depois[i].dur;
+      expect(paraMin(depois[i + 1].hora)).toBeGreaterThanOrEqual(fim);
+    }
+  });
+
+  it('o par termina onde terminava — ninguém depois precisa se mexer', () => {
+    const antes = dia();
+    const fimDoPar = l => Math.max(paraMin(l[0].hora) + l[0].dur,
+                                   paraMin(l[1].hora) + l[1].dur);
+    expect(fimDoPar(trocarComVizinho(antes, 'cafe', 1))).toBe(fimDoPar(antes));
+  });
+
+  it('subir é o inverso exato de descer', () => {
+    const uma = trocarComVizinho(dia(), 'trab', -1);
+    const volta = trocarComVizinho(uma, 'trab', 1);
+    expect(volta.map(x => [x.id, x.hora])).toEqual(dia().map(x => [x.id, x.hora]));
+  });
+
+  it('a duração de cada um vai junto com ele', () => {
+    const depois = trocarComVizinho(dia(), 'cafe', 1);
+    expect(depois.filter(x => x.id === 'cafe')[0].dur).toBe(30);
+    expect(depois.filter(x => x.id === 'trab')[0].dur).toBe(150);
+  });
+
+  it('ninguém além dos dois se mexe', () => {
+    expect(trocarComVizinho(dia(), 'cafe', 1).filter(x => x.id === 'fim')[0].hora)
+      .toBe('12:00');
+  });
+
+  it('o intervalo entre os dois é mantido', () => {
+    const comVao = [b('a', '08:00', 60), b('b', '10:00', 30)];   // 60 min de vão
+    const depois = trocarComVizinho(comVao, 'a', 1);
+    const vao = paraMin(depois[1].hora) - (paraMin(depois[0].hora) + depois[0].dur);
+    expect(vao).toBe(60);
+  });
+
+  it('nas pontas não há com quem trocar', () => {
+    expect(podeTrocar(dia(), 'cafe', -1)).toBe(false);
+    expect(podeTrocar(dia(), 'fim', 1)).toBe(false);
+    expect(podeTrocar(dia(), 'cafe', 1)).toBe(true);
+    expect(podeTrocar(dia(), 'fim', -1)).toBe(true);
+  });
+
+  it('e pedir a troca ali não muda nada', () => {
+    expect(trocarComVizinho(dia(), 'cafe', -1).map(x => [x.id, x.hora]))
+      .toEqual(dia().map(x => [x.id, x.hora]));
+  });
+
+  it('bloco que não existe não quebra', () => {
+    expect(trocarComVizinho(dia(), 'fantasma', 1).length).toBe(3);
+    expect(podeTrocar(dia(), 'fantasma', 1)).toBe(false);
+  });
+
+  it('não altera a lista recebida', () => {
+    const antes = dia();
+    trocarComVizinho(antes, 'cafe', 1);
+    expect(antes[0].hora).toBe('06:30');
+  });
+});
+
+describe('trocar com blocos que já se sobrepunham', () => {
+  /* O lanche das 09:30 dentro do estudo das 08:30 é a rotina real, não um
+     erro. Trocar os dois não pode jogar ninguém para antes do dia. */
+  const comChoque = () => [b('estudo', '08:30', 120), b('lanche', '09:30', 10)];
+
+  it('o par não começa antes de onde começava', () => {
+    const depois = trocarComVizinho(comChoque(), 'estudo', 1);
+    depois.forEach(x => expect(paraMin(x.hora)).toBeGreaterThanOrEqual(paraMin('08:30')));
+  });
+
+  it('os dois encostam no começo, que é o mais perto do que se pediu', () => {
+    /* Sobrepostos quase inteiros, a troca não tem para onde deslocar sem sair
+       do dia. Empatar no início preserva a sobreposição que já existia. */
+    const depois = trocarComVizinho(comChoque(), 'estudo', 1);
+    expect(depois.map(x => x.hora)).toEqual(['08:30', '08:30']);
+  });
+});

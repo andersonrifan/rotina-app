@@ -60,7 +60,7 @@ src/
   telas/              uma por aba, mais boas-vindas, perfil,
                       estatisticas, semana, receita e primeiro-uso
 
-testes/               257 testes sobre o núcleo
+testes/               270 testes sobre o núcleo
 docs/                 publicação e privacidade
 ```
 

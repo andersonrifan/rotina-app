@@ -272,6 +272,54 @@ export function redimensionar(blocos, id, novaDur){
 }
 
 
+/**
+ * Troca um bloco de lugar com o vizinho, sem arrastar.
+ *
+ * O arraste é o gesto natural no celular, mas era o ÚNICO caminho para
+ * reorganizar o dia — e ele exige ponteiro. Quem navega por teclado ou leitor
+ * de tela mudava horários pelo editor e não conseguia trocar a ordem. Serve
+ * também a quem simplesmente prefere não arrastar.
+ *
+ * OS DOIS TROCAM DE CASA, NÃO DE HORÁRIO. Trocar o horário de início parece a
+ * leitura óbvia e está errada quando as durações diferem: o café de 30 min e
+ * o trabalho de 2 h 30 trocariam de início e passariam a se sobrepor por duas
+ * horas. Trocando de casa, o segundo assume o começo do primeiro, o intervalo
+ * entre eles é mantido, e o par termina exatamente onde terminava — ninguém
+ * mais no dia precisa se mexer.
+ */
+export function trocarComVizinho(blocos, id, direcao){
+  const i = indiceDe(blocos, id);
+  const j = i + (direcao < 0 ? -1 : 1);
+  if(i < 0 || j < 0 || j >= blocos.length) return blocos.slice();
+
+  const p = Math.min(i, j);            // o que vem antes no dia
+  const q = Math.max(i, j);            // o que vem depois
+  const inicio = paraMinutos(blocos[p].hora);
+  /* O intervalo entre os dois é preservado com sinal: se eles já se
+     sobrepunham, continuam se sobrepondo do mesmo jeito. Consertar isso aqui
+     seria mexer no que a pessoa não pediu. */
+  const vao = paraMinutos(blocos[q].hora) - (inicio + blocos[p].dur);
+
+  const novoInicioDoQ = inicio;
+  /* O par nunca começa antes de onde começava. Com intervalo negativo grande
+     — dois blocos que já se sobrepunham quase inteiros — a conta jogaria o
+     primeiro para trás do início do dia, e ele sumiria da régua. */
+  const novoInicioDoP = Math.max(inicio, inicio + blocos[q].dur + vao);
+
+  return blocos.map((b, k) => {
+    if(k === p) return Object.assign({}, b, {hora: paraHora(novoInicioDoP)});
+    if(k === q) return Object.assign({}, b, {hora: paraHora(novoInicioDoQ)});
+    return b;
+  }).sort((a, b) => paraMinutos(a.hora) - paraMinutos(b.hora));
+}
+
+/** Dá para trocar nesta direção sem sair da lista? */
+export function podeTrocar(blocos, id, direcao){
+  const i = indiceDe(blocos, id);
+  const j = i + (direcao < 0 ? -1 : 1);
+  return i >= 0 && j >= 0 && j < blocos.length;
+}
+
 /** Arredonda minutos no passo do arraste. */
 export function noPasso(minutos){
   return Math.round(minutos / PASSO_MINUTOS) * PASSO_MINUTOS;

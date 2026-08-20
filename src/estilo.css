@@ -1913,3 +1913,17 @@ button, .tocavel{
   border-radius:var(--r-linha-menor);
   background:var(--superficie);
 }
+
+/* O atalho para o modo de preparo, na linha da refeição de hoje. O toque na
+   linha marca como feita; este botão leva à receita. */
+.refeicao-receita{
+  width:34px; height:34px; min-height:0; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-pilula);
+  background:var(--superficie-clara); color:var(--texto-3);
+}
+
+.divisor-pratos{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--texto-fraco); padding:8px 2px 2px;
+}

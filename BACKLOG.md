@@ -100,6 +100,20 @@ Detalhes de cada um em [`docs/PLAY-STORE.md`](docs/PLAY-STORE.md).
 
 Fica registrado para não voltar à discussão.
 
+**Da rodada de usabilidade:**
+
+- ~~A aba Receitas não tinha busca~~ — e ela procura por INGREDIENTE também:
+  "o que eu faço com o frango que está na geladeira?" não é uma pergunta
+  sobre o nome do prato
+- ~~Da refeição de hoje não dava para chegar no modo de preparo~~ — a linha
+  ganhou um botão para a receita, separado do toque que marca como feita
+- ~~Escolher prato abria com onze pratos principais~~ — a lista põe primeiro o
+  que já está escolhido e depois a categoria que combina com a refeição,
+  deduzida do nome dela
+- ~~Reorganizar o dia só era possível arrastando~~ — o editor de bloco ganhou
+  "trocar de lugar" com o vizinho de cima e de baixo, que é também o único
+  caminho para quem navega por teclado
+
 **Da rodada da identidade do exercício:**
 
 - ~~O botão Voltar não funcionava~~ — o tratamento existia para o APK e o app

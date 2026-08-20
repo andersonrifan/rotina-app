@@ -1,4 +1,5 @@
 import { DIAS, NOMES_REFEICAO, REFEICOES_SUGERIDAS } from '../dados/modelo.js';
+import { ALIMENTOS } from '../dados/receitas.js';
 import { Dados, Tela, agir, agirSemAviso, definirTela } from '../nucleo/estado.js';
 import { diaDaSemana, semanaDe, dataCurta, paraMinutos } from '../nucleo/tempo.js';
 import { pratoDe, pratosDe, nutriDaReceita, totaisDoDia, refeicaoFeita, gerarCompras,
@@ -118,7 +119,17 @@ export function linhaDeRefeicao(iso, diaK, slot){
     h('div', {class:'refeicao-nums'},
       h('div', {class:'refeicao-kcal'}, numeroBR(prato.kcal) + ' kcal'),
       h('div', {class:'refeicao-prot'}, prato.prot + ' g')
-    )
+    ),
+    /* O caminho até o modo de preparo. Esta é a tela em que se lê "o que eu
+       vou comer agora", e era daqui que faltava chegar em "como se faz" — o
+       jeito antigo passava pela aba Semana e por dois toques a mais.
+
+       Botão separado porque o toque na LINHA marca a refeição como feita, e
+       dois significados no mesmo alvo é como se erra os dois. */
+    h('button', {class:'refeicao-receita', type:'button',
+      'aria-label': 'Ver a receita de ' + prato.nome,
+      onTap: ev => { ev.stopPropagation(); abrirReceita(prato.ids ? prato.ids[0] : prato.id); }},
+      icone('seta', 15))
   );
   /* Segurar qualquer refeição abre a edição da lista — o mesmo gesto da
      aba Dia, para não haver duas gramáticas no mesmo app. */
@@ -219,7 +230,7 @@ export function corpoEscolhaDePrato(diaK, slot){
   return h('div', {class:'folha-corpo'},
     h('input', {
       class:'campo-entrada', type:'search', value: buscaDePrato,
-      placeholder:'Buscar receita...',
+      placeholder:'Buscar por nome ou ingrediente...',
       onInput: ev => {
         buscaDePrato = ev.target.value;
         /* Redesenha só a lista pra não perder o foco do campo enquanto digita */
@@ -257,30 +268,70 @@ function resumoDaEscolha(diaK, slot){
   );
 }
 
+/**
+ * A categoria que uma refeição provavelmente quer.
+ *
+ * Escolher o café da manhã numa lista que abre com onze pratos principais é
+ * procurar antes de escolher. O slot não guarda categoria — e criar um campo
+ * para isso obrigaria a preenchê-lo — então o NOME responde, que é o que a
+ * pessoa escreveu ali justamente para dizer o que aquela refeição é.
+ *
+ * Errar aqui não custa nada: a lista continua inteira, só muda a ordem.
+ */
+function categoriaProvavel(slot){
+  const nome = (slot.nome || '').toLowerCase();
+  if(/caf[ée]|desjejum|manh[ãa]/.test(nome)) return 'cafe';
+  if(/lanche|merenda|ceia|p[óo]s|pr[ée]/.test(nome)) return 'lanche';
+  if(/almo|jantar|janta|marmita/.test(nome)) return 'principal';
+  return null;
+}
+
 export function listaDePratos(diaK, slot){
   const termo = buscaDePrato.trim().toLowerCase();
-  const lista = receitas().filter(r => !termo || r.nome.toLowerCase().indexOf(termo) >= 0);
   const escolhidos = pratosDe(diaK, slot.id).map(r => r.id);
+  const preferida = categoriaProvavel(slot);
 
-  if(!lista.length){
-    return h('div', {class:'lista-pratos'}, h('p', {class:'nota'}, 'Nenhuma receita com esse nome.'));
+  const lista = receitas().filter(r => !termo ||
+    r.nome.toLowerCase().indexOf(termo) >= 0 ||
+    (r.ingr || []).some(([id]) => ALIMENTOS[id] &&
+      ALIMENTOS[id].nome.toLowerCase().indexOf(termo) >= 0));
+
+  /* Ordem: o que já está escolhido, depois a categoria da refeição, depois o
+     resto. Sem reordenar durante a busca — quem digitou já disse o que quer. */
+  const peso = r => {
+    if(escolhidos.indexOf(r.id) >= 0) return 0;
+    if(!termo && preferida && (r.cat || 'principal') === preferida) return 1;
+    return 2;
+  };
+  const ordenada = lista.slice().sort((a, b) => peso(a) - peso(b));
+
+  if(!ordenada.length){
+    return h('div', {class:'lista-pratos'},
+      h('p', {class:'nota'}, 'Nenhuma receita com esse nome ou ingrediente.'));
   }
 
   return h('div', {class:'lista-pratos'},
-    lista.map(r => {
+    ordenada.map((r, i) => {
       const n = nutriDaReceita(r);
       const dentro = escolhidos.indexOf(r.id) >= 0;
-      return h('button', {
-          class:'item-prato' + (dentro ? ' atual' : ''),
-          type:'button',
-          'aria-pressed': String(dentro),
-          onTap: () => alternarPrato(diaK, slot, r.id)
-        },
-        h('span', {class:'item-prato-nome'}, r.nome),
-        h('span', {class:'item-prato-meta'},
-          numeroBR(n.kcal) + ' kcal · ' + Math.round(n.prot) + ' g prot'),
-        dentro ? h('span', {class:'item-prato-marca'}, icone('check', 14)) : null
-      );
+      /* Uma linha separando o que combina com a refeição do resto, para a
+         ordem não parecer arbitrária. */
+      const primeiroDoResto = !termo && preferida && peso(r) === 2 &&
+                              i > 0 && peso(ordenada[i - 1]) < 2;
+      return [
+        primeiroDoResto ? h('div', {class:'divisor-pratos'}, 'Outras receitas') : null,
+        h('button', {
+            class:'item-prato' + (dentro ? ' atual' : ''),
+            type:'button',
+            'aria-pressed': String(dentro),
+            onTap: () => alternarPrato(diaK, slot, r.id)
+          },
+          h('span', {class:'item-prato-nome'}, r.nome),
+          h('span', {class:'item-prato-meta'},
+            numeroBR(n.kcal) + ' kcal · ' + Math.round(n.prot) + ' g prot'),
+          dentro ? h('span', {class:'item-prato-marca'}, icone('check', 14)) : null
+        )
+      ];
     })
   );
 }
@@ -323,6 +374,9 @@ const ORDEM_CATEGORIA = [
   ['principal', 'Pratos principais'], ['base', 'Bases']
 ];
 
+/* Busca da aba Receitas. Fora do estado persistido: some ao sair. */
+let buscaDeReceita = '';
+
 export function comidaReceitas(){
   const todas = receitas();
   const emUso = {};
@@ -331,17 +385,62 @@ export function comidaReceitas(){
   }));
 
   if(!todas.length){
-    return estadoVazio('Sem receitas',
-      'Toque no + para escrever a primeira.');
+    return estadoVazio('Sem receitas', 'Toque no + para escrever a primeira.');
   }
 
-  return h('div', null,
-    h('p', {class:'nota'},
-      'Toque numa receita para ver os ingredientes, o modo de preparo e ' +
-      'ligar a preparação em lote.'),
+  const termo = buscaDeReceita.trim().toLowerCase();
+  const combina = r => !termo ||
+    r.nome.toLowerCase().indexOf(termo) >= 0 ||
+    /* Procurar por ingrediente é metade do uso real: "o que eu faço com o
+       frango que está na geladeira?" não é uma pergunta sobre o NOME. */
+    (r.ingr || []).some(([id]) => ALIMENTOS[id] &&
+      ALIMENTOS[id].nome.toLowerCase().indexOf(termo) >= 0);
 
+  const filtradas = todas.filter(combina);
+
+  return h('div', null,
+    h('input', {
+      class:'campo-entrada', type:'search', value: buscaDeReceita,
+      placeholder:'Buscar por nome ou ingrediente...',
+      'aria-label':'Buscar receita',
+      onInput: ev => {
+        buscaDeReceita = ev.target.value;
+        /* Só a lista é refeita: redesenhar a tela inteira tiraria o foco do
+           campo a cada letra digitada. */
+        const alvo = document.querySelector('.lista-de-receitas');
+        if(alvo) alvo.replaceWith(gruposDeReceitas(filtrarAgora(), emUso));
+      }
+    }),
+
+    termo
+      ? h('p', {class:'nota'},
+          filtradas.length
+            ? filtradas.length + (filtradas.length > 1 ? ' receitas' : ' receita') + ' com "' + buscaDeReceita.trim() + '"'
+            : 'Nenhuma receita com "' + buscaDeReceita.trim() + '".')
+      : h('p', {class:'nota'},
+          'Toque numa receita para ver os ingredientes, o modo de preparo e ' +
+          'ligar a preparação em lote.'),
+
+    gruposDeReceitas(filtradas, emUso)
+  );
+}
+
+/* Refaz o filtro na hora do redesenho parcial, sem depender do fechamento. */
+function filtrarAgora(){
+  const termo = buscaDeReceita.trim().toLowerCase();
+  return receitas().filter(r => !termo ||
+    r.nome.toLowerCase().indexOf(termo) >= 0 ||
+    (r.ingr || []).some(([id]) => ALIMENTOS[id] &&
+      ALIMENTOS[id].nome.toLowerCase().indexOf(termo) >= 0));
+}
+
+function gruposDeReceitas(lista, emUso){
+  const conhecidas = ORDEM_CATEGORIA.map(([c]) => c);
+  const sobra = lista.filter(r => conhecidas.indexOf(r.cat || 'principal') < 0);
+
+  return h('div', {class:'lista-de-receitas'},
     ORDEM_CATEGORIA.map(([cat, titulo]) => {
-      const doGrupo = todas.filter(r => (r.cat || 'principal') === cat);
+      const doGrupo = lista.filter(r => (r.cat || 'principal') === cat);
       if(!doGrupo.length) return null;
       return h('section', {class:'cartao'},
         rotuloSecao(titulo),
@@ -349,16 +448,12 @@ export function comidaReceitas(){
           doGrupo.map(r => linhaDeReceita(r, emUso[r.id] || 0)))
       );
     }),
-
-    /* Categoria que não está na lista acima não pode sumir da tela. */
-    (() => {
-      const conhecidas = ORDEM_CATEGORIA.map(([c]) => c);
-      const sobra = todas.filter(r => conhecidas.indexOf(r.cat || 'principal') < 0);
-      if(!sobra.length) return null;
-      return h('section', {class:'cartao'},
-        rotuloSecao('Outras'),
-        h('div', {class:'lista-receitas'}, sobra.map(r => linhaDeReceita(r, emUso[r.id] || 0))));
-    })()
+    /* Categoria fora da lista acima não pode sumir da tela. */
+    sobra.length
+      ? h('section', {class:'cartao'},
+          rotuloSecao('Outras'),
+          h('div', {class:'lista-receitas'}, sobra.map(r => linhaDeReceita(r, emUso[r.id] || 0))))
+      : null
   );
 }
 

@@ -8,7 +8,8 @@ import { blocosDoDia, blocoAtual, ordenarPorHora, materializar, statusDoBloco, p
          congelarPassado, propagarParaFuturo } from '../nucleo/modelo.js';
 import { janelaDoDia, horasDaJanela, rotuloDaHora, lacunas, minutosLivres,
          blocosNaJanela, blocosAntesDaJanela, colunasDaJanela, arrastarPara,
-         redimensionar, limitarInicio, noPasso, PASSO_MINUTOS } from '../nucleo/agenda.js';
+         redimensionar, limitarInicio, noPasso, trocarComVizinho, podeTrocar,
+         PASSO_MINUTOS } from '../nucleo/agenda.js';
 import { h, icone, cabecalhoTela, pilula, pilulaConcluir, estadoVazio, rotuloSecao,
          botaoFlutuante, abrirFolha, fecharFolha, ligarToqueLongo,
          consumirToqueLongo } from '../ui/index.js';
@@ -793,6 +794,8 @@ function corpoEditorDeBloco(iso, bloco){
       chipsDeCategoria(() => rascunhoBloco.cat, cat => { rascunhoBloco.cat = cat; })
     ),
 
+    trocaDeLugar(iso, bloco),
+
     h('label', {class:'interruptor-linha'},
       h('span', null, alcance.rotulo),
       h('button', {
@@ -858,6 +861,53 @@ function salvarEdicaoDeBloco(iso, bloco){
         {titulo: titulo, cat: r.cat, hora: r.inicio, dur: dur});
     }
   });
+  fecharFolha();
+}
+
+/* ---------------------------------------------------------------------------
+   TROCAR DE LUGAR SEM ARRASTAR
+
+   O arraste é o gesto natural no celular, mas era o ÚNICO caminho para
+   reorganizar o dia — e ele exige ponteiro. Quem navega por teclado ou leitor
+   de tela mudava horários pelo editor e não conseguia trocar a ordem. Estes
+   dois botões vivem no mesmo editor, ao lado dos horários, e servem também a
+   quem simplesmente prefere não arrastar.
+   --------------------------------------------------------------------------- */
+function trocaDeLugar(iso, bloco){
+  const blocos = blocosDoDia(iso);
+  const paraCima = podeTrocar(blocos, bloco.id, -1);
+  const paraBaixo = podeTrocar(blocos, bloco.id, 1);
+  if(!paraCima && !paraBaixo) return null;
+
+  const vizinho = direcao => {
+    const i = blocos.findIndex(b => b.id === bloco.id);
+    return blocos[i + direcao];
+  };
+
+  return h('div', {class:'campo'},
+    h('span', {class:'campo-rotulo'}, 'Trocar de lugar'),
+    h('div', {class:'linha-botoes'},
+      h('button', {
+        class:'btn btn-suave', type:'button', disabled: !paraCima,
+        'aria-label': paraCima ? 'Trocar com ' + vizinho(-1).titulo : 'Já é o primeiro do dia',
+        onTap: () => trocar(iso, bloco, -1)
+      }, icone('cima', 15), paraCima ? vizinho(-1).hora : '—'),
+      h('button', {
+        class:'btn btn-suave', type:'button', disabled: !paraBaixo,
+        'aria-label': paraBaixo ? 'Trocar com ' + vizinho(1).titulo : 'Já é o último do dia',
+        onTap: () => trocar(iso, bloco, 1)
+      }, icone('baixo', 15), paraBaixo ? vizinho(1).hora : '—')
+    ),
+    h('p', {class:'nota'},
+      'Os dois trocam de horário. O resto do dia fica onde está.')
+  );
+}
+
+function trocar(iso, bloco, direcao){
+  const blocos = blocosDoDia(iso);
+  const nova = ordenarPorHora(trocarComVizinho(blocos, bloco.id, direcao));
+  const alvo = nova.filter(b => b.id === bloco.id)[0];
+  agir(bloco.titulo + ' às ' + (alvo ? alvo.hora : ''), d => { d.blocos[iso] = nova; });
   fecharFolha();
 }
 
